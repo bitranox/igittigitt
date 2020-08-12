@@ -269,8 +269,6 @@ Changelog
 
 v0.0.1
 --------
-YYYY-MM-DD: <some release name>
-    - change1
-    - change2
-    - ...
+2020-08-12: initial release
+    - fork from https://github.com/mherrmann/gitignore_parser
 
