@@ -4,11 +4,6 @@ import collections
 import os
 import pathlib
 import re
-from typing import Callable, List
-
-# ### TYPES
-Rule = Callable[[os.PathLike], bool]
-Rules = List[Rule]
 
 
 def handle_negation(file_path, rules):
