@@ -76,7 +76,7 @@ matrix:
           - export DEPLOY_SDIST="False"
           - export DEPLOY_WHEEL="False"
           - export DEPLOY_TEST="False"
-          - export MYPY_DO_TESTS="True"
+          - export MYPY_DO_TESTS="False"
 
 
     - os: linux
@@ -89,7 +89,7 @@ matrix:
           - export DEPLOY_SDIST="True"
           - export DEPLOY_WHEEL="True"
           - export BUILD_TEST="True"
-          - export MYPY_DO_TESTS="True"
+          - export MYPY_DO_TESTS="False"
 
     - os: linux
       arch: "amd64"
@@ -101,7 +101,7 @@ matrix:
           - export DEPLOY_SDIST="True"
           - export DEPLOY_WHEEL="False"
           - export BUILD_TEST="True"
-          - export MYPY_DO_TESTS="True"
+          - export MYPY_DO_TESTS="False"
 
     - os: linux
       arch: "amd64"
@@ -113,7 +113,7 @@ matrix:
           - export DEPLOY_SDIST="True"
           - export DEPLOY_WHEEL="True"
           - export BUILD_TEST="True"
-          - export MYPY_DO_TESTS="True"
+          - export MYPY_DO_TESTS="False"
 
     - os: linux
       arch: "amd64"
@@ -125,7 +125,7 @@ matrix:
           - export DEPLOY_SDIST="True"
           - export DEPLOY_WHEEL="True"
           - export BUILD_TEST="True"
-          - export MYPY_DO_TESTS="True"
+          - export MYPY_DO_TESTS="False"
 
     - os: linux
       arch: "amd64"
@@ -149,7 +149,7 @@ matrix:
           - export DEPLOY_SDIST="True"
           - export DEPLOY_WHEEL="True"
           - export BUILD_TEST="True"
-          - export MYPY_DO_TESTS="True"
+          - export MYPY_DO_TESTS="False"
 
     - os: linux
       arch: "s390x"
@@ -161,7 +161,7 @@ matrix:
           - export DEPLOY_SDIST="True"
           - export DEPLOY_WHEEL="True"
           - export BUILD_TEST="True"
-          - export MYPY_DO_TESTS="True"
+          - export MYPY_DO_TESTS="False"
 
     - os: linux
       arch: "arm64"
@@ -173,7 +173,7 @@ matrix:
           - export DEPLOY_SDIST="True"
           - export DEPLOY_WHEEL="True"
           - export BUILD_TEST="True"
-          - export MYPY_DO_TESTS="True"
+          - export MYPY_DO_TESTS="False"
 
     - os: osx
       if: true
@@ -190,7 +190,7 @@ matrix:
         - export DEPLOY_SDIST="False"
         - export DEPLOY_WHEEL="False"
         - export DEPLOY_TEST="True"
-        - export MYPY_DO_TESTS="True"
+        - export MYPY_DO_TESTS="False"
 
 
 install:
