@@ -1,70 +1,166 @@
 # STDLIB
-import sys
 import collections
 import os
 import pathlib
 import re
+import sys
+from types import TracebackType
+from typing import List, Optional, Tuple, Type
 
 
-def handle_negation(file_path, rules):
-    matched = False
-    for rule in rules:
-        if rule.match(file_path):
-            if rule.negation:
-                matched = False
-            else:
-                matched = True
-    return matched
+whitespace_re = re.compile(r"(\\ )+$")
+
+IGNORE_RULE_FIELDS = [
+    "pattern",
+    "regex",  # Basic values
+    "negation",
+    "directory_only",
+    "anchored",  # Behavior flags
+    "base_path",  # Meaningful for gitignore-style behavior
+    "source",  # (file, line) tuple for reporting
+]
 
 
-# parse_gitignore {{{
-def parse_gitignore(full_path, base_dir=None):
+class IgnoreRule(collections.namedtuple("IgnoreRule_", IGNORE_RULE_FIELDS)):
+    def __str__(self):
+        return self.pattern
+
+    def __repr__(self):
+        return "".join(["IgnoreRule('", self.pattern, "')"])
+
+    def match(self, abs_path):
+        matched = False
+        if self.base_path:
+            rel_path = str(pathlib.Path(abs_path).resolve().relative_to(self.base_path))
+        else:
+            rel_path = str(pathlib.Path(abs_path))
+        if rel_path.startswith("./"):
+            rel_path = rel_path[2:]
+        if re.search(self.regex, rel_path):
+            matched = True
+        return matched
+
+
+# IgnoreParser{{{
+class IgnoreParser(object):
+    def __init__(self):
+        """
+        init the igittigitt parser.
+        """
+        # IgnoreParser}}}
+
+        self.rules: List[IgnoreRule] = list()
+        # if the rules contain a negation rule
+        self.rules_contains_negation_rule: bool = False
+        # small optimization - we have a
+        # good chance that the last rule
+        # might match again
+        self.last_matching_rule: Optional[IgnoreRule] = None
+
+    def __call__(self,) -> None:
+        self.__init__()  # type: ignore
+
+    def __enter__(self) -> "IgnoreParser":
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        pass
+
+    def parse_rule_file(
+        self, path_rule_file: os.PathLike, base_dir: Optional[os.PathLike] = None
+    ):
+        """
+        parse a git ignore file, create rules from a gitignore file
+
+        Parameter
+        ---------
+        full_path
+            the full path to the ignore file
+        base_dir
+            todo : good description missing
+
+        """
+
+        if base_dir is None:
+            base_dir = os.path.dirname(path_rule_file)
+        with open(path_rule_file) as ignore_file:
+            counter = 0
+            for line in ignore_file:
+                counter += 1
+                line = line.rstrip("\n")
+                rule = rule_from_pattern(
+                    line,
+                    base_path=pathlib.Path(base_dir).resolve(),
+                    source=(path_rule_file, counter),
+                )
+                if rule:
+                    self.rules.append(rule)
+                    if rule.negation:
+                        self.rules_contains_negation_rule = True
+
+    def add_rule(self, pattern: str, base_path: Optional[os.PathLike] = None):
+        rule = rule_from_pattern(pattern, base_path)
+        if rule:
+            self.rules.append(rule)
+
+    def match(self, file_path: os.PathLike) -> bool:
+        if self.rules_contains_negation_rule:
+            return self._match_with_negations(file_path)
+        else:
+            return self._match_without_negations(file_path)
+
+    def _match_with_negations(self, file_path: os.PathLike) -> bool:
+        """
+        match with negotiations - in that case we need to check
+        every single rule, because there can be a match,
+        followed by an unmatch
+        """
+        matched = False
+        for rule in self.rules:
+            if rule.match(file_path):
+                if rule.negation:
+                    matched = False
+                else:
+                    matched = True
+        return matched
+
+    def _match_without_negations(self, file_path: os.PathLike) -> bool:
+        """
+        match without negotiations - in that case we can return
+        immediately after a match.
+        """
+
+        # small optimisation - we have a good chance
+        # that the last rule can match again
+        if self.last_matching_rule and self.last_matching_rule.match(file_path):
+            return True
+
+        for rule in self.rules:
+            if rule.match(file_path):
+                self.last_matching_rule = rule
+                return True
+        return False
+
+
+def rule_from_pattern(
+    pattern: str,
+    base_path: Optional[os.PathLike] = None,
+    source: Optional[Tuple[os.PathLike, int]] = None,
+) -> Optional[IgnoreRule]:
     """
-    parse a git ignore file, create rules from a gitignore file
-
-    Parameter
-    ---------
-    full_path
-        the full path to the ignore file
-    base_dir
-        todo : good description missing
-
-    """
-    # parse_gitignore }}}
-
-    if base_dir is None:
-        base_dir = os.path.dirname(full_path)
-    rules = []
-    with open(full_path) as ignore_file:
-        counter = 0
-        for line in ignore_file:
-            counter += 1
-            line = line.rstrip("\n")
-            rule = rule_from_pattern(
-                line,
-                base_path=pathlib.Path(base_dir).resolve(),
-                source=(full_path, counter),
-            )
-            if rule:
-                rules.append(rule)
-    if not any(r.negation for r in rules):
-        return lambda file_path: any(r.match(file_path) for r in rules)
-    else:
-        # We have negation rules. We can't use a simple "any" to evaluate them.
-        # Later rules override earlier rules.
-        return lambda file_path: handle_negation(file_path, rules)
-
-
-def rule_from_pattern(pattern, base_path=None, source=None):
-    """
-    Take a .gitignore match pattern, such as "*.py[cod]" or "**/*.bak",
+     Take a .gitignore match pattern, such as "*.py[cod]" or "**/*.bak",
     and return an IgnoreRule suitable for matching against files and
     directories. Patterns which do not match files, such as comments
     and blank lines, will return None.
     Because git allows for nested .gitignore files, a base_path value
     is required for correct behavior. The base path should be absolute.
     """
-    if base_path and base_path != pathlib.Path(base_path).resolve():
+    if base_path and pathlib.Path(base_path) != pathlib.Path(base_path).resolve():
         raise ValueError("base_path must be absolute")
     # Store the exact pattern for our repr and string functions
     orig_pattern = pattern
@@ -121,39 +217,6 @@ def rule_from_pattern(pattern, base_path=None, source=None):
         base_path=pathlib.Path(base_path) if base_path else None,
         source=source,
     )
-
-
-whitespace_re = re.compile(r"(\\ )+$")
-
-IGNORE_RULE_FIELDS = [
-    "pattern",
-    "regex",  # Basic values
-    "negation",
-    "directory_only",
-    "anchored",  # Behavior flags
-    "base_path",  # Meaningful for gitignore-style behavior
-    "source",  # (file, line) tuple for reporting
-]
-
-
-class IgnoreRule(collections.namedtuple("IgnoreRule_", IGNORE_RULE_FIELDS)):
-    def __str__(self):
-        return self.pattern
-
-    def __repr__(self):
-        return "".join(["IgnoreRule('", self.pattern, "')"])
-
-    def match(self, abs_path):
-        matched = False
-        if self.base_path:
-            rel_path = str(pathlib.Path(abs_path).resolve().relative_to(self.base_path))
-        else:
-            rel_path = str(pathlib.Path(abs_path))
-        if rel_path.startswith("./"):
-            rel_path = rel_path[2:]
-        if re.search(self.regex, rel_path):
-            matched = True
-        return matched
 
 
 # Frustratingly, python's fnmatch doesn't provide the FNM_PATHNAME

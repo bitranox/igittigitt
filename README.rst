@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v0.0.1 as of 2020-08-12 see `Changelog`_
+Version v1.0.0 as of 2020-08-13 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi|
 
@@ -48,9 +48,11 @@ A spec-compliant gitignore parser for Python
 forked from https://github.com/mherrmann/gitignore_parser we might join later ....
 
 
+Suppose `/home/michael/project/.gitignore` contains the following:
+
 .. code-block:: python
 
-    Suppose `/home/michael/project/.gitignore` contains the following:
+    # /home/michael/project/.gitignore
     __pycache__/
     *.py[cod]
 
@@ -60,15 +62,16 @@ Then:
 
 .. code-block:: python
 
-    >>> from gitignore_parser import parse_gitignore
-    >>> matches = parse_gitignore('/home/michael/project/.gitignore')
-    >>> matches('/home/michael/project/main.py')
+    >>> import igittigitt
+    >>> parser = igittigitt.IgnoreParser()
+    >>> parser.parse_rule_file(pathlib.Path('/home/michael/project/.gitignore'))
+    >>> parser.match(pathlib.Path('/home/michael/project/main.py'))
     False
-    >>> matches('/home/michael/project/main.pyc')
+    >>> parser.match(pathlib.Path('/home/michael/project/main.pyc'))
     True
-    >>> matches('/home/michael/project/dir/main.pyc')
+    >>> parser.match(pathlib.Path('/home/michael/project/dir/main.pyc'))
     True
-    >>> matches('/home/michael/project/__pycache__')
+    >>> parser.match(pathlib.Path('/home/michael/project/__pycache__'))
     True
 
 
@@ -86,7 +89,7 @@ igittigitt
 - meaning (german):
     often perceived as an exaggeration exclamation of rejection, rejection full of disgust, disgust (mostly used by young children)
 - synonyms:
-    ugh, brr, ugh devil
+    ugh, brr, ugh devil, yuck
 - origin
     probably covering for: o God, ogottogott
 
@@ -127,22 +130,27 @@ repository_slug}}/master?filepath=igittigitt.ipynb>`_
 Usage
 -----------
 
-python methods:
+- Ignore Parser
 
 .. code-block:: python
 
-    def parse_gitignore(full_path, base_dir=None):
-        """
-        parse a git ignore file, create rules from a gitignore file
+    class IgnoreParser(object):
+        def __init__(self):
+            """
+            init the igittigitt parser.
+            """
 
-        Parameter
-        ---------
-        full_path
-            the full path to the ignore file
-        base_dir
-            todo : good description missing
+.. code-block:: python
 
-        """
+        >>> # init as normal Instance
+        >>> parser = igittigitt.IgnoreParser()
+        >>> print(parser)
+        <...IgnoreParser object at ...>
+
+        >>> # init with context manager
+        >>> with igittigitt.IgnoreParser() as parser:
+        ...     print(parser)
+        <...IgnoreParser object at ...>
 
 Usage from Commandline
 ------------------------
@@ -266,6 +274,23 @@ Changelog
 - new MAJOR version for incompatible API changes,
 - new MINOR version for added functionality in a backwards compatible manner
 - new PATCH version for backwards compatible bug fixes
+
+TODO:
+    - code coverage
+    - test context manager
+    - add nested .gitignore files
+    - __ALL__= ...
+    - documentation
+    - asserts for __ALL__ parameters
+
+
+v1.0.0
+--------
+2020-08-13: change the API interface
+    - put parser in a class to keep rules there
+    - change tests to pytest
+    - start type annotations
+    - implement black codestyle
 
 v0.0.1
 --------
