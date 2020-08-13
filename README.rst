@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v1.0.0 as of 2020-08-13 see `Changelog`_
+Version v1.0.1 as of 2020-08-13 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi|
 
@@ -282,6 +282,11 @@ TODO:
     - __ALL__= ...
     - documentation
     - asserts for __ALL__ parameters
+
+
+v1.0.1
+--------
+2020-08-13: fix negation handling
 
 
 v1.0.0

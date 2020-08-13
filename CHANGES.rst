@@ -14,6 +14,11 @@ TODO:
     - asserts for __ALL__ parameters
 
 
+v1.0.1
+--------
+2020-08-13: fix negation handling
+
+
 v1.0.0
 --------
 2020-08-13: change the API interface
