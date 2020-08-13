@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v1.0.2 as of 2020-08-13 see `Changelog`_
+Version v1.0.3 as of 2020-08-14 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi|
 
@@ -283,6 +283,10 @@ TODO:
     - documentation
     - asserts for __ALL__ parameters
 
+
+v1.0.3
+--------
+2020-08-13: handle comments / spaces
 
 v1.0.2
 --------

@@ -14,6 +14,10 @@ TODO:
     - asserts for __ALL__ parameters
 
 
+v1.0.3
+--------
+2020-08-13: handle comments / spaces
+
 v1.0.2
 --------
 2020-08-13: handle directories
