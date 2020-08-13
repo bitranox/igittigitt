@@ -210,6 +210,8 @@ def rule_from_pattern(
         pattern = pattern[1:]
     if pattern[-1] == "/":
         pattern = pattern[:-1]
+    if pattern[0] == '\\' and pattern[1] == '#':
+        pattern = pattern[1:]
     regex = fnmatch_pathname_to_regex(pattern, directory_only)
     if anchored:
         regex = "".join(["^", regex])

@@ -16,6 +16,16 @@ def parser_simple_git_rules():
 
 
 @pytest.fixture(scope='function')
+def parser_test_comments():
+    ignore_parser = igittigitt.IgnoreParser()
+    ignore_parser.add_rule('somematch', base_path=pathlib.Path('/home/michael'))
+    ignore_parser.add_rule('#realcomment', base_path=pathlib.Path('/home/michael'))
+    ignore_parser.add_rule('othermatch', base_path=pathlib.Path('/home/michael'))
+    ignore_parser.add_rule('\\#imnocomment', base_path=pathlib.Path('/home/michael'))
+    return ignore_parser
+
+
+@pytest.fixture(scope='function')
 def parser_negation_git_rules():
     ignore_parser = igittigitt.IgnoreParser()
     ignore_parser.add_rule('*.ignore', base_path=pathlib.Path('/home/michael'))
@@ -32,6 +42,13 @@ def test_simple_rules(parser_simple_git_rules):
     assert parser_simple_git_rules.match(pathlib.Path('/home/michael/.venv/'))
     assert parser_simple_git_rules.match(pathlib.Path('/home/michael/.venv/folder'))
     assert parser_simple_git_rules.match(pathlib.Path('/home/michael/.venv/file.txt'))
+
+
+def test_comments(parser_test_comments):
+    assert parser_test_comments.match(pathlib.Path('/home/michael/somematch'))
+    assert not parser_test_comments.match(pathlib.Path('/home/michael/#realcomment'))
+    assert parser_test_comments.match(pathlib.Path('/home/michael/othermatch'))
+    assert parser_test_comments.match(pathlib.Path('/home/michael/#imnocomment'))
 
 
 def test_negation_rules(parser_negation_git_rules):
