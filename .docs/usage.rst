@@ -1,4 +1,4 @@
-- Ignore Parser
+- init the Ignore Parser
 
 .. include:: ../igittigitt/igittigitt.py
     :code: python

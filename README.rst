@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v1.0.1 as of 2020-08-13 see `Changelog`_
+Version v1.0.2 as of 2020-08-13 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi|
 
@@ -130,7 +130,7 @@ repository_slug}}/master?filepath=igittigitt.ipynb>`_
 Usage
 -----------
 
-- Ignore Parser
+- init the Ignore Parser
 
 .. code-block:: python
 
@@ -283,6 +283,10 @@ TODO:
     - documentation
     - asserts for __ALL__ parameters
 
+
+v1.0.2
+--------
+2020-08-13: handle directories
 
 v1.0.1
 --------
