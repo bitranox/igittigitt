@@ -123,7 +123,7 @@ class IgnoreParser(object):
         """
         match with negotiations - in that case we need to check
         every single rule, because there can be a match,
-        followed by an unmatch
+        followed by an unmatch.
         """
         matched = False
         for rule in self.rules:

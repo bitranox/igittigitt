@@ -11,6 +11,7 @@ def parser_simple_git_rules():
     ignore_parser = igittigitt.IgnoreParser()
     ignore_parser.add_rule('__pycache__', base_path=pathlib.Path('/home/michael'))
     ignore_parser.add_rule('*.py[cod]', base_path=pathlib.Path('/home/michael'))
+    ignore_parser.add_rule('.venv/', base_path=pathlib.Path('/home/michael'))
     return ignore_parser
 
 
@@ -28,6 +29,8 @@ def test_simple_rules(parser_simple_git_rules):
     assert parser_simple_git_rules.match(pathlib.Path('/home/michael/main.pyc'))
     assert parser_simple_git_rules.match(pathlib.Path('/home/michael/dir/main.pyc'))
     assert parser_simple_git_rules.match(pathlib.Path('/home/michael/__pycache__'))
+    assert parser_simple_git_rules.match(pathlib.Path('/home/michael/.venv/'))
+    assert parser_simple_git_rules.match(pathlib.Path('/home/michael/.venv/bin'))
 
 
 def test_negation_rules(parser_negation_git_rules):
