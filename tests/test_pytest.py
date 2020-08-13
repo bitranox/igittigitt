@@ -30,7 +30,8 @@ def test_simple_rules(parser_simple_git_rules):
     assert parser_simple_git_rules.match(pathlib.Path('/home/michael/dir/main.pyc'))
     assert parser_simple_git_rules.match(pathlib.Path('/home/michael/__pycache__'))
     assert parser_simple_git_rules.match(pathlib.Path('/home/michael/.venv/'))
-    assert parser_simple_git_rules.match(pathlib.Path('/home/michael/.venv/bin'))
+    assert parser_simple_git_rules.match(pathlib.Path('/home/michael/.venv/folder'))
+    assert parser_simple_git_rules.match(pathlib.Path('/home/michael/.venv/file.txt'))
 
 
 def test_negation_rules(parser_negation_git_rules):

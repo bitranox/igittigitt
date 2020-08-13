@@ -210,7 +210,7 @@ def rule_from_pattern(
         pattern = pattern[1:]
     if pattern[-1] == "/":
         pattern = pattern[:-1]
-    regex = fnmatch_pathname_to_regex(pattern)
+    regex = fnmatch_pathname_to_regex(pattern, directory_only)
     if anchored:
         regex = "".join(["^", regex])
     return IgnoreRule(
@@ -226,7 +226,7 @@ def rule_from_pattern(
 
 # Frustratingly, python's fnmatch doesn't provide the FNM_PATHNAME
 # option that .gitignore's behavior depends on.
-def fnmatch_pathname_to_regex(pattern):
+def fnmatch_pathname_to_regex(pattern: str, directory_only: bool):
     """
     Implements fnmatch style-behavior, as though with FNM_PATHNAME flagged;
     the path separator will not match shell-style '*' and '.' wildcards.
@@ -280,8 +280,9 @@ def fnmatch_pathname_to_regex(pattern):
         else:
             res.append(re.escape(c))
     res.insert(0, "(?ms)")
-    res.append("$")
-    return "".join(res)
+    if not directory_only:
+        res.append('$')
+    return ''.join(res)
 
 
 if __name__ == "__main__":

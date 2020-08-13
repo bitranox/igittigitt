@@ -14,6 +14,10 @@ TODO:
     - asserts for __ALL__ parameters
 
 
+v1.0.2
+--------
+2020-08-13: handle directories
+
 v1.0.1
 --------
 2020-08-13: fix negation handling
