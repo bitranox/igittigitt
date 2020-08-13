@@ -1,16 +1,13 @@
 # STDLIB
-from tempfile import NamedTemporaryFile
-import os
 import pathlib
 import pytest
-from unittest import TestCase
 
 # PROJ
 import igittigitt
 
 
 @pytest.fixture(scope='function')
-def simple_git_rules():
+def parser_simple_git_rules():
     ignore_parser = igittigitt.IgnoreParser()
     ignore_parser.add_rule('__pycache__', base_path=pathlib.Path('/home/michael'))
     ignore_parser.add_rule('*.py[cod]', base_path=pathlib.Path('/home/michael'))
@@ -18,26 +15,26 @@ def simple_git_rules():
 
 
 @pytest.fixture(scope='function')
-def negation_git_rules():
+def parser_negation_git_rules():
     ignore_parser = igittigitt.IgnoreParser()
     ignore_parser.add_rule('*.ignore', base_path=pathlib.Path('/home/michael'))
     ignore_parser.add_rule('!keep.ignore', base_path=pathlib.Path('/home/michael'))
     return ignore_parser
 
 
-def test_simple_rules(simple_git_rules: igittigitt.IgnoreParser):
-    assert not simple_git_rules.match(pathlib.Path('/home/michael/main.py'))
-    assert not simple_git_rules.match(pathlib.Path('/home/bitranox/main.py'))
-    assert simple_git_rules.match(pathlib.Path('/home/michael/main.pyc'))
-    assert simple_git_rules.match(pathlib.Path('/home/michael/dir/main.pyc'))
-    assert simple_git_rules.match(pathlib.Path('/home/michael/__pycache__'))
+def test_simple_rules(parser_simple_git_rules):
+    assert not parser_simple_git_rules.match(pathlib.Path('/home/michael/main.py'))
+    assert not parser_simple_git_rules.match(pathlib.Path('/home/bitranox/main.py'))
+    assert parser_simple_git_rules.match(pathlib.Path('/home/michael/main.pyc'))
+    assert parser_simple_git_rules.match(pathlib.Path('/home/michael/dir/main.pyc'))
+    assert parser_simple_git_rules.match(pathlib.Path('/home/michael/__pycache__'))
 
 
-def test_negation_rules(negation_git_rules: igittigitt.IgnoreParser):
-    assert negation_git_rules.match(pathlib.Path('/home/michael/trash.ignore'))
-    assert negation_git_rules.match(pathlib.Path('/home/michael/keep.ignore'))
-    assert not negation_git_rules.match(pathlib.Path('/home/michael/keep.ignore'))
-    assert not negation_git_rules.match(pathlib.Path('/home/bitranox/keep.ignore'))
+def test_negation_rules(parser_negation_git_rules):
+    assert parser_negation_git_rules.match(pathlib.Path('/home/michael/trash.ignore'))
+    assert parser_negation_git_rules.match(pathlib.Path('/home/michael/whatever.ignore'))
+    assert not parser_negation_git_rules.match(pathlib.Path('/home/michael/keep.ignore'))
+    assert not parser_negation_git_rules.match(pathlib.Path('/home/bitranox/keep.ignore'))
 
 
 def doctest_examples():
@@ -60,3 +57,7 @@ def doctest_examples():
 
     """
     pass
+
+
+if __name__ == '__main__':
+    pytest.main(['--log-cli-level', 'ERROR'])

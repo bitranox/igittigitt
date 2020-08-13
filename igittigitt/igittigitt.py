@@ -28,10 +28,13 @@ class IgnoreRule(collections.namedtuple("IgnoreRule_", IGNORE_RULE_FIELDS)):
     def __repr__(self):
         return "".join(["IgnoreRule('", self.pattern, "')"])
 
-    def match(self, abs_path):
+    def match(self, abs_path: os.PathLike) -> bool:
         matched = False
         if self.base_path:
-            rel_path = str(pathlib.Path(abs_path).resolve().relative_to(self.base_path))
+            try:
+                rel_path = str(pathlib.Path(abs_path).resolve().relative_to(self.base_path))
+            except ValueError:
+                return False
         else:
             rel_path = str(pathlib.Path(abs_path))
         if rel_path.startswith("./"):
@@ -107,6 +110,8 @@ class IgnoreParser(object):
         rule = rule_from_pattern(pattern, base_path)
         if rule:
             self.rules.append(rule)
+            if rule.negation:
+                self.rules_contains_negation_rule = True
 
     def match(self, file_path: os.PathLike) -> bool:
         if self.rules_contains_negation_rule:

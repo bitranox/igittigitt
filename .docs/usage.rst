@@ -5,7 +5,7 @@
     :start-after: # IgnoreParser{{{
     :end-before:  # IgnoreParser}}}
 
-.. include:: ../tests/pytest_tests.py
+.. include:: ../tests/test_pytest.py
     :code: python
     :start-after: # IgnoreParserExamples{{{
     :end-before:  # IgnoreParserExamples}}}
