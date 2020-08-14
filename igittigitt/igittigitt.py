@@ -5,8 +5,11 @@ import pathlib
 import re
 import sys
 from types import TracebackType
-from typing import List, Optional, Tuple, Type
+from typing import Any, List, Optional, Tuple, Type, Union
 
+PathLikeOrString = Union[str, 'os.PathLike[Any]']
+
+__all__ = ('IgnoreParser', )
 
 whitespace_re = re.compile(r"(\\ )+$")
 
@@ -75,7 +78,9 @@ class IgnoreParser(object):
         pass
 
     def parse_rule_file(
-        self, path_rule_file: os.PathLike, base_dir: Optional[os.PathLike] = None
+        self,
+        rule_file: PathLikeOrString,
+        base_dir: Optional[PathLikeOrString] = None,
     ):
         """
         parse a git ignore file, create rules from a gitignore file
@@ -85,12 +90,28 @@ class IgnoreParser(object):
         full_path
             the full path to the ignore file
         base_dir
-            todo : good description missing
+            optional base dir, for testing purposes only.
+            the base dir is the parent of the rule file,
+            because rules are relative to the directory
+            were the rule file resides
 
         """
+        if isinstance(rule_file, str):
+            path_rule_file = pathlib.Path(rule_file).resolve()
+        elif isinstance(rule_file, pathlib.Path):
+            path_rule_file = rule_file.resolve()
+        else:
+            raise TypeError('wrong type for "rule_file"')
 
         if base_dir is None:
-            base_dir = os.path.dirname(path_rule_file)
+            path_base_dir = path_rule_file.parent
+        elif isinstance(base_dir, str):
+            path_base_dir = pathlib.Path(base_dir).resolve()
+        elif isinstance(base_dir, pathlib.Path):
+            path_base_dir = base_dir.resolve()
+        else:
+            raise TypeError('wrong type for "base_dir"')
+
         with open(path_rule_file) as ignore_file:
             counter = 0
             for line in ignore_file:
@@ -98,7 +119,7 @@ class IgnoreParser(object):
                 line = line.rstrip("\n")
                 rule = rule_from_pattern(
                     line,
-                    base_path=pathlib.Path(base_dir).resolve(),
+                    base_path=path_base_dir,
                     source=(path_rule_file, counter),
                 )
                 if rule:
@@ -106,8 +127,24 @@ class IgnoreParser(object):
                     if rule.negation:
                         self.rules_contains_negation_rule = True
 
-    def add_rule(self, pattern: str, base_path: Optional[os.PathLike] = None):
-        rule = rule_from_pattern(pattern, base_path)
+    # add_rule{{{
+    def add_rule(self, pattern: str, base_path: PathLikeOrString):
+        """
+        add a rule as a string
+
+        Parameter
+        ---------
+        pattern
+            the pattern
+        base_path
+            since gitignore patterns are relative to a base
+            directory, that needs to be provided here
+        """
+        # add_rule}}}
+
+        path_base_path = pathlib.Path(base_path).resolve()
+
+        rule = rule_from_pattern(pattern, path_base_path)
         if rule:
             self.rules.append(rule)
             if rule.negation:

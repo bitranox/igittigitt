@@ -152,6 +152,28 @@ Usage
         ...     print(parser)
         <...IgnoreParser object at ...>
 
+- add a rule by string
+
+.. code-block:: python
+
+        def add_rule(self, pattern: str, base_path: PathLikeOrString):
+            """
+            add a rule as a string
+
+            Parameter
+            ---------
+            pattern
+                the pattern
+            base_path
+                since gitignore patterns are relative to a base
+                directory, that needs to be provided here
+            """
+
+.. code-block:: python
+
+        >>> parser = igittigitt.IgnoreParser()
+        >>> parser.add_rule('*.py[cod]', base_path='/home/michael')
+
 Usage from Commandline
 ------------------------
 
