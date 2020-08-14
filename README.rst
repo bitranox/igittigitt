@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v1.0.4 as of 2020-08-14 see `Changelog`_
+Version v1.0.5 as of 2020-08-14 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi|
 
@@ -304,6 +304,10 @@ TODO:
     - __ALL__= ...
     - documentation
     - asserts for __ALL__ parameters
+
+v1.0.5
+--------
+2020-08-14: fix Windows and MacOs tests
 
 v1.0.4
 --------

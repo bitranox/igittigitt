@@ -13,6 +13,10 @@ TODO:
     - documentation
     - asserts for __ALL__ parameters
 
+v1.0.5
+--------
+2020-08-14: fix Windows and MacOs tests
+
 v1.0.4
 --------
 2020-08-13: handle trailing spaces
