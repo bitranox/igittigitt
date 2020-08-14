@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v1.0.4 as of 2020-08-14 see `Changelog`_
+Version v1.0.5 as of 2020-08-14 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi|
 
@@ -152,6 +152,28 @@ Usage
         ...     print(parser)
         <...IgnoreParser object at ...>
 
+- add a rule by string
+
+.. code-block:: python
+
+        def add_rule(self, pattern: str, base_path: PathLikeOrString):
+            """
+            add a rule as a string
+
+            Parameter
+            ---------
+            pattern
+                the pattern
+            base_path
+                since gitignore patterns are relative to a base
+                directory, that needs to be provided here
+            """
+
+.. code-block:: python
+
+        >>> parser = igittigitt.IgnoreParser()
+        >>> parser.add_rule('*.py[cod]', base_path='/home/michael')
+
 Usage from Commandline
 ------------------------
 
@@ -282,6 +304,10 @@ TODO:
     - __ALL__= ...
     - documentation
     - asserts for __ALL__ parameters
+
+v1.0.5
+--------
+2020-08-14: fix Windows and MacOs tests
 
 v1.0.4
 --------
