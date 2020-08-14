@@ -11,8 +11,9 @@ fi
 source "${own_dir}/lib_bash_functions.sh"
 project_root_dir="${project_root_dir}"
 DO_FLAKE8_TESTS="True"
-DO_MYPY_TESTS="False"
+DO_MYPY_TESTS="True"
 DO_PYTEST="True"
+DO_BLACK="True"
 # cleanup on cntrl-c
 trap cleanup EXIT
 
@@ -23,6 +24,10 @@ function pytest_loop {
     while true; do
         banner "Project Root Dir: ${project_root_dir}"
         cleanup
+
+        if [ "${DO_BLACK}" == "True" ]; then
+          if ! run_black; then continue; fi
+        fi
 
         # we prefer to run tests on its own, not within pytest, due to shaky and outdated pytest plugins
         if [ "${DO_FLAKE8_TESTS}" == "True" ]; then

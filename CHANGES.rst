@@ -7,11 +7,16 @@ Changelog
 
 TODO:
     - code coverage
-    - test context manager
     - add nested .gitignore files
-    - __ALL__= ...
     - documentation
-    - asserts for __ALL__ parameters
+
+v1.0.6
+--------
+2020-08-14:
+    - get rid of the named tuple
+    - implement attrs
+    - full typing, PEP561 package
+    - add blacked badge
 
 v1.0.5
 --------
