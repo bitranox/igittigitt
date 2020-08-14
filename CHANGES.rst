@@ -13,10 +13,13 @@ TODO:
     - documentation
     - asserts for __ALL__ parameters
 
+v1.0.4
+--------
+2020-08-13: handle trailing spaces
 
 v1.0.3
 --------
-2020-08-13: handle comments / spaces
+2020-08-13: handle comments
 
 v1.0.2
 --------

@@ -212,6 +212,7 @@ def rule_from_pattern(
         pattern = pattern[:-1]
     if pattern[0] == '\\' and pattern[1] == '#':
         pattern = pattern[1:]
+    pattern = pattern_handle_trailing_spaces(pattern)
     regex = fnmatch_pathname_to_regex(pattern, directory_only)
     if anchored:
         regex = "".join(["^", regex])
@@ -224,6 +225,26 @@ def rule_from_pattern(
         base_path=pathlib.Path(base_path) if base_path else None,
         source=source,
     )
+
+
+def pattern_handle_trailing_spaces(pattern: str) -> str:
+    """
+    trailing spaces are ignored unless they are escaped with a backslash
+    is that really necessary ? Because there should be no files
+    with a trailing space on the filesystem ?
+    """
+    i = len(pattern) - 1
+    strip_trailing_spaces = True
+    while i > 1 and pattern[i] == ' ':
+        if pattern[i - 1] == '\\':
+            pattern = pattern[:i - 1] + pattern[i:]
+            i = i - 1
+            strip_trailing_spaces = False
+        else:
+            if strip_trailing_spaces:
+                pattern = pattern[:i]
+        i = i - 1
+    return pattern
 
 
 # Frustratingly, python's fnmatch doesn't provide the FNM_PATHNAME
