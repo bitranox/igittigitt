@@ -2,9 +2,9 @@ igittigitt
 ==========
 
 
-Version v1.0.5 as of 2020-08-14 see `Changelog`_
+Version v1.0.6 as of 2020-08-14 see `Changelog`_
 
-|travis_build| |license| |jupyter| |pypi|
+|travis_build| |license| |jupyter| |pypi| |black|
 
 |codecov| |better_code| |cc_maintain| |cc_issues| |cc_coverage| |snyk|
 
@@ -42,6 +42,9 @@ Version v1.0.5 as of 2020-08-14 see `Changelog`_
 
 .. |snyk| image:: https://img.shields.io/snyk/vulnerabilities/github/bitranox/igittigitt
    :target: https://snyk.io/test/github/bitranox/igittigitt
+
+.. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+   :target: https://github.com/psf/black
 
 A spec-compliant gitignore parser for Python
 
@@ -102,7 +105,7 @@ Python version required: 3.6.0 or newer
 
 tested on linux "bionic" with python 3.6, 3.7, 3.8, 3.8-dev, pypy3 - architectures: amd64, ppc64le, s390x, arm64
 
-`100% code coverage <https://codecov.io/gh/bitranox/igittigitt>`_, flake8 style checking ,tested under `Linux, macOS, Windows <https://travis-ci.org/bitranox/igittigitt>`_, automatic daily builds and monitoring
+`100% code coverage <https://codecov.io/gh/bitranox/igittigitt>`_, flake8 style checking ,mypy static type checking ,tested under `Linux, macOS, Windows <https://travis-ci.org/bitranox/igittigitt>`_, automatic daily builds and monitoring
 
 ----
 
@@ -135,7 +138,7 @@ Usage
 .. code-block:: python
 
     class IgnoreParser(object):
-        def __init__(self):
+        def __init__(self) -> None:
             """
             init the igittigitt parser.
             """
@@ -156,7 +159,7 @@ Usage
 
 .. code-block:: python
 
-        def add_rule(self, pattern: str, base_path: PathLikeOrString):
+        def add_rule(self, pattern: str, base_path: PathLikeOrString) -> None:
             """
             add a rule as a string
 
@@ -269,6 +272,7 @@ following modules will be automatically installed :
 .. code-block:: bash
 
     ## Project Requirements
+    attrs
     click
     cli_exit_tools @ git+https://github.com/bitranox/cli_exit_tools.git
 
@@ -299,11 +303,16 @@ Changelog
 
 TODO:
     - code coverage
-    - test context manager
     - add nested .gitignore files
-    - __ALL__= ...
     - documentation
-    - asserts for __ALL__ parameters
+
+v1.0.6
+--------
+2020-08-14:
+    - get rid of the named tuple
+    - implement attrs
+    - full typing, PEP561 package
+    - add blacked badge
 
 v1.0.5
 --------

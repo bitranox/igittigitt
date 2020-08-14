@@ -1,5 +1,4 @@
 # STDLIB
-import collections
 import os
 import pathlib
 import re
@@ -7,39 +6,29 @@ import sys
 from types import TracebackType
 from typing import Any, List, Optional, Tuple, Type, Union
 
-PathLikeOrString = Union[str, 'os.PathLike[Any]']
+# EXT
+import attr
 
-__all__ = ('IgnoreParser', )
-
-whitespace_re = re.compile(r"(\\ )+$")
-
-IGNORE_RULE_FIELDS = [
-    "pattern",
-    "regex",  # Basic values
-    "negation",
-    "directory_only",
-    "anchored",  # Behavior flags
-    "base_path",  # Meaningful for gitignore-style behavior
-    "source",  # (file, line) tuple for reporting
-]
+PathLikeOrString = Union[str, "os.PathLike[Any]"]
+__all__ = ("IgnoreParser",)
 
 
-class IgnoreRule(collections.namedtuple("IgnoreRule_", IGNORE_RULE_FIELDS)):
-    def __str__(self):
-        return self.pattern
+@attr.s(auto_attribs=True)
+class IgnoreRule(object):
+    pattern: str
+    regex: str
+    negation: bool
+    directory_only: bool
+    anchored: bool
+    base_path: pathlib.Path
+    source: Optional[Tuple[pathlib.Path, int]]
 
-    def __repr__(self):
-        return "".join(["IgnoreRule('", self.pattern, "')"])
-
-    def match(self, abs_path: os.PathLike) -> bool:
+    def match(self, abs_path: pathlib.Path) -> bool:
         matched = False
-        if self.base_path:
-            try:
-                rel_path = str(pathlib.Path(abs_path).resolve().relative_to(self.base_path))
-            except ValueError:
-                return False
-        else:
-            rel_path = str(pathlib.Path(abs_path))
+        try:
+            rel_path = str(abs_path.resolve().relative_to(self.base_path))
+        except ValueError:
+            return False
         if rel_path.startswith("./"):
             rel_path = rel_path[2:]
         if re.search(self.regex, rel_path):
@@ -49,7 +38,7 @@ class IgnoreRule(collections.namedtuple("IgnoreRule_", IGNORE_RULE_FIELDS)):
 
 # IgnoreParser{{{
 class IgnoreParser(object):
-    def __init__(self):
+    def __init__(self) -> None:
         """
         init the igittigitt parser.
         """
@@ -78,10 +67,8 @@ class IgnoreParser(object):
         pass
 
     def parse_rule_file(
-        self,
-        rule_file: PathLikeOrString,
-        base_dir: Optional[PathLikeOrString] = None,
-    ):
+        self, rule_file: PathLikeOrString, base_dir: Optional[PathLikeOrString] = None,
+    ) -> None:
         """
         parse a git ignore file, create rules from a gitignore file
 
@@ -118,9 +105,7 @@ class IgnoreParser(object):
                 counter += 1
                 line = line.rstrip("\n")
                 rule = rule_from_pattern(
-                    line,
-                    base_path=path_base_dir,
-                    source=(path_rule_file, counter),
+                    line, base_path=path_base_dir, source=(path_rule_file, counter),
                 )
                 if rule:
                     self.rules.append(rule)
@@ -128,7 +113,7 @@ class IgnoreParser(object):
                         self.rules_contains_negation_rule = True
 
     # add_rule{{{
-    def add_rule(self, pattern: str, base_path: PathLikeOrString):
+    def add_rule(self, pattern: str, base_path: PathLikeOrString) -> None:
         """
         add a rule as a string
 
@@ -150,13 +135,14 @@ class IgnoreParser(object):
             if rule.negation:
                 self.rules_contains_negation_rule = True
 
-    def match(self, file_path: os.PathLike) -> bool:
+    def match(self, file_path: PathLikeOrString) -> bool:
+        path_file_path = pathlib.Path(file_path)
         if self.rules_contains_negation_rule:
-            return self._match_with_negations(file_path)
+            return self._match_with_negations(path_file_path)
         else:
-            return self._match_without_negations(file_path)
+            return self._match_without_negations(path_file_path)
 
-    def _match_with_negations(self, file_path: os.PathLike) -> bool:
+    def _match_with_negations(self, path_file_path: pathlib.Path) -> bool:
         """
         match with negotiations - in that case we need to check
         every single rule, because there can be a match,
@@ -164,14 +150,14 @@ class IgnoreParser(object):
         """
         matched = False
         for rule in self.rules:
-            if rule.match(file_path):
+            if rule.match(path_file_path):
                 if rule.negation:
                     matched = False
                 else:
                     matched = True
         return matched
 
-    def _match_without_negations(self, file_path: os.PathLike) -> bool:
+    def _match_without_negations(self, path_file_path: pathlib.Path) -> bool:
         """
         match without negotiations - in that case we can return
         immediately after a match.
@@ -179,11 +165,11 @@ class IgnoreParser(object):
 
         # small optimisation - we have a good chance
         # that the last rule can match again
-        if self.last_matching_rule and self.last_matching_rule.match(file_path):
+        if self.last_matching_rule and self.last_matching_rule.match(path_file_path):
             return True
 
         for rule in self.rules:
-            if rule.match(file_path):
+            if rule.match(path_file_path):
                 self.last_matching_rule = rule
                 return True
         return False
@@ -191,8 +177,8 @@ class IgnoreParser(object):
 
 def rule_from_pattern(
     pattern: str,
-    base_path: Optional[os.PathLike] = None,
-    source: Optional[Tuple[os.PathLike, int]] = None,
+    base_path: pathlib.Path,
+    source: Optional[Tuple[pathlib.Path, int]] = None,
 ) -> Optional[IgnoreRule]:
     """
      Take a .gitignore match pattern, such as "*.py[cod]" or "**/*.bak",
@@ -202,17 +188,17 @@ def rule_from_pattern(
     Because git allows for nested .gitignore files, a base_path value
     is required for correct behavior. The base path should be absolute.
     """
-    if base_path and pathlib.Path(base_path) != pathlib.Path(base_path).resolve():
+    if not base_path.is_absolute():
         raise ValueError("base_path must be absolute")
     # Store the exact pattern for our repr and string functions
     orig_pattern = pattern
     # Early returns follow
     # Discard comments and separators
     if pattern.strip() == "" or pattern[0] == "#":
-        return
+        return None
     # Discard anything with more than two consecutive asterisks
     if pattern.find("***") > -1:
-        return
+        return None
     # Strip leading bang before examining double asterisks
     if pattern[0] == "!":
         negation = True
@@ -228,11 +214,11 @@ def rule_from_pattern(
             and start_index != len(pattern) - 2
             and (pattern[start_index - 1] != "/" or pattern[start_index + 2] != "/")
         ):
-            return
+            return None
 
     # Special-casing '/', which doesn't match any files or directories
     if pattern.rstrip() == "/":
-        return
+        return None
 
     directory_only = pattern[-1] == "/"
     # A slash is a sign that we're tied to the base_path of our rule
@@ -247,9 +233,9 @@ def rule_from_pattern(
         pattern = pattern[1:]
     if pattern[-1] == "/":
         pattern = pattern[:-1]
-    if pattern[0] == '\\' and pattern[1] == '#':
+    if pattern[0] == "\\" and pattern[1] == "#":
         pattern = pattern[1:]
-    pattern = pattern_handle_trailing_spaces(pattern)
+    pattern = pattern.rstrip()
     regex = fnmatch_pathname_to_regex(pattern, directory_only)
     if anchored:
         regex = "".join(["^", regex])
@@ -259,34 +245,14 @@ def rule_from_pattern(
         negation=negation,
         directory_only=directory_only,
         anchored=anchored,
-        base_path=pathlib.Path(base_path) if base_path else None,
+        base_path=pathlib.Path(base_path),
         source=source,
     )
 
 
-def pattern_handle_trailing_spaces(pattern: str) -> str:
-    """
-    trailing spaces are ignored unless they are escaped with a backslash
-    is that really necessary ? Because there should be no files
-    with a trailing space on the filesystem ?
-    """
-    i = len(pattern) - 1
-    strip_trailing_spaces = True
-    while i > 1 and pattern[i] == ' ':
-        if pattern[i - 1] == '\\':
-            pattern = pattern[:i - 1] + pattern[i:]
-            i = i - 1
-            strip_trailing_spaces = False
-        else:
-            if strip_trailing_spaces:
-                pattern = pattern[:i]
-        i = i - 1
-    return pattern
-
-
 # Frustratingly, python's fnmatch doesn't provide the FNM_PATHNAME
 # option that .gitignore's behavior depends on.
-def fnmatch_pathname_to_regex(pattern: str, directory_only: bool):
+def fnmatch_pathname_to_regex(pattern: str, directory_only: bool) -> str:
     """
     Implements fnmatch style-behavior, as though with FNM_PATHNAME flagged;
     the path separator will not match shell-style '*' and '.' wildcards.
@@ -341,8 +307,8 @@ def fnmatch_pathname_to_regex(pattern: str, directory_only: bool):
             res.append(re.escape(c))
     res.insert(0, "(?ms)")
     if not directory_only:
-        res.append('$')
-    return ''.join(res)
+        res.append("$")
+    return "".join(res)
 
 
 if __name__ == "__main__":

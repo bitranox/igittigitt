@@ -114,6 +114,18 @@ function cleanup() {
 }
 
 
+function run_black() {
+  # run black for *.py files
+  my_banner "running black with settings from ${project_root_dir}/pyproject.toml"
+  if ! python3 -m black "${project_root_dir}"/**/*.py; then
+    my_banner_warning "black ERROR"
+    beep
+    sleep "${sleeptime_on_error}"
+    return 1
+  fi
+}
+
+
 function run_flake8_tests() {
   # run flake8, settings from setup.cfg
   my_banner "running flake8 with settings from ${project_root_dir}/setup.cfg"
