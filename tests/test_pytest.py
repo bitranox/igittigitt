@@ -221,7 +221,7 @@ def doctest_examples():
     >>> path_target_dir = path_test_dir / "target"
     >>> ignore_parser = igittigitt.IgnoreParser()
     >>> ignore_parser.parse_rule_files(base_dir=path_source_dir, filename=".test_gitignore")
-    >>> shutil.copytree(path_source_dir, path_target_dir, ignore=ignore_parser.shutil_ignore)
+    >>> discard = shutil.copytree(path_source_dir, path_target_dir, ignore=ignore_parser.shutil_ignore)
 
     # test_shutil_ignore_function_Example}}}
     # Teardown

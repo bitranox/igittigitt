@@ -334,7 +334,7 @@ following modules will be automatically installed :
     ## Project Requirements
     attrs
     click
-    cli_exit_tools @ git+https://github.com/bitranox/cli_exit_tools.git
+    cli_exit_tools
     wcmatch
 
 Acknowledgements
