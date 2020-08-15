@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v1.0.6 as of 2020-08-15 see `Changelog`_
+Version v2.0.0 as of 2020-08-15 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi| |black|
 
@@ -48,14 +48,11 @@ Version v1.0.6 as of 2020-08-15 see `Changelog`_
 
 A spec-compliant gitignore parser for Python
 
-forked from https://github.com/mherrmann/gitignore_parser we might join later ....
-
-
-Suppose `/home/michael/project/.gitignore` contains the following:
+Suppose `/home/bitranox/project/.gitignore` contains the following:
 
 .. code-block:: python
 
-    # /home/michael/project/.gitignore
+    # /home/bitranox/project/.gitignore
     __pycache__/
     *.py[cod]
 
@@ -67,14 +64,14 @@ Then:
 
     >>> import igittigitt
     >>> parser = igittigitt.IgnoreParser()
-    >>> parser.parse_rule_file(pathlib.Path('/home/michael/project/.gitignore'))
-    >>> parser.match(pathlib.Path('/home/michael/project/main.py'))
+    >>> parser.parse_rule_file(pathlib.Path('/home/bitranox/project/.gitignore'))
+    >>> parser.match(pathlib.Path('/home/bitranox/project/main.py'))
     False
-    >>> parser.match(pathlib.Path('/home/michael/project/main.pyc'))
+    >>> parser.match(pathlib.Path('/home/bitranox/project/main.pyc'))
     True
-    >>> parser.match(pathlib.Path('/home/michael/project/dir/main.pyc'))
+    >>> parser.match(pathlib.Path('/home/bitranox/project/dir/main.pyc'))
     True
-    >>> parser.match(pathlib.Path('/home/michael/project/__pycache__'))
+    >>> parser.match(pathlib.Path('/home/bitranox/project/__pycache__'))
     True
 
 
@@ -84,8 +81,9 @@ I couldn't find a good library for doing the above on PyPI. There are
 several other libraries, but they don't seem to support all features,
 be it the square brackets in `*.py[cod]` or top-level paths `/...`.
 
-forked from https://github.com/mherrmann/gitignore_parser because I
-need to move on faster ... we might join the projects again after stabilisation
+inspired by https://github.com/mherrmann/gitignore_parser but in fact I needed to
+throw away almost everything, because of serious matching bugs and unmaintainable spaghetti code.
+
 
 igittigitt
 ----------
@@ -207,7 +205,7 @@ Usage
 .. code-block:: python
 
         >>> parser = igittigitt.IgnoreParser()
-        >>> parser.add_rule('*.py[cod]', base_path='/home/michael')
+        >>> parser.add_rule('*.py[cod]', base_path='/home/bitranox')
 
 --------------------------------
 
@@ -368,6 +366,15 @@ TODO:
     - code coverage
     - add nested .gitignore files
     - documentation
+
+v2.0.0
+--------
+2020-08-14:
+    - complete redesign
+    - get rid of regexp matching
+    - more tests
+    - now correct matching in subdirs, directory names,
+      filenames, etc ...
 
 v1.0.6
 --------

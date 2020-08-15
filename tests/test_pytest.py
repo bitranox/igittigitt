@@ -11,9 +11,9 @@ import igittigitt
 @pytest.fixture(scope="function")
 def base_path():
     if platform.system() == "Windows":
-        return pathlib.Path("C:/Users/michael").resolve()
+        return pathlib.Path("C:/Users/bitranox").resolve()
     else:
-        return pathlib.Path("/home/michael").resolve()
+        return pathlib.Path("/home/bitranox").resolve()
 
 
 @pytest.fixture(scope="function")
@@ -210,7 +210,7 @@ def doctest_examples():
 
     # add_rule_Example{{{
     >>> parser = igittigitt.IgnoreParser()
-    >>> parser.add_rule('*.py[cod]', base_path='/home/michael')
+    >>> parser.add_rule('*.py[cod]', base_path='/home/bitranox')
 
     # add_rule_Example}}}
 
