@@ -2,6 +2,7 @@
 import pathlib
 import platform
 import pytest
+import shutil
 
 # PROJ
 import igittigitt
@@ -139,6 +140,56 @@ def test_negation_rules(parser_negation_git_rules, base_path):
     )
 
 
+def test_parse_rule_files():
+    path_test_dir = pathlib.Path(__file__).parent.resolve() / "example"
+    ignore_parser = igittigitt.IgnoreParser()
+    ignore_parser.parse_rule_files(base_dir=path_test_dir, filename=".test_gitignore")
+    paths_unfiltered = path_test_dir.glob("**/*")
+    paths_filtered = list()
+    for path in paths_unfiltered:
+        if not ignore_parser.match(path):
+            paths_filtered.append(path.name)
+    assert sorted(paths_filtered) == [
+        ".test_gitignore",
+        ".test_gitignore",
+        "excluded_not",
+        "excluded_not.txt",
+        "not_excluded",
+        "not_excluded.txt",
+        "not_excluded2",
+        "not_excluded2.txt",
+        "some_file.txt",
+    ]
+
+
+def test_shutil_ignore_function():
+    """
+    >>> test_shutil_ignore_function()
+
+    """
+    # Setup
+    path_test_dir = pathlib.Path(__file__).parent.resolve()
+
+    path_source_dir = path_test_dir / "example"
+    path_target_dir = path_test_dir / "target"
+    shutil.rmtree(path_target_dir, ignore_errors=True)
+
+    # Test
+    ignore_parser = igittigitt.IgnoreParser()
+    ignore_parser.parse_rule_files(base_dir=path_source_dir, filename=".test_gitignore")
+    shutil.copytree(
+        path_source_dir,
+        path_target_dir,
+        ignore=ignore_parser.shutil_ignore,
+        dirs_exist_ok=True,
+    )
+
+    assert len(list(path_target_dir.glob("**/*"))) == 8
+
+    # Teardown
+    shutil.rmtree(path_target_dir, ignore_errors=True)
+
+
 def doctest_examples():
     """
 
@@ -162,6 +213,27 @@ def doctest_examples():
     >>> parser.add_rule('*.py[cod]', base_path='/home/michael')
 
     # add_rule_Example}}}
+
+
+    >>> path_test_dir = pathlib.Path(__file__).parent.resolve()
+    >>> path_target_dir = path_test_dir / "target"
+    >>> shutil.rmtree(path_target_dir, ignore_errors=True)
+
+    # test_shutil_ignore_function_Example{{{
+    >>> path_source_dir = path_test_dir / "example"
+    >>> path_target_dir = path_test_dir / "target"
+    >>> ignore_parser = igittigitt.IgnoreParser()
+    >>> ignore_parser.parse_rule_files(base_dir=path_source_dir, filename=".test_gitignore")
+    >>> shutil.copytree(path_source_dir, path_target_dir, ignore=ignore_parser.shutil_ignore)
+
+    # test_shutil_ignore_function_Example}}}
+    # Teardown
+    >>> shutil.rmtree(path_target_dir, ignore_errors=True)
+
+
+
+
+
 
 
     """

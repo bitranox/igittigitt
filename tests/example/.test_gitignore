@@ -1,0 +1,3 @@
+test__pycache__
+*.py[cod]
+.test_venv/

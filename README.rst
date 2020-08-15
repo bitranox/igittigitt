@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v1.0.6 as of 2020-08-14 see `Changelog`_
+Version v1.0.6 as of 2020-08-15 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi| |black|
 
@@ -155,6 +155,38 @@ Usage
         ...     print(parser)
         <...IgnoreParser object at ...>
 
+--------------------------------
+
+- add rules by rule files (the default method)
+
+.. code-block:: python
+
+        def parse_rule_files(
+            self, base_dir: PathLikeOrString, filename: str = ".gitignore"
+        ) -> None:
+            """
+            get all the rule files (default = '.gitignore') from the base_dir
+            all subdirectories will be searched for <filename> and the rules will be appended
+
+            Parameter
+            ---------
+            path_base_dir
+                the base directory - all subdirectories will be searched for <filename>
+            filename
+                the rule filename, default = '.gitignore'
+            """
+
+.. code-block:: python
+
+    >>> # import all .gitignore recursively from base directory
+    >>> ignore_parser.parse_rule_files(base_dir=path_source_dir)
+
+    >>> # import all .gitignore recursively from base directory
+    >>> # use another rule filename
+    >>> ignore_parser.parse_rule_files(base_dir=path_source_dir, filename='my_ignore_rules')
+
+--------------------------------
+
 - add a rule by string
 
 .. code-block:: python
@@ -176,6 +208,36 @@ Usage
 
         >>> parser = igittigitt.IgnoreParser()
         >>> parser.add_rule('*.py[cod]', base_path='/home/michael')
+
+--------------------------------
+
+- match a file
+
+.. code-block:: python
+
+        def match(self, file_path: PathLikeOrString) -> bool:
+            """
+            returns True if the path matches the rules
+            """
+
+--------------------------------
+
+- shutil ignore function
+
+.. code-block:: python
+
+        def shutil_ignore(self, base_dir: str, file_names: List[str]) -> Set[str]:
+            """
+            Ignore function for shutil.copy_tree
+            """
+
+.. code-block:: python
+
+        >>> path_source_dir = path_test_dir / "example"
+        >>> path_target_dir = path_test_dir / "target"
+        >>> ignore_parser = igittigitt.IgnoreParser()
+        >>> ignore_parser.parse_rule_files(base_dir=path_source_dir, filename=".test_gitignore")
+        >>> shutil.copytree(path_source_dir, path_target_dir, ignore=ignore_parser.shutil_ignore)
 
 Usage from Commandline
 ------------------------
@@ -275,6 +337,7 @@ following modules will be automatically installed :
     attrs
     click
     cli_exit_tools @ git+https://github.com/bitranox/cli_exit_tools.git
+    wcmatch
 
 Acknowledgements
 ----------------
