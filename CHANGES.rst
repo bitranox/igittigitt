@@ -10,6 +10,15 @@ TODO:
     - add nested .gitignore files
     - documentation
 
+v2.0.0
+--------
+2020-08-14:
+    - complete redesign
+    - get rid of regexp matching
+    - more tests
+    - now correct matching in subdirs, directory names,
+      filenames, etc ...
+
 v1.0.6
 --------
 2020-08-14:

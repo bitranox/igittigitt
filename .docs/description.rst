@@ -1,16 +1,16 @@
 A spec-compliant gitignore parser for Python
 
-forked from https://github.com/mherrmann/gitignore_parser we might join later ....
+after reading (nesting supported) the `.gitignore` file, You can match files against the parsers match function. If the file should be ignored, it matches.
 
+We also provide an ignore function for `shutil.treecopy` so it is easy just to copy a directory tree without the files which should be ignored.
 
-Suppose `/home/michael/project/.gitignore` contains the following:
+Suppose `/home/bitranox/project/.gitignore` contains the following:
 
 .. code-block:: python
 
-    # /home/michael/project/.gitignore
+    # /home/bitranox/project/.gitignore
     __pycache__/
     *.py[cod]
-
 
 
 Then:
@@ -19,15 +19,17 @@ Then:
 
     >>> import igittigitt
     >>> parser = igittigitt.IgnoreParser()
-    >>> parser.parse_rule_file(pathlib.Path('/home/michael/project/.gitignore'))
-    >>> parser.match(pathlib.Path('/home/michael/project/main.py'))
+    >>> parser.parse_rule_file(pathlib.Path('/home/bitranox/project/.gitignore'))
+    >>> parser.match(pathlib.Path('/home/bitranox/project/main.py'))
     False
-    >>> parser.match(pathlib.Path('/home/michael/project/main.pyc'))
+    >>> parser.match(pathlib.Path('/home/bitranox/project/main.pyc'))
     True
-    >>> parser.match(pathlib.Path('/home/michael/project/dir/main.pyc'))
+    >>> parser.match(pathlib.Path('/home/bitranox/project/dir/main.pyc'))
     True
-    >>> parser.match(pathlib.Path('/home/michael/project/__pycache__'))
+    >>> parser.match(pathlib.Path('/home/bitranox/project/__pycache__'))
     True
+    # copy the tree without the files which should be ignored by .gitignore
+    >>> shutil.copytree('/home/bitranox/project', '/home/bitranox/project2', ignore=parser.shutil_ignore)
 
 
 Motivation
@@ -36,8 +38,9 @@ I couldn't find a good library for doing the above on PyPI. There are
 several other libraries, but they don't seem to support all features,
 be it the square brackets in `*.py[cod]` or top-level paths `/...`.
 
-forked from https://github.com/mherrmann/gitignore_parser because I
-need to move on faster ... we might join the projects again after stabilisation
+inspired by https://github.com/mherrmann/gitignore_parser but in fact I needed to
+throw away almost everything, because of serious matching bugs and unmaintainable spaghetti code.
+
 
 igittigitt
 ----------

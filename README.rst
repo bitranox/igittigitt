@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v1.0.6 as of 2020-08-14 see `Changelog`_
+Version v2.0.0 as of 2020-08-16 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi| |black|
 
@@ -48,17 +48,17 @@ Version v1.0.6 as of 2020-08-14 see `Changelog`_
 
 A spec-compliant gitignore parser for Python
 
-forked from https://github.com/mherrmann/gitignore_parser we might join later ....
+after reading (nesting supported) the `.gitignore` file, You can match files against the parsers match function. If the file should be ignored, it matches.
 
+We also provide an ignore function for `shutil.treecopy` so it is easy just to copy a directory tree without the files which should be ignored.
 
-Suppose `/home/michael/project/.gitignore` contains the following:
+Suppose `/home/bitranox/project/.gitignore` contains the following:
 
 .. code-block:: python
 
-    # /home/michael/project/.gitignore
+    # /home/bitranox/project/.gitignore
     __pycache__/
     *.py[cod]
-
 
 
 Then:
@@ -67,15 +67,17 @@ Then:
 
     >>> import igittigitt
     >>> parser = igittigitt.IgnoreParser()
-    >>> parser.parse_rule_file(pathlib.Path('/home/michael/project/.gitignore'))
-    >>> parser.match(pathlib.Path('/home/michael/project/main.py'))
+    >>> parser.parse_rule_file(pathlib.Path('/home/bitranox/project/.gitignore'))
+    >>> parser.match(pathlib.Path('/home/bitranox/project/main.py'))
     False
-    >>> parser.match(pathlib.Path('/home/michael/project/main.pyc'))
+    >>> parser.match(pathlib.Path('/home/bitranox/project/main.pyc'))
     True
-    >>> parser.match(pathlib.Path('/home/michael/project/dir/main.pyc'))
+    >>> parser.match(pathlib.Path('/home/bitranox/project/dir/main.pyc'))
     True
-    >>> parser.match(pathlib.Path('/home/michael/project/__pycache__'))
+    >>> parser.match(pathlib.Path('/home/bitranox/project/__pycache__'))
     True
+    # copy the tree without the files which should be ignored by .gitignore
+    >>> shutil.copytree('/home/bitranox/project', '/home/bitranox/project2', ignore=parser.shutil_ignore)
 
 
 Motivation
@@ -84,8 +86,9 @@ I couldn't find a good library for doing the above on PyPI. There are
 several other libraries, but they don't seem to support all features,
 be it the square brackets in `*.py[cod]` or top-level paths `/...`.
 
-forked from https://github.com/mherrmann/gitignore_parser because I
-need to move on faster ... we might join the projects again after stabilisation
+inspired by https://github.com/mherrmann/gitignore_parser but in fact I needed to
+throw away almost everything, because of serious matching bugs and unmaintainable spaghetti code.
+
 
 igittigitt
 ----------
@@ -155,6 +158,38 @@ Usage
         ...     print(parser)
         <...IgnoreParser object at ...>
 
+--------------------------------
+
+- add rules by rule files (the default method)
+
+.. code-block:: python
+
+        def parse_rule_files(
+            self, base_dir: PathLikeOrString, filename: str = ".gitignore"
+        ) -> None:
+            """
+            get all the rule files (default = '.gitignore') from the base_dir
+            all subdirectories will be searched for <filename> and the rules will be appended
+
+            Parameter
+            ---------
+            path_base_dir
+                the base directory - all subdirectories will be searched for <filename>
+            filename
+                the rule filename, default = '.gitignore'
+            """
+
+.. code-block:: python
+
+    >>> # import all .gitignore recursively from base directory
+    >>> ignore_parser.parse_rule_files(base_dir=path_source_dir)
+
+    >>> # import all .gitignore recursively from base directory
+    >>> # use another rule filename
+    >>> ignore_parser.parse_rule_files(base_dir=path_source_dir, filename='my_ignore_rules')
+
+--------------------------------
+
 - add a rule by string
 
 .. code-block:: python
@@ -175,7 +210,37 @@ Usage
 .. code-block:: python
 
         >>> parser = igittigitt.IgnoreParser()
-        >>> parser.add_rule('*.py[cod]', base_path='/home/michael')
+        >>> parser.add_rule('*.py[cod]', base_path='/home/bitranox')
+
+--------------------------------
+
+- match a file
+
+.. code-block:: python
+
+        def match(self, file_path: PathLikeOrString) -> bool:
+            """
+            returns True if the path matches the rules
+            """
+
+--------------------------------
+
+- shutil ignore function
+
+.. code-block:: python
+
+        def shutil_ignore(self, base_dir: str, file_names: List[str]) -> Set[str]:
+            """
+            Ignore function for shutil.copy_tree
+            """
+
+.. code-block:: python
+
+        >>> path_source_dir = path_test_dir / "example"
+        >>> path_target_dir = path_test_dir / "target"
+        >>> ignore_parser = igittigitt.IgnoreParser()
+        >>> ignore_parser.parse_rule_files(base_dir=path_source_dir, filename=".test_gitignore")
+        >>> discard = shutil.copytree(path_source_dir, path_target_dir, ignore=ignore_parser.shutil_ignore)
 
 Usage from Commandline
 ------------------------
@@ -274,7 +339,8 @@ following modules will be automatically installed :
     ## Project Requirements
     attrs
     click
-    cli_exit_tools @ git+https://github.com/bitranox/cli_exit_tools.git
+    cli_exit_tools
+    wcmatch
 
 Acknowledgements
 ----------------
@@ -305,6 +371,15 @@ TODO:
     - code coverage
     - add nested .gitignore files
     - documentation
+
+v2.0.0
+--------
+2020-08-14:
+    - complete redesign
+    - get rid of regexp matching
+    - more tests
+    - now correct matching in subdirs, directory names,
+      filenames, etc ...
 
 v1.0.6
 --------
