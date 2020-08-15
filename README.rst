@@ -48,6 +48,10 @@ Version v2.0.0 as of 2020-08-16 see `Changelog`_
 
 A spec-compliant gitignore parser for Python
 
+after reading (nesting supported) the `.gitignore` file, You can match files against the parsers match function. If the file should be ignored, it matches.
+
+We also provide an ignore function for `shutil.treecopy` so it is easy just to copy a directory tree without the files which should be ignored.
+
 Suppose `/home/bitranox/project/.gitignore` contains the following:
 
 .. code-block:: python
@@ -55,7 +59,6 @@ Suppose `/home/bitranox/project/.gitignore` contains the following:
     # /home/bitranox/project/.gitignore
     __pycache__/
     *.py[cod]
-
 
 
 Then:
@@ -73,6 +76,8 @@ Then:
     True
     >>> parser.match(pathlib.Path('/home/bitranox/project/__pycache__'))
     True
+    # copy the tree without the files which should be ignored by .gitignore
+    >>> shutil.copytree('/home/bitranox/project', '/home/bitranox/project2', ignore=parser.shutil_ignore)
 
 
 Motivation
@@ -235,7 +240,7 @@ Usage
         >>> path_target_dir = path_test_dir / "target"
         >>> ignore_parser = igittigitt.IgnoreParser()
         >>> ignore_parser.parse_rule_files(base_dir=path_source_dir, filename=".test_gitignore")
-        >>> shutil.copytree(path_source_dir, path_target_dir, ignore=ignore_parser.shutil_ignore)
+        >>> discard = shutil.copytree(path_source_dir, path_target_dir, ignore=ignore_parser.shutil_ignore)
 
 Usage from Commandline
 ------------------------

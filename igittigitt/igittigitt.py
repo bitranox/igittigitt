@@ -205,7 +205,7 @@ class IgnoreParser(object):
 
     def _match_negation_rules(self, str_file_path: str) -> bool:
         """
-        match with negotiations
+        match with negation
         """
         for rule in self.negation_rules:
             if wcmatch.glob.globmatch(
