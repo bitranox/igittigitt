@@ -10,6 +10,12 @@ TODO:
     - add nested .gitignore files
     - documentation
 
+v2.0.1
+--------
+2020-09-18:
+    - correct matching bug in subdirectories
+    - avoid redundant patterns when match subdirectories
+
 v2.0.0
 --------
 2020-08-14:
