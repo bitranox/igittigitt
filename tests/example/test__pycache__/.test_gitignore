@@ -1,0 +1,5 @@
+# this file is ignored, since the whole directory is ignored
+# therefore it is not processed
+test__pycache__
+*.py[cod]
+.test_venv/

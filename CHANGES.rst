@@ -10,6 +10,11 @@ TODO:
     - add nested .gitignore files
     - documentation
 
+v2.0.2a0
+--------
+2020-09-18:
+    - deduplicate Rules (todo)
+
 v2.0.1
 --------
 2020-09-18:

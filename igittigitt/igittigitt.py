@@ -15,14 +15,21 @@ __all__ = ("IgnoreParser",)
 
 @attr.s(auto_attribs=True)
 class IgnoreRule(object):
-    pattern_fnmatch: str
+    """
+    the ignore rule datastructure
+
+    >>> ignore_rule=IgnoreRule('./test/*', 'test', False, pathlib.Path('.gitignore'), 1)
+    >>> assert str(ignore_rule) == './test/*'
+    """
+
+    pattern_glob: str
     pattern_original: str
     is_negation_rule: bool
     source_file: Optional[pathlib.Path]
     source_line_number: Optional[int]
 
     def __str__(self) -> str:
-        return self.pattern_fnmatch
+        return self.pattern_glob
 
 
 # IgnoreParser{{{
@@ -39,9 +46,6 @@ class IgnoreParser(object):
         # good chance that the last rule
         # might match again
         self.last_matching_rule: Optional[IgnoreRule] = None
-
-    def __call__(self,) -> None:
-        self.__init__()  # type: ignore
 
     def __enter__(self) -> "IgnoreParser":
         return self
@@ -82,7 +86,9 @@ class IgnoreParser(object):
                 self._parse_rule_file(rule_file)
 
     def _parse_rule_file(
-        self, rule_file: PathLikeOrString, base_dir: Optional[PathLikeOrString] = None,
+        self,
+        rule_file: PathLikeOrString,
+        base_dir: Optional[PathLikeOrString] = None,
     ) -> None:
         """
         parse a git ignore file, create rules from a gitignore file
@@ -188,7 +194,7 @@ class IgnoreParser(object):
         if self.last_matching_rule:
             if wcmatch.glob.globmatch(
                 str_file_path,
-                [self.last_matching_rule.pattern_fnmatch],
+                [self.last_matching_rule.pattern_glob],
                 flags=wcmatch.glob.DOTGLOB | wcmatch.glob.GLOBSTAR,
             ):
                 return True
@@ -196,7 +202,7 @@ class IgnoreParser(object):
         for rule in self.rules:
             if wcmatch.glob.globmatch(
                 str_file_path,
-                [rule.pattern_fnmatch],
+                [rule.pattern_glob],
                 flags=wcmatch.glob.DOTGLOB | wcmatch.glob.GLOBSTAR,
             ):
                 self.last_matching_rule = rule
@@ -210,7 +216,7 @@ class IgnoreParser(object):
         for rule in self.negation_rules:
             if wcmatch.glob.globmatch(
                 str_file_path,
-                [rule.pattern_fnmatch],
+                [rule.pattern_glob],
                 flags=wcmatch.glob.DOTGLOB | wcmatch.glob.GLOBSTAR,
             ):
                 self.last_matching_rule = rule
@@ -254,7 +260,7 @@ def get_rules_from_git_pattern(
     >>> assert get_rules_from_git_pattern('# some comment', some_base_dir) == []
     >>> assert get_rules_from_git_pattern('  # some comment', some_base_dir) == []
     >>> get_rules_from_git_pattern(r'  \\#some_file', some_base_dir)
-    [IgnoreRule(pattern_fnmatch='.../**/\\\\#some_file', ...)]
+    [IgnoreRule(pattern_glob='.../**/\\\\#some_file', ...)]
 
     >>> # Trailing spaces are ignored unless
     >>> # they are quoted with backslash ("\").
@@ -263,7 +269,7 @@ def get_rules_from_git_pattern(
     >>> # but it seems like !
     >>> # see: https://stackoverflow.com/questions/10213653
     >>> get_rules_from_git_pattern(r'something \\ ', some_base_dir)
-    [IgnoreRule(pattern_fnmatch='.../**/something\\\\ ', ...)]
+    [IgnoreRule(pattern_glob='.../**/something\\\\ ', ...)]
 
     >>> # If there is a separator at the beginning or middle (or both)
     >>> # of the pattern, then the pattern is relative to the directory
@@ -320,7 +326,7 @@ def get_rules_from_git_pattern(
     for pattern in l_patterns:
         l_ignore_rules.append(
             IgnoreRule(
-                pattern_fnmatch=pattern,
+                pattern_glob=pattern,
                 pattern_original=pattern_original,
                 is_negation_rule=is_negation_rule,
                 source_file=path_source_file,

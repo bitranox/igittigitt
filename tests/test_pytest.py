@@ -152,6 +152,7 @@ def test_parse_rule_files():
     assert sorted(paths_filtered) == [
         ".test_gitignore",
         ".test_gitignore",
+        ".test_gitignore",
         "excluded_not",
         "excluded_not.txt",
         "not_excluded",
@@ -178,7 +179,9 @@ def test_shutil_ignore_function():
     ignore_parser = igittigitt.IgnoreParser()
     ignore_parser.parse_rule_files(base_dir=path_source_dir, filename=".test_gitignore")
     shutil.copytree(
-        path_source_dir, path_target_dir, ignore=ignore_parser.shutil_ignore,
+        path_source_dir,
+        path_target_dir,
+        ignore=ignore_parser.shutil_ignore,
     )
 
     assert len(list(path_target_dir.glob("**/*"))) == 8
@@ -198,6 +201,8 @@ def doctest_examples():
     >>> print(parser)
     <...IgnoreParser object at ...>
 
+
+
     >>> # init with context manager
     >>> with igittigitt.IgnoreParser() as parser:
     ...     print(parser)
@@ -210,7 +215,6 @@ def doctest_examples():
     >>> parser.add_rule('*.py[cod]', base_path='/home/bitranox')
 
     # add_rule_Example}}}
-
 
     >>> path_test_dir = pathlib.Path(__file__).parent.resolve()
     >>> path_target_dir = path_test_dir / "target"

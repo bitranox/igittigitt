@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v2.0.1 as of 2020-09-18 see `Changelog`_
+Version v2.0.2a0 as of 2020-09-18 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi| |black|
 
@@ -152,6 +152,8 @@ Usage
         >>> parser = igittigitt.IgnoreParser()
         >>> print(parser)
         <...IgnoreParser object at ...>
+
+
 
         >>> # init with context manager
         >>> with igittigitt.IgnoreParser() as parser:
@@ -371,6 +373,11 @@ TODO:
     - code coverage
     - add nested .gitignore files
     - documentation
+
+v2.0.2a0
+--------
+2020-09-18:
+    - deduplicate Rules (todo)
 
 v2.0.1
 --------
