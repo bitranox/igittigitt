@@ -254,7 +254,7 @@ def get_rules_from_git_pattern(
     >>> assert get_rules_from_git_pattern('# some comment', some_base_dir) == []
     >>> assert get_rules_from_git_pattern('  # some comment', some_base_dir) == []
     >>> get_rules_from_git_pattern(r'  \\#some_file', some_base_dir)
-    [IgnoreRule(pattern_fnmatch='.../\\\\#some_file', ...), IgnoreRule(pattern_fnmatch='.../**/\\\\#some_file', ...)]
+    [IgnoreRule(pattern_fnmatch='.../**/\\\\#some_file', ...)]
 
     >>> # Trailing spaces are ignored unless
     >>> # they are quoted with backslash ("\").
@@ -263,7 +263,7 @@ def get_rules_from_git_pattern(
     >>> # but it seems like !
     >>> # see: https://stackoverflow.com/questions/10213653
     >>> get_rules_from_git_pattern(r'something \\ ', some_base_dir)
-    [IgnoreRule(pattern_fnmatch='.../something\\\\ ', ...), IgnoreRule(pattern_fnmatch='.../**/something\\\\ ', ...)]
+    [IgnoreRule(pattern_fnmatch='.../**/something\\\\ ', ...)]
 
     >>> # If there is a separator at the beginning or middle (or both)
     >>> # of the pattern, then the pattern is relative to the directory
@@ -399,24 +399,27 @@ def create_pattern_variations(
 
     >>> path_base = pathlib.Path(__file__).parent.resolve()
     >>> create_pattern_variations(pattern='test', path_base_dir=path_base, match_files=True, match_dirs=True, match_also_subdirs=True)
-    ['.../test', '.../test/*', '.../**/test', '.../**/test/*']
+    ['.../**/test', '.../**/test/**/*']
+    >>> create_pattern_variations(pattern='test', path_base_dir=path_base, match_files=True, match_dirs=True, match_also_subdirs=False)
+    ['.../test', '.../test/**/*']
 
     """
     str_path_base_dir = str(path_base_dir).replace("\\", "/")
     l_patterns: List[str] = list()
-
-    pattern_match_file = str_path_base_dir + "/" + pattern
-    if match_files:
-        l_patterns.append(pattern_match_file)
-    if match_dirs:
-        l_patterns.append(pattern_match_file + "/*")
 
     if match_also_subdirs:
         pattern_match_file_in_subdirs = str_path_base_dir + "/**/" + pattern
         if match_files:
             l_patterns.append(pattern_match_file_in_subdirs)
         if match_dirs:
-            l_patterns.append(pattern_match_file_in_subdirs + "/*")
+            l_patterns.append(pattern_match_file_in_subdirs + "/**/*")
+    else:
+        pattern_match_file = str_path_base_dir + "/" + pattern
+        if match_files:
+            l_patterns.append(pattern_match_file)
+        if match_dirs:
+            l_patterns.append(pattern_match_file + "/**/*")
+
     return l_patterns
 
 
