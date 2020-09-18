@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v2.0.0 as of 2020-08-16 see `Changelog`_
+Version v2.0.1 as of 2020-09-18 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi| |black|
 
@@ -371,6 +371,12 @@ TODO:
     - code coverage
     - add nested .gitignore files
     - documentation
+
+v2.0.1
+--------
+2020-09-18:
+    - correct matching bug in subdirectories
+    - avoid redundant patterns when match subdirectories
 
 v2.0.0
 --------
