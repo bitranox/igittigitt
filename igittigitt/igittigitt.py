@@ -124,12 +124,35 @@ class IgnoreParser(object):
         get all the rule files (default = '.gitignore') from the base_dir
         all subdirectories will be searched for <filename> and the rules will be appended
 
+
         Parameter
         ---------
         path_base_dir
             the base directory - all subdirectories will be searched for <filename>
         filename
             the rule filename, default = '.gitignore'
+
+
+        Examples
+        --------
+
+        >>> # test empty rule file
+        >>> path_test_dir = pathlib.Path(__file__).parent.parent.resolve() / 'tests'
+        >>> path_source_dir = path_test_dir / 'example'
+
+        >>> # parse existing file with rules
+        >>> ignore_parser=IgnoreParser()
+        >>> ignore_parser.parse_rule_files(path_test_dir, '.test_gitignore')
+
+        >>> # parse existing file without rules
+        >>> ignore_parser=IgnoreParser()
+        >>> ignore_parser.parse_rule_files(path_test_dir, '.test_gitignore_empty')
+
+        >>> # parse none existing file
+        >>> ignore_parser=IgnoreParser()
+        >>> ignore_parser.parse_rule_files(path_test_dir, '.test_not_existing')
+
+
         """
         # parse_rule_files}}}
 
@@ -161,11 +184,7 @@ class IgnoreParser(object):
 
         """
         path_rule_file = pathlib.Path(rule_file).resolve()
-
-        if base_dir is None:
-            path_base_dir = path_rule_file.parent
-        else:
-            path_base_dir = pathlib.Path(base_dir).resolve()
+        path_base_dir = path_rule_file.parent
 
         with open(path_rule_file) as ignore_file:
             counter = 0
