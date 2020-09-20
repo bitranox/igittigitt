@@ -10,6 +10,11 @@ TODO:
     - add nested .gitignore files
     - documentation
 
+v2.0.3a0
+--------
+2020-09-20:
+    - bump up coverage
+
 v2.0.2
 --------
 2020-09-20:

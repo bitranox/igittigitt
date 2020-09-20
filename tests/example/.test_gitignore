@@ -4,3 +4,4 @@ test__pycache__
 .test_venv/
 .test_venv/**
 .test_venv/*
+!test_inverse

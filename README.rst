@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v2.0.2 as of 2020-09-20 see `Changelog`_
+Version v2.0.3a0 as of 2020-09-20 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi| |black|
 
@@ -373,6 +373,11 @@ TODO:
     - code coverage
     - add nested .gitignore files
     - documentation
+
+v2.0.3a0
+--------
+2020-09-20:
+    - bump up coverage
 
 v2.0.2
 --------

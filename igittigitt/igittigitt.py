@@ -160,21 +160,12 @@ class IgnoreParser(object):
             were the rule file resides
 
         """
-        if isinstance(rule_file, str):
-            path_rule_file = pathlib.Path(rule_file).resolve()
-        elif isinstance(rule_file, pathlib.Path):
-            path_rule_file = rule_file.resolve()
-        else:
-            raise TypeError('wrong type for "rule_file"')
+        path_rule_file = pathlib.Path(rule_file).resolve()
 
         if base_dir is None:
             path_base_dir = path_rule_file.parent
-        elif isinstance(base_dir, str):
-            path_base_dir = pathlib.Path(base_dir).resolve()
-        elif isinstance(base_dir, pathlib.Path):
-            path_base_dir = base_dir.resolve()
         else:
-            raise TypeError('wrong type for "base_dir"')
+            path_base_dir = pathlib.Path(base_dir).resolve()
 
         with open(path_rule_file) as ignore_file:
             counter = 0
