@@ -158,7 +158,6 @@ def test_parse_rule_files():
         "not_excluded.txt",
         "not_excluded2",
         "not_excluded2.txt",
-        "some_file.txt",
     ]
 
 
@@ -198,6 +197,8 @@ def doctest_examples():
     >>> print(parser)
     <...IgnoreParser object at ...>
 
+
+
     >>> # init with context manager
     >>> with igittigitt.IgnoreParser() as parser:
     ...     print(parser)
@@ -210,7 +211,6 @@ def doctest_examples():
     >>> parser.add_rule('*.py[cod]', base_path='/home/bitranox')
 
     # add_rule_Example}}}
-
 
     >>> path_test_dir = pathlib.Path(__file__).parent.resolve()
     >>> path_target_dir = path_test_dir / "target"
@@ -228,10 +228,32 @@ def doctest_examples():
     >>> shutil.rmtree(path_target_dir, ignore_errors=True)
 
 
+    """
+    pass
 
 
+def doctest_subdir_match_examples():
+    """
+    >>> path_test_dir = pathlib.Path(__file__).parent.resolve()
+    >>> path_base_dir = path_test_dir / 'example'
 
+    >>> # test rule with trailing slash like "pattern/"
+    >>> # should match the directory and everything below - but not a file !
+    >>> parser = igittigitt.IgnoreParser()
+    >>> parser.add_rule('test__pycache__/', base_path=path_base_dir)
+    >>> # test match directory
+    >>> assert parser.match(path_base_dir / 'test__pycache__')
+    >>> # test match file under directory
+    >>> assert parser.match(path_base_dir / 'test__pycache__/some_file.txt')
+    >>> # test match directory under directory
+    >>> assert parser.match(path_base_dir / 'test__pycache__/excluded')
+    >>> assert parser.match(path_base_dir / 'test__pycache__/excluded/excluded')
+    >>> assert parser.match(path_base_dir / 'test__pycache__/excluded/excluded/excluded.txt')
 
+    >>> # this must not match the file "test__pycache__/test"
+    >>> parser = igittigitt.IgnoreParser()
+    >>> parser.add_rule('test__pycache__/test/', base_path=path_base_dir)
+    >>> assert not parser.match(path_base_dir / 'test__pycache__/test')
 
     """
     pass

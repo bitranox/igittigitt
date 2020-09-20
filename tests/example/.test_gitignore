@@ -1,3 +1,6 @@
 test__pycache__
+**/test__pycache__
 *.py[cod]
 .test_venv/
+.test_venv/**
+.test_venv/*
