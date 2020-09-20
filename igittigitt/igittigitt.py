@@ -13,13 +13,10 @@ PathLikeOrString = Union[str, "os.PathLike[Any]"]
 __all__ = ("IgnoreParser",)
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, eq=False, order=False, hash=False, slots=True)
 class IgnoreRule(object):
     """
     the ignore rule datastructure
-
-    >>> ignore_rule=IgnoreRule('./test/*', 'test', False, pathlib.Path('.gitignore'), 1)
-    >>> assert str(ignore_rule) == './test/*'
     """
 
     pattern_glob: str
@@ -29,7 +26,60 @@ class IgnoreRule(object):
     source_line_number: Optional[int]
 
     def __str__(self) -> str:
-        return self.pattern_glob
+        """
+        >>> # Setup
+        >>> ignore_rule_1=IgnoreRule('./test_1/*', 'test_1', False, pathlib.Path('.gitignore'), 1)
+        >>> ignore_rule_2=IgnoreRule('./test_1/*', 'test_1', True, pathlib.Path('.gitignore'), 2)
+        >>> ignore_rule_3=IgnoreRule('./test_1/*', 'test_2', False, pathlib.Path('.gitignore'), 2)
+        >>> ignore_rule_4=IgnoreRule('./test_1/*', 'test_3', True, pathlib.Path('.gitignore'), 3)
+
+        >>> # Test str representation
+        >>> assert str(ignore_rule_1) == './test_1/*'
+        >>> assert str(ignore_rule_2) == '!./test_1/*'
+
+        >>> # Test hash
+        >>> assert ignore_rule_1.__hash__()
+
+        >>> # Test equal
+        >>> assert ignore_rule_1 == ignore_rule_3
+
+        >>> # Test set
+        >>> l_test = [ignore_rule_1, ignore_rule_2, ignore_rule_3, ignore_rule_4]
+        >>> assert len(set(l_test)) == 2
+
+        >>> # Test List in
+        >>> l_test = [ignore_rule_1, ignore_rule_2]
+        >>> assert ignore_rule_2 in l_test
+
+        >>> # Test sorting
+        >>> ignore_rule_sort_1=IgnoreRule('./test_sort_4/*', 'test_1', False, pathlib.Path('.gitignore'), 1)
+        >>> ignore_rule_sort_2=IgnoreRule('./test_sort_3/*', 'test_1', False, pathlib.Path('.gitignore'), 2)
+        >>> ignore_rule_sort_3=IgnoreRule('./test_sort_2/*', 'test_2', False, pathlib.Path('.gitignore'), 2)
+        >>> ignore_rule_sort_4=IgnoreRule('./test_sort_1/*', 'test_3', False, pathlib.Path('.gitignore'), 3)
+        >>> l_test_sort = [ignore_rule_sort_1, ignore_rule_sort_2, ignore_rule_sort_3, ignore_rule_sort_4]
+        >>> assert str(sorted(l_test_sort)[0]) == './test_sort_1/*'
+
+        """
+        l_str_pattern_glob: List[str] = list()
+        if self.is_negation_rule:
+            l_str_pattern_glob.append("!")
+        l_str_pattern_glob.append(self.pattern_glob)
+        str_pattern_glob = "".join(l_str_pattern_glob)
+        return str_pattern_glob
+
+    def __eq__(self, other: object) -> bool:
+        # return self.pattern_glob == other.pattern_glob and self.is_negation_rule == other.is_negation_rule
+        return self.__str__() == other.__str__()
+
+    def __lt__(self, other: object) -> bool:
+        return self.__str__() < other.__str__()
+
+    def __gt__(self, other: object) -> bool:
+        return self.__str__() > other.__str__()
+
+    def __hash__(self) -> int:
+        int_hash = hash((self.pattern_glob, self.is_negation_rule))
+        return int_hash
 
 
 # IgnoreParser{{{
@@ -86,9 +136,7 @@ class IgnoreParser(object):
                 self._parse_rule_file(rule_file)
 
     def _parse_rule_file(
-        self,
-        rule_file: PathLikeOrString,
-        base_dir: Optional[PathLikeOrString] = None,
+        self, rule_file: PathLikeOrString, base_dir: Optional[PathLikeOrString] = None,
     ) -> None:
         """
         parse a git ignore file, create rules from a gitignore file
@@ -136,8 +184,8 @@ class IgnoreParser(object):
                         self.negation_rules = self.negation_rules + rules
                     else:
                         self.rules = self.rules + rules
-        self.rules = sorted(self.rules)
-        self.negation_rules = sorted(self.negation_rules)
+        self.rules = sorted(set(self.rules))
+        self.negation_rules = sorted(set(self.negation_rules))
 
     # add_rule{{{
     def add_rule(self, pattern: str, base_path: PathLikeOrString) -> None:
@@ -162,9 +210,9 @@ class IgnoreParser(object):
 
         if rules:
             if rules[0].is_negation_rule:
-                self.negation_rules = sorted(self.negation_rules + rules)
+                self.negation_rules = sorted(set(self.negation_rules + rules))
             else:
-                self.rules = sorted(self.rules + rules)
+                self.rules = sorted(set(self.rules + rules))
 
     # match{{{
     def match(self, file_path: PathLikeOrString) -> bool:
@@ -245,7 +293,7 @@ def get_rules_from_git_pattern(
     source_line_number: Optional[int] = None,
 ) -> List[IgnoreRule]:
     """
-    converts a git pattern to fnmatch pattern
+    converts a git pattern to glob patterns
 
     >>> some_base_dir = pathlib.Path(__file__).parent.resolve()
 

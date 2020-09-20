@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v2.0.2a0 as of 2020-09-18 see `Changelog`_
+Version v2.0.2a0 as of 2020-09-20 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi| |black|
 
@@ -377,7 +377,8 @@ TODO:
 v2.0.2a0
 --------
 2020-09-18:
-    - deduplicate Rules (todo)
+    - use slotted class for rules, make it hashable and sortable
+    - avoid creating duplicate rules for better performance
 
 v2.0.1
 --------

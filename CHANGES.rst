@@ -13,7 +13,8 @@ TODO:
 v2.0.2a0
 --------
 2020-09-18:
-    - deduplicate Rules (todo)
+    - use slotted class for rules, make it hashable and sortable
+    - avoid creating duplicate rules for better performance
 
 v2.0.1
 --------

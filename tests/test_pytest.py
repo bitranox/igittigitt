@@ -179,9 +179,7 @@ def test_shutil_ignore_function():
     ignore_parser = igittigitt.IgnoreParser()
     ignore_parser.parse_rule_files(base_dir=path_source_dir, filename=".test_gitignore")
     shutil.copytree(
-        path_source_dir,
-        path_target_dir,
-        ignore=ignore_parser.shutil_ignore,
+        path_source_dir, path_target_dir, ignore=ignore_parser.shutil_ignore,
     )
 
     assert len(list(path_target_dir.glob("**/*"))) == 8
