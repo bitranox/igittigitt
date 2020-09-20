@@ -10,9 +10,10 @@ TODO:
     - add nested .gitignore files
     - documentation
 
-v2.0.2a0
+v2.0.2
 --------
-2020-09-18:
+2020-09-20:
+    - (again) correcting matching bug in subdirectories, added tests for that
     - use slotted class for rules, make it hashable and sortable
     - avoid creating duplicate rules for better performance
 
