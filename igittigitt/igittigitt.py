@@ -167,9 +167,7 @@ class IgnoreParser(object):
                 self._parse_rule_file(rule_file)
 
     def _parse_rule_file(
-        self,
-        rule_file: PathLikeOrString,
-        base_dir: Optional[PathLikeOrString] = None,
+        self, rule_file: PathLikeOrString, base_dir: Optional[PathLikeOrString] = None,
     ) -> None:
         """
         parse a git ignore file, create rules from a gitignore file

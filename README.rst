@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v2.0.3a0 as of 2020-09-20 see `Changelog`_
+Version v2.0.3 as of 2020-10-09 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi| |black|
 
@@ -106,7 +106,7 @@ automated tests, Travis Matrix, Documentation, Badges, etc. are managed with `Pi
 
 Python version required: 3.6.0 or newer
 
-tested on linux "bionic" with python 3.6, 3.7, 3.8, 3.8-dev, pypy3 - architectures: amd64, ppc64le, s390x, arm64
+tested on linux "bionic" with python 3.6, 3.7, 3.8, 3.9-dev, pypy3 - architectures: amd64, ppc64le, s390x, arm64
 
 `100% code coverage <https://codecov.io/gh/bitranox/igittigitt>`_, flake8 style checking ,mypy static type checking ,tested under `Linux, macOS, Windows <https://travis-ci.org/bitranox/igittigitt>`_, automatic daily builds and monitoring
 
@@ -397,9 +397,11 @@ TODO:
     - add nested .gitignore files
     - documentation
 
-v2.0.3a0
+v2.0.3
 --------
-2020-09-20:
+2020-10-09: service release
+    - update travis build matrix for linux 3.9-dev
+    - update travis build matrix (paths) for windows 3.9 / 3.10
     - bump up coverage
 
 v2.0.2
