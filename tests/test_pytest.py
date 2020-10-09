@@ -152,6 +152,7 @@ def test_parse_rule_files():
     assert sorted(paths_filtered) == [
         ".test_gitignore",
         ".test_gitignore",
+        ".test_gitignore_empty",
         "excluded_not",
         "excluded_not.txt",
         "not_excluded",
@@ -180,7 +181,7 @@ def test_shutil_ignore_function():
         path_source_dir, path_target_dir, ignore=ignore_parser.shutil_ignore,
     )
 
-    assert len(list(path_target_dir.glob("**/*"))) == 8
+    assert len(list(path_target_dir.glob("**/*"))) == 9
 
     # Teardown
     shutil.rmtree(path_target_dir, ignore_errors=True)

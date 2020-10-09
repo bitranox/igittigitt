@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v2.0.2 as of 2020-09-20 see `Changelog`_
+Version v2.0.3 as of 2020-10-09 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi| |black|
 
@@ -106,7 +106,7 @@ automated tests, Travis Matrix, Documentation, Badges, etc. are managed with `Pi
 
 Python version required: 3.6.0 or newer
 
-tested on linux "bionic" with python 3.6, 3.7, 3.8, 3.8-dev, pypy3 - architectures: amd64, ppc64le, s390x, arm64
+tested on linux "bionic" with python 3.6, 3.7, 3.8, 3.9-dev, pypy3 - architectures: amd64, ppc64le, s390x, arm64
 
 `100% code coverage <https://codecov.io/gh/bitranox/igittigitt>`_, flake8 style checking ,mypy static type checking ,tested under `Linux, macOS, Windows <https://travis-ci.org/bitranox/igittigitt>`_, automatic daily builds and monitoring
 
@@ -173,12 +173,35 @@ Usage
             get all the rule files (default = '.gitignore') from the base_dir
             all subdirectories will be searched for <filename> and the rules will be appended
 
+
             Parameter
             ---------
             path_base_dir
                 the base directory - all subdirectories will be searched for <filename>
             filename
                 the rule filename, default = '.gitignore'
+
+
+            Examples
+            --------
+
+            >>> # test empty rule file
+            >>> path_test_dir = pathlib.Path(__file__).parent.parent.resolve() / 'tests'
+            >>> path_source_dir = path_test_dir / 'example'
+
+            >>> # parse existing file with rules
+            >>> ignore_parser=IgnoreParser()
+            >>> ignore_parser.parse_rule_files(path_test_dir, '.test_gitignore')
+
+            >>> # parse existing file without rules
+            >>> ignore_parser=IgnoreParser()
+            >>> ignore_parser.parse_rule_files(path_test_dir, '.test_gitignore_empty')
+
+            >>> # parse none existing file
+            >>> ignore_parser=IgnoreParser()
+            >>> ignore_parser.parse_rule_files(path_test_dir, '.test_not_existing')
+
+
             """
 
 .. code-block:: python
@@ -373,6 +396,13 @@ TODO:
     - code coverage
     - add nested .gitignore files
     - documentation
+
+v2.0.3
+--------
+2020-10-09: service release
+    - update travis build matrix for linux 3.9-dev
+    - update travis build matrix (paths) for windows 3.9 / 3.10
+    - bump up coverage
 
 v2.0.2
 --------

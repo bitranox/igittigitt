@@ -60,7 +60,7 @@ matrix:
     - os: windows
       if: true
       language: sh
-      name: "Windows Python 3.8"
+      name: "Windows Python 3.9"
 
       # oddly a secure password under env: global: causes that choco fails
       # so we need to put the option : filter_secrets: false
@@ -71,7 +71,7 @@ matrix:
           - chmod -R 0755 /usr/local/lib_bash
           - chmod -R +x /usr/local/lib_bash/*.sh
           - /usr/local/lib_bash/lib_retry.sh retry choco install python3
-          - export PATH="/c/Python38:/c/Python38/Scripts:$PATH"
+          - export PATH="/c/Python310:/c/Python310/Scripts:/c/Python39:/c/Python39/Scripts:/c/Python38:/c/Python38/Scripts:$PATH"
           - export BUILD_DOCS="False"
           - export DEPLOY_SDIST="False"
           - export DEPLOY_WHEEL="False"
@@ -119,7 +119,7 @@ matrix:
       arch: "amd64"
       if: true
       language: python
-      python: "3.8-dev"
+      python: "3.9-dev"
       before_install:
           - export BUILD_DOCS="False"
           - export DEPLOY_SDIST="True"

@@ -10,6 +10,13 @@ TODO:
     - add nested .gitignore files
     - documentation
 
+v2.0.3
+--------
+2020-10-09: service release
+    - update travis build matrix for linux 3.9-dev
+    - update travis build matrix (paths) for windows 3.9 / 3.10
+    - bump up coverage
+
 v2.0.2
 --------
 2020-09-20:

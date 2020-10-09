@@ -124,12 +124,35 @@ class IgnoreParser(object):
         get all the rule files (default = '.gitignore') from the base_dir
         all subdirectories will be searched for <filename> and the rules will be appended
 
+
         Parameter
         ---------
         path_base_dir
             the base directory - all subdirectories will be searched for <filename>
         filename
             the rule filename, default = '.gitignore'
+
+
+        Examples
+        --------
+
+        >>> # test empty rule file
+        >>> path_test_dir = pathlib.Path(__file__).parent.parent.resolve() / 'tests'
+        >>> path_source_dir = path_test_dir / 'example'
+
+        >>> # parse existing file with rules
+        >>> ignore_parser=IgnoreParser()
+        >>> ignore_parser.parse_rule_files(path_test_dir, '.test_gitignore')
+
+        >>> # parse existing file without rules
+        >>> ignore_parser=IgnoreParser()
+        >>> ignore_parser.parse_rule_files(path_test_dir, '.test_gitignore_empty')
+
+        >>> # parse none existing file
+        >>> ignore_parser=IgnoreParser()
+        >>> ignore_parser.parse_rule_files(path_test_dir, '.test_not_existing')
+
+
         """
         # parse_rule_files}}}
 
@@ -160,21 +183,8 @@ class IgnoreParser(object):
             were the rule file resides
 
         """
-        if isinstance(rule_file, str):
-            path_rule_file = pathlib.Path(rule_file).resolve()
-        elif isinstance(rule_file, pathlib.Path):
-            path_rule_file = rule_file.resolve()
-        else:
-            raise TypeError('wrong type for "rule_file"')
-
-        if base_dir is None:
-            path_base_dir = path_rule_file.parent
-        elif isinstance(base_dir, str):
-            path_base_dir = pathlib.Path(base_dir).resolve()
-        elif isinstance(base_dir, pathlib.Path):
-            path_base_dir = base_dir.resolve()
-        else:
-            raise TypeError('wrong type for "base_dir"')
+        path_rule_file = pathlib.Path(rule_file).resolve()
+        path_base_dir = path_rule_file.parent
 
         with open(path_rule_file) as ignore_file:
             counter = 0
@@ -344,8 +354,8 @@ def get_rules_from_git_pattern(
     >>> # level of the particular .gitignore file itself.
     >>> # Otherwise the pattern may also match at any level
     >>> # below the .gitignore level.
-    >>> assert not match_also_sub_directories('/some/thing/')
-    >>> assert match_also_sub_directories('something/')
+    >>> assert get_match_anchored('/some/thing/')
+    >>> assert not get_match_anchored('something/')
 
     >>> # test match at any level (no leading /)
     >>> get_rules_from_git_pattern(git_pattern='test', path_base_dir=pathlib.Path('/base_dir/'))
@@ -390,11 +400,11 @@ def get_rules_from_git_pattern(
         match_file = False
 
     git_pattern = git_pattern.rstrip("/")
-    match_also_subdirs = match_also_sub_directories(git_pattern)
+    match_anchored = get_match_anchored(git_pattern)
     git_pattern = git_pattern.lstrip("/")
 
     if git_pattern.startswith("**/"):
-        match_also_subdirs = True
+        match_anchored = False
         git_pattern = git_pattern[3:]
 
     if git_pattern.endswith("/**"):
@@ -408,7 +418,7 @@ def get_rules_from_git_pattern(
         path_base_dir=path_base_dir,
         match_file=match_file,
         match_dirs_and_content=match_dirs_and_content,
-        match_also_subdirs=match_also_subdirs,
+        match_anchored=match_anchored,
         is_negation_rule=is_negation_rule,
         source_file=path_source_file,
         source_line_number=source_line_number,
@@ -436,7 +446,7 @@ def git_pattern_handle_blanks(git_pattern: str) -> str:
     return "\\ ".join(parts)
 
 
-def match_also_sub_directories(git_pattern: str) -> bool:
+def get_match_anchored(git_pattern: str) -> bool:
     """
     is the pattern relative to the ignore file base directory
 
@@ -449,15 +459,15 @@ def match_also_sub_directories(git_pattern: str) -> bool:
     Otherwise the pattern may also match at any level
     below the .gitignore level.
 
-    >>> assert match_also_sub_directories('')
-    >>> assert match_also_sub_directories('something')
-    >>> assert not match_also_sub_directories('some/thing')
-    >>> assert not match_also_sub_directories('/some/thing')
-    >>> assert not match_also_sub_directories('/some/thing/')
-    >>> assert match_also_sub_directories('something/')
+    >>> assert not get_match_anchored('')
+    >>> assert not get_match_anchored('something')
+    >>> assert get_match_anchored('some/thing')
+    >>> assert get_match_anchored('/some/thing')
+    >>> assert get_match_anchored('/some/thing/')
+    >>> assert not get_match_anchored('something/')
 
     """
-    return "/" not in git_pattern.rstrip("/")
+    return "/" in git_pattern.rstrip("/")
 
 
 def get_match_files(git_pattern: str) -> bool:
@@ -480,7 +490,7 @@ def create_rule_variations(
     path_base_dir: pathlib.Path,
     match_file: bool,
     match_dirs_and_content: bool,
-    match_also_subdirs: bool,
+    match_anchored: bool,
     is_negation_rule: bool,
     source_file: Optional[pathlib.Path],
     source_line_number: Optional[int],
@@ -494,10 +504,10 @@ def create_rule_variations(
     str_path_base_dir = str(path_base_dir).replace("\\", "/")
     l_rules: List[IgnoreRule] = list()
 
-    if match_also_subdirs:
-        pattern_resolved = str_path_base_dir + "/**/" + pattern
-    else:
+    if match_anchored:
         pattern_resolved = str_path_base_dir + "/" + pattern
+    else:
+        pattern_resolved = str_path_base_dir + "/**/" + pattern
 
     # match the pattern, .../.../pattern
     # if match_file = True, it will also match on Files, otherwise only on directories
