@@ -399,8 +399,8 @@ TODO:
 
 v2.0.4
 --------
-2020-11-15: service release
-    - Issue 16, follow support symlinks
+2020-11-15: patch release
+    - Issue 16, support following symlinks
 
 v2.0.3
 --------
