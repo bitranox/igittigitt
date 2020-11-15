@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v2.0.3 as of 2020-10-09 see `Changelog`_
+Version v2.0.4 as of 2020-11-15 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi| |black|
 
@@ -396,6 +396,11 @@ TODO:
     - code coverage
     - add nested .gitignore files
     - documentation
+
+v2.0.4
+--------
+2020-11-15: patch release
+    - Issue 16, support following symlinks
 
 v2.0.3
 --------

@@ -1,4 +1,5 @@
 # STDLIB
+import glob
 import os  # noqa
 import pathlib
 import sys
@@ -159,9 +160,18 @@ class IgnoreParser(object):
         path_base_dir = pathlib.Path(base_dir).resolve()
         # we need to sort to get the right order.
         # we ignore git files in ignored directories !
+
+        """
+        # issue 16 - pathlib.glob does not follow symlinks
         rule_files = sorted(
             list(path_base_dir.glob("".join(["**/", filename.strip()])))
         )
+
+        """
+        rule_files = sorted(
+            list(glob.glob(f"{path_base_dir}/**/{filename.strip()}", recursive=True))
+        )
+
         for rule_file in rule_files:
             if not self.match(rule_file):
                 self._parse_rule_file(rule_file)

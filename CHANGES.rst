@@ -10,6 +10,11 @@ TODO:
     - add nested .gitignore files
     - documentation
 
+v2.0.4
+--------
+2020-11-15: patch release
+    - Issue 16, support following symlinks
+
 v2.0.3
 --------
 2020-10-09: service release
