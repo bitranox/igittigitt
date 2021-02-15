@@ -1,15 +1,14 @@
-name = "igittigitt"
-title = "A spec-compliant gitignore parser for Python"
-version = "v2.0.4"
-url = "https://github.com/bitranox/igittigitt"
-author = "Robert Nowotny"
-author_email = "bitranox@gmail.com"
-shell_command = "igittigitt"
+name = 'igittigitt'
+title = 'A spec-compliant gitignore parser for Python'
+version = 'v2.0.4'
+url = 'https://github.com/bitranox/igittigitt'
+author = 'Robert Nowotny'
+author_email = 'bitranox@gmail.com'
+shell_command = 'igittigitt'
 
 
 def print_info() -> None:
-    print(
-        """\
+    print("""\
 
 Info for igittigitt:
 
@@ -18,5 +17,4 @@ Info for igittigitt:
     Version : v2.0.4
     Url     : https://github.com/bitranox/igittigitt
     Author  : Robert Nowotny
-    Email   : bitranox@gmail.com"""
-    )
+    Email   : bitranox@gmail.com""")

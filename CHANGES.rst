@@ -5,11 +5,6 @@ Changelog
 - new MINOR version for added functionality in a backwards compatible manner
 - new PATCH version for backwards compatible bug fixes
 
-TODO:
-    - code coverage
-    - add nested .gitignore files
-    - documentation
-
 v2.0.4
 --------
 2020-11-15: patch release
