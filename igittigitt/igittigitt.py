@@ -18,6 +18,8 @@ __all__ = ("IgnoreParser",)
 class IgnoreRule(object):
     """
     the ignore rule datastructure
+    we use attr here to get slotted class (less memory, faster access to attributes)
+    and simplify the declaration of the class (we dont need __init__ method)
     """
 
     pattern_glob: str
@@ -34,7 +36,6 @@ class IgnoreRule(object):
         >>> ignore_rule_2=IgnoreRule('./test_1/*', 'test_1', True, True, pathlib.Path('.gitignore'), 2)
         >>> ignore_rule_3=IgnoreRule('./test_1/*', 'test_2', False, True, pathlib.Path('.gitignore'), 2)
         >>> ignore_rule_4=IgnoreRule('./test_1/*', 'test_3', True, True, pathlib.Path('.gitignore'), 3)
-
         >>> # Test str representation
         >>> assert str(ignore_rule_1) == './test_1/*'
         >>> assert str(ignore_rule_2) == '!./test_1/*'
