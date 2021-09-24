@@ -34,7 +34,7 @@ def info() -> None:
 @click.version_option(
     version=__init__conf__.version,
     prog_name=__init__conf__.shell_command,
-    message="{} version %(version)s".format(__init__conf__.shell_command),
+    message=f"{__init__conf__.shell_command} version {__init__conf__.version}",
 )
 @click.option(
     "--traceback/--no-traceback",
