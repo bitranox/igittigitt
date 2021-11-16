@@ -175,11 +175,9 @@ class IgnoreParser(object):
 
         for rule_file in rule_files:
             if not self.match(rule_file):
-                self._parse_rule_file(rule_file)
+                self.parse_rule_file(rule_file)
 
-    def _parse_rule_file(
-        self, rule_file: PathLikeOrString, base_dir: Optional[PathLikeOrString] = None,
-    ) -> None:
+    def parse_rule_file(self, rule_file: PathLikeOrString) -> None:
         """
         parse a git ignore file, create rules from a gitignore file
 
@@ -187,11 +185,6 @@ class IgnoreParser(object):
         ---------
         full_path
             the full path to the ignore file
-        base_dir
-            optional base dir, for testing purposes only.
-            the base dir is the parent of the rule file,
-            because rules are relative to the directory
-            were the rule file resides
 
         """
         path_rule_file = pathlib.Path(rule_file).resolve()
@@ -250,7 +243,7 @@ class IgnoreParser(object):
         """
         # match}}}
 
-        path_file_object = pathlib.Path(file_path).resolve()
+        path_file_object = pathlib.Path(os.path.abspath(os.path.expanduser(file_path)))
         is_file = path_file_object.is_file()
         str_file_path = str(path_file_object)
 
