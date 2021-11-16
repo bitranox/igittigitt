@@ -270,7 +270,7 @@ Usage
 Usage from Commandline
 ------------------------
 
-.. code-block:: bash
+.. code-block::
 
    Usage: igittigitt [OPTIONS] COMMAND [ARGS]...
 
