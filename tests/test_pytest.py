@@ -3,6 +3,7 @@ import pathlib
 import platform
 import pytest
 import shutil
+import sys
 
 # PROJ
 import igittigitt
@@ -138,6 +139,30 @@ def test_negation_rules(parser_negation_git_rules, base_path):
     assert not parser_negation_git_rules.match(
         str(base_path.parent) + "/bitranox/keep.ignore"
     )
+
+
+def test_match_does_not_resolve_symlinks(tmp_path: pathlib.Path):
+    """Test match does not resolve symlinks.
+
+    This mimics how virtualenvironment sets up the .venv directory by
+    symlinking to an interpreter. This test is to ensure that the symlink is
+    being ignored correctly.
+
+    """
+    gitignore = igittigitt.IgnoreParser()
+    gitignore.add_rule(".venv", tmp_path)
+    linked_python = tmp_path / ".venv" / "bin" / "python"
+    linked_python.parent.mkdir(parents=True)
+    linked_python.symlink_to(pathlib.Path(sys.executable).resolve())
+    assert gitignore.match(linked_python)
+
+
+def test_match_expands_user():
+    """Test match expands `~` in path."""
+    gitignore = igittigitt.IgnoreParser()
+    gitignore.add_rule("test.txt", pathlib.Path("~").expanduser())
+    assert gitignore.match(pathlib.Path("~") / "test.txt")
+    assert gitignore.match("~/test.txt")
 
 
 def test_parse_rule_files():
