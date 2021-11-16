@@ -1,4 +1,4 @@
-.. code-block:: bash
+.. code-block::
 
    Usage: igittigitt [OPTIONS] COMMAND [ARGS]...
 

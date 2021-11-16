@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v2.0.5 as of 2021-11-16 see `Changelog`_
+Version v2.0.6b as of 2021-11-17 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi| |black|
 
@@ -153,8 +153,6 @@ Usage
         >>> print(parser)
         <...IgnoreParser object at ...>
 
-
-
         >>> # init with context manager
         >>> with igittigitt.IgnoreParser() as parser:
         ...     print(parser)
@@ -268,7 +266,7 @@ Usage
 Usage from Commandline
 ------------------------
 
-.. code-block:: bash
+.. code-block::
 
    Usage: igittigitt [OPTIONS] COMMAND [ARGS]...
 
@@ -295,7 +293,7 @@ Installation and Upgrade
 
 - to install the latest release from PyPi via pip (recommended):
 
-.. code-block:: bash
+.. code-block::
 
     python -m pip install --upgrade igittigitt
 
@@ -389,6 +387,10 @@ Changelog
 - new MAJOR version for incompatible API changes,
 - new MINOR version for added functionality in a backwards compatible manner
 - new PATCH version for backwards compatible bug fixes
+
+v2.0.6b
+--------
+work in progress
 
 v2.0.5
 --------
