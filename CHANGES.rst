@@ -5,6 +5,10 @@ Changelog
 - new MINOR version for added functionality in a backwards compatible manner
 - new PATCH version for backwards compatible bug fixes
 
+v2.0.6b
+--------
+work in progress
+
 v2.0.5
 --------
 2021-11-16: patch release
