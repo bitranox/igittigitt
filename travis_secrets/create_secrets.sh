@@ -17,7 +17,7 @@ read -r -p 'variable name  :' var_name
 read -r -p 'variable value :' var_value
 
 cd "${project_root_dir}"||exit
-travis encrypt "${var_name}=${var_value}" --no-interactive > "${own_dir}/secrets/${var_name}.secret.txt"
+travis encrypt "${var_name}=${var_value}" --no-interactive --com > "${own_dir}/secrets/${var_name}.secret.txt"
 
 banner "the secret for \"${var_name}\" was created and exported to:
 ${own_dir}/secrets/${var_name}.secret.txt.

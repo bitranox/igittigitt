@@ -22,7 +22,7 @@ env:
 
         # MYPY tests
         - MYPY_DO_TESTS="True"
-        - MYPY_OPTIONS="--follow-imports=normal --implicit-reexport --no-warn-unused-ignores --strict"
+        - MYPY_OPTIONS="--follow-imports=normal --ignore-missing-imports --implicit-reexport --no-warn-unused-ignores --strict"
         - MYPYPATH="./igittigitt/3rd_party_stubs"
 
         # coverage
@@ -155,7 +155,7 @@ matrix:
       arch: "ppc64le"
       if: tag IS present
       language: python
-      python: "3.8"
+      python: "3.9"
       before_install:
           - export BUILD_DOCS="False"
           - export DEPLOY_SDIST="True"
@@ -167,7 +167,7 @@ matrix:
       arch: "s390x"
       if: tag IS present
       language: python
-      python: "3.8"
+      python: "3.9"
       before_install:
           - export BUILD_DOCS="False"
           - export DEPLOY_SDIST="True"
@@ -179,7 +179,7 @@ matrix:
       arch: "arm64"
       if: tag IS present
       language: python
-      python: "3.8"
+      python: "3.9"
       before_install:
           - export BUILD_DOCS="False"
           - export DEPLOY_SDIST="True"
@@ -190,9 +190,9 @@ matrix:
     - os: osx
       if: true
       language: sh
-      name: "macOS 10.15.4"
+      name: "macOS 10.15.7"
       python: "3.8"
-      osx_image: xcode11.5
+      osx_image: xcode12.2
       env:
         # on osx pip and python points to python 2.7 - therefore we have to use pip3 and python3 here
         - cPREFIX=""				# prefix before commands - used for wine, there the prefix is "wine"

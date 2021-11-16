@@ -119,9 +119,7 @@ class IgnoreParser(object):
         pass
 
     # parse_rule_files{{{
-    def parse_rule_files(
-        self, base_dir: PathLikeOrString, filename: str = ".gitignore"
-    ) -> None:
+    def parse_rule_files(self, base_dir: PathLikeOrString, filename: str = ".gitignore") -> None:
         """
         get all the rule files (default = '.gitignore') from the base_dir
         all subdirectories will be searched for <filename> and the rules will be appended
@@ -169,9 +167,7 @@ class IgnoreParser(object):
         )
 
         """
-        rule_files = sorted(
-            list(glob.glob(f"{path_base_dir}/**/{filename.strip()}", recursive=True))
-        )
+        rule_files = sorted(list(glob.glob(f"{path_base_dir}/**/{filename.strip()}", recursive=True)))
 
         for rule_file in rule_files:
             if not self.match(rule_file):
@@ -226,9 +222,7 @@ class IgnoreParser(object):
 
         path_base_dir = pathlib.Path(base_path).resolve()
 
-        rules = get_rules_from_git_pattern(
-            git_pattern=pattern, path_base_dir=path_base_dir
-        )
+        rules = get_rules_from_git_pattern(git_pattern=pattern, path_base_dir=path_base_dir)
 
         if rules:
             if rules[0].is_negation_rule:

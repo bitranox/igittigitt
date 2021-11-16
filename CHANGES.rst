@@ -5,6 +5,11 @@ Changelog
 - new MINOR version for added functionality in a backwards compatible manner
 - new PATCH version for backwards compatible bug fixes
 
+v2.0.5
+--------
+2021-11-16: patch release
+    - Issue 18, 22, support following symlinks
+
 v2.0.4
 --------
 2020-11-15: patch release
