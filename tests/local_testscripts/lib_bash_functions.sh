@@ -22,6 +22,7 @@ export PYTHONPATH="$(python3 ./testing_tools.py append_directory_to_python_path 
 # following lines are not only a comment, they get actually replaced
 export PYTHONPATH="$(python3 ./testing_tools.py append_directory_to_python_path "/media/srv-main-softdev/rotek-apps/lib")"
 export MYPYPATH="$(python3 ./testing_tools.py append_immediate_subdirs_to_mypy_path "/media/srv-main-softdev/rotek-apps/lib/bitranox")"
+export MYPYPATH="$(python3 ./testing_tools.py append_immediate_subdirs_to_mypy_path "/media/srv-main-softdev/rotek-apps/lib/libs_local")"
 cd "$save_dir"||exit
 
 function install_or_update_lib_bash() {
@@ -140,7 +141,7 @@ function run_flake8_tests() {
 
 function run_mypy_tests() {
   my_banner "mypy tests"
-  if ! python3 -m mypy "${project_root_dir}" --follow-imports=normal --implicit-reexport --no-warn-unused-ignores --strict; then
+  if ! python3 -m mypy "${project_root_dir}" --follow-imports=normal --ignore-missing-imports --implicit-reexport --no-warn-unused-ignores --strict; then
     my_banner_warning "mypy tests ERROR"
     beep
     sleep "${sleeptime_on_error}"
@@ -152,7 +153,7 @@ function run_mypy_tests() {
 function run_pytest() {
   # run pytest, accepts additional pytest parameters like --disable-warnings and so on
   my_banner "running pytest with settings from pytest.ini, mypy.ini and conftest.py"
-  if ! python3 -m pytest "${project_root_dir}" "$@" --cov=igittigitt; then
+  if ! python3 -m pytest "${project_root_dir}" "$@" --cov="${project_root_dir}" --cov-config=.coveragerc; then
     my_banner_warning "pytest ERROR"
     beep
     sleep "${sleeptime_on_error}"

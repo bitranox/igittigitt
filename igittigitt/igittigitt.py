@@ -18,6 +18,8 @@ __all__ = ("IgnoreParser",)
 class IgnoreRule(object):
     """
     the ignore rule datastructure
+    we use attr here to get slotted class (less memory, faster access to attributes)
+    and simplify the declaration of the class (we dont need __init__ method)
     """
 
     pattern_glob: str
@@ -34,7 +36,6 @@ class IgnoreRule(object):
         >>> ignore_rule_2=IgnoreRule('./test_1/*', 'test_1', True, True, pathlib.Path('.gitignore'), 2)
         >>> ignore_rule_3=IgnoreRule('./test_1/*', 'test_2', False, True, pathlib.Path('.gitignore'), 2)
         >>> ignore_rule_4=IgnoreRule('./test_1/*', 'test_3', True, True, pathlib.Path('.gitignore'), 3)
-
         >>> # Test str representation
         >>> assert str(ignore_rule_1) == './test_1/*'
         >>> assert str(ignore_rule_2) == '!./test_1/*'
@@ -118,9 +119,7 @@ class IgnoreParser(object):
         pass
 
     # parse_rule_files{{{
-    def parse_rule_files(
-        self, base_dir: PathLikeOrString, filename: str = ".gitignore"
-    ) -> None:
+    def parse_rule_files(self, base_dir: PathLikeOrString, filename: str = ".gitignore") -> None:
         """
         get all the rule files (default = '.gitignore') from the base_dir
         all subdirectories will be searched for <filename> and the rules will be appended
@@ -168,17 +167,13 @@ class IgnoreParser(object):
         )
 
         """
-        rule_files = sorted(
-            list(glob.glob(f"{path_base_dir}/**/{filename.strip()}", recursive=True))
-        )
+        rule_files = sorted(list(glob.glob(f"{path_base_dir}/**/{filename.strip()}", recursive=True)))
 
         for rule_file in rule_files:
             if not self.match(rule_file):
-                self._parse_rule_file(rule_file)
+                self.parse_rule_file(rule_file)
 
-    def _parse_rule_file(
-        self, rule_file: PathLikeOrString, base_dir: Optional[PathLikeOrString] = None,
-    ) -> None:
+    def parse_rule_file(self, rule_file: PathLikeOrString) -> None:
         """
         parse a git ignore file, create rules from a gitignore file
 
@@ -186,11 +181,6 @@ class IgnoreParser(object):
         ---------
         full_path
             the full path to the ignore file
-        base_dir
-            optional base dir, for testing purposes only.
-            the base dir is the parent of the rule file,
-            because rules are relative to the directory
-            were the rule file resides
 
         """
         path_rule_file = pathlib.Path(rule_file).resolve()
@@ -232,9 +222,7 @@ class IgnoreParser(object):
 
         path_base_dir = pathlib.Path(base_path).resolve()
 
-        rules = get_rules_from_git_pattern(
-            git_pattern=pattern, path_base_dir=path_base_dir
-        )
+        rules = get_rules_from_git_pattern(git_pattern=pattern, path_base_dir=path_base_dir)
 
         if rules:
             if rules[0].is_negation_rule:
@@ -249,7 +237,7 @@ class IgnoreParser(object):
         """
         # match}}}
 
-        path_file_object = pathlib.Path(file_path).resolve()
+        path_file_object = pathlib.Path(os.path.abspath(os.path.expanduser(file_path)))
         is_file = path_file_object.is_file()
         str_file_path = str(path_file_object)
 

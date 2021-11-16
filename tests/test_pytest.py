@@ -3,13 +3,14 @@ import pathlib
 import platform
 import pytest
 import shutil
+import sys
 
 # PROJ
 import igittigitt
 
 
 @pytest.fixture(scope="function")
-def base_path():
+def base_path() -> pathlib.Path:
     if platform.system() == "Windows":
         return pathlib.Path("C:/Users/bitranox").resolve()
     else:
@@ -17,7 +18,7 @@ def base_path():
 
 
 @pytest.fixture(scope="function")
-def parser_simple_git_rules(base_path):
+def parser_simple_git_rules(base_path: pathlib.Path) -> igittigitt.IgnoreParser:
     ignore_parser = igittigitt.IgnoreParser()
     # add rules with base path as pathlib.Path
     ignore_parser.add_rule("__pycache__", base_path=base_path)
@@ -32,7 +33,7 @@ def parser_simple_git_rules(base_path):
 
 
 @pytest.fixture(scope="function")
-def parser_test_comments(base_path):
+def parser_test_comments(base_path: pathlib.Path) -> igittigitt.IgnoreParser:
     ignore_parser = igittigitt.IgnoreParser()
     ignore_parser.add_rule("somematch", base_path=base_path)
     ignore_parser.add_rule("#realcomment", base_path=base_path)
@@ -42,28 +43,28 @@ def parser_test_comments(base_path):
 
 
 @pytest.fixture(scope="function")
-def parser_test_wildcard(base_path):
+def parser_test_wildcard(base_path: pathlib.Path) -> igittigitt.IgnoreParser:
     ignore_parser = igittigitt.IgnoreParser()
     ignore_parser.add_rule("hello.*", base_path=base_path)
     return ignore_parser
 
 
 @pytest.fixture(scope="function")
-def parser_test_anchored_wildcard(base_path):
+def parser_test_anchored_wildcard(base_path: pathlib.Path) -> igittigitt.IgnoreParser:
     ignore_parser = igittigitt.IgnoreParser()
     ignore_parser.add_rule("/hello.*", base_path=base_path)
     return ignore_parser
 
 
 @pytest.fixture(scope="function")
-def parser_negation_git_rules(base_path):
+def parser_negation_git_rules(base_path: pathlib.Path) -> igittigitt.IgnoreParser:
     ignore_parser = igittigitt.IgnoreParser()
     ignore_parser.add_rule("*.ignore", base_path=base_path)
     ignore_parser.add_rule("!keep.ignore", base_path=base_path)
     return ignore_parser
 
 
-def test_simple_rules(parser_simple_git_rules, base_path):
+def test_simple_rules(parser_simple_git_rules: igittigitt.IgnoreParser, base_path: pathlib.Path) -> None:
     assert not parser_simple_git_rules.match(base_path / "main.py")
     # test a path that is outside of the base path
     assert not parser_simple_git_rules.match(base_path.parent / "bitranox/main.py")
@@ -75,9 +76,7 @@ def test_simple_rules(parser_simple_git_rules, base_path):
     assert parser_simple_git_rules.match(base_path / ".venv/file.txt")
 
     assert not parser_simple_git_rules.match(str(base_path) + "/main.py")
-    assert not parser_simple_git_rules.match(
-        str(base_path.parent) + "/bitranox/main.py"
-    )
+    assert not parser_simple_git_rules.match(str(base_path.parent) + "/bitranox/main.py")
     assert parser_simple_git_rules.match(str(base_path) + "/main.pyc")
     assert parser_simple_git_rules.match(str(base_path) + "/dir/main.pyc")
     assert parser_simple_git_rules.match(str(base_path) + "/__pycache__")
@@ -86,7 +85,7 @@ def test_simple_rules(parser_simple_git_rules, base_path):
     assert parser_simple_git_rules.match(str(base_path) + "/.venv/file.txt")
 
 
-def test_comments(parser_test_comments, base_path):
+def test_comments(parser_test_comments: igittigitt.IgnoreParser, base_path: pathlib.Path) -> None:
     assert parser_test_comments.match(base_path / "somematch")
     assert not parser_test_comments.match(base_path / "#realcomment")
     assert parser_test_comments.match(base_path / "othermatch")
@@ -98,7 +97,7 @@ def test_comments(parser_test_comments, base_path):
     assert parser_test_comments.match(str(base_path) + "/#imnocomment")
 
 
-def test_wildcard(parser_test_wildcard, base_path):
+def test_wildcard(parser_test_wildcard: igittigitt.IgnoreParser, base_path: pathlib.Path) -> None:
     assert parser_test_wildcard.match(base_path / "hello.txt")
     assert parser_test_wildcard.match(base_path / "hello.foobar/")
     assert parser_test_wildcard.match(base_path / "dir/hello.txt")
@@ -114,7 +113,7 @@ def test_wildcard(parser_test_wildcard, base_path):
     assert not parser_test_wildcard.match(str(base_path) + "/helloX")
 
 
-def test_anchored_wildcard(parser_test_anchored_wildcard, base_path):
+def test_anchored_wildcard(parser_test_anchored_wildcard: igittigitt.IgnoreParser, base_path: pathlib.Path) -> None:
     assert parser_test_anchored_wildcard.match(base_path / "hello.txt")
     assert parser_test_anchored_wildcard.match(base_path / "hello.c")
     assert not parser_test_anchored_wildcard.match(base_path / "a/hello.java")
@@ -124,23 +123,43 @@ def test_anchored_wildcard(parser_test_anchored_wildcard, base_path):
     assert not parser_test_anchored_wildcard.match(str(base_path) + "/a/hello.java")
 
 
-def test_negation_rules(parser_negation_git_rules, base_path):
+def test_negation_rules(parser_negation_git_rules: igittigitt.IgnoreParser, base_path: pathlib.Path) -> None:
     assert parser_negation_git_rules.match(base_path / "trash.ignore")
     assert parser_negation_git_rules.match(base_path / "whatever.ignore")
     assert not parser_negation_git_rules.match(base_path / "keep.ignore")
-    assert not parser_negation_git_rules.match(
-        base_path.parent / "bitranox/keep.ignore"
-    )
+    assert not parser_negation_git_rules.match(base_path.parent / "bitranox/keep.ignore")
 
     assert parser_negation_git_rules.match(str(base_path) + "/trash.ignore")
     assert parser_negation_git_rules.match(str(base_path) + "/whatever.ignore")
     assert not parser_negation_git_rules.match(str(base_path) + "/keep.ignore")
-    assert not parser_negation_git_rules.match(
-        str(base_path.parent) + "/bitranox/keep.ignore"
-    )
+    assert not parser_negation_git_rules.match(str(base_path.parent) + "/bitranox/keep.ignore")
 
 
-def test_parse_rule_files():
+def test_match_does_not_resolve_symlinks(tmp_path: pathlib.Path) -> None:
+    """Test match does not resolve symlinks.
+
+    This mimics how virtual environment sets up the .venv directory by
+    symlinking to an interpreter. This test is to ensure that the symlink is
+    being ignored correctly.
+
+    """
+    gitignore = igittigitt.IgnoreParser()
+    gitignore.add_rule(".venv", tmp_path)
+    linked_python = tmp_path / ".venv" / "bin" / "python"
+    linked_python.parent.mkdir(parents=True)
+    linked_python.symlink_to(pathlib.Path(sys.executable).resolve())
+    assert gitignore.match(linked_python)
+
+
+def test_match_expands_user() -> None:
+    """Test match expands `~` in path."""
+    gitignore = igittigitt.IgnoreParser()
+    gitignore.add_rule("test.txt", pathlib.Path("~").expanduser())
+    assert gitignore.match(pathlib.Path("~") / "test.txt")
+    assert gitignore.match("~/test.txt")
+
+
+def test_parse_rule_files() -> None:
     path_test_dir = pathlib.Path(__file__).parent.resolve() / "example"
     ignore_parser = igittigitt.IgnoreParser()
     ignore_parser.parse_rule_files(base_dir=path_test_dir, filename=".test_gitignore")
@@ -162,7 +181,7 @@ def test_parse_rule_files():
     ]
 
 
-def test_shutil_ignore_function():
+def test_shutil_ignore_function() -> None:
     """
     >>> test_shutil_ignore_function()
 
@@ -178,7 +197,9 @@ def test_shutil_ignore_function():
     ignore_parser = igittigitt.IgnoreParser()
     ignore_parser.parse_rule_files(base_dir=path_source_dir, filename=".test_gitignore")
     shutil.copytree(
-        path_source_dir, path_target_dir, ignore=ignore_parser.shutil_ignore,
+        path_source_dir,
+        path_target_dir,
+        ignore=ignore_parser.shutil_ignore,
     )
 
     assert len(list(path_target_dir.glob("**/*"))) == 9
@@ -187,7 +208,7 @@ def test_shutil_ignore_function():
     shutil.rmtree(path_target_dir, ignore_errors=True)
 
 
-def doctest_examples():
+def doctest_examples() -> None:
     """
 
     >>> # EXAMPLE IgnoreParser Instance
@@ -197,8 +218,6 @@ def doctest_examples():
     >>> parser = igittigitt.IgnoreParser()
     >>> print(parser)
     <...IgnoreParser object at ...>
-
-
 
     >>> # init with context manager
     >>> with igittigitt.IgnoreParser() as parser:
@@ -233,7 +252,7 @@ def doctest_examples():
     pass
 
 
-def doctest_subdir_match_examples():
+def doctest_subdir_match_examples() -> None:
     """
     >>> path_test_dir = pathlib.Path(__file__).parent.resolve()
     >>> path_base_dir = path_test_dir / 'example'

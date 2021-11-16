@@ -4,7 +4,7 @@
 
 
 .. |travis_build| image:: https://img.shields.io/travis/bitranox/igittigitt/master.svg
-   :target: https://travis-ci.org/bitranox/igittigitt
+   :target: https://travis-ci.com/bitranox/igittigitt
 
 .. |license| image:: https://img.shields.io/github/license/webcomics/pywine.svg
    :target: http://en.wikipedia.org/wiki/MIT_License

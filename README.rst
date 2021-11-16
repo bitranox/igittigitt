@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v2.0.4 as of 2020-11-15 see `Changelog`_
+Version v2.0.5 as of 2021-11-16 see `Changelog`_
 
 |travis_build| |license| |jupyter| |pypi| |black|
 
@@ -10,7 +10,7 @@ Version v2.0.4 as of 2020-11-15 see `Changelog`_
 
 
 .. |travis_build| image:: https://img.shields.io/travis/bitranox/igittigitt/master.svg
-   :target: https://travis-ci.org/bitranox/igittigitt
+   :target: https://travis-ci.com/bitranox/igittigitt
 
 .. |license| image:: https://img.shields.io/github/license/webcomics/pywine.svg
    :target: http://en.wikipedia.org/wiki/MIT_License
@@ -106,7 +106,7 @@ automated tests, Travis Matrix, Documentation, Badges, etc. are managed with `Pi
 
 Python version required: 3.6.0 or newer
 
-tested on linux "bionic" with python 3.6, 3.7, 3.8, 3.9-dev, pypy3 - architectures: amd64, ppc64le, s390x, arm64
+tested on linux "bionic" with python 3.6, 3.7, 3.8, 3.9, 3.9-dev, pypy3 - architectures: amd64, ppc64le, s390x, arm64
 
 `100% code coverage <https://codecov.io/gh/bitranox/igittigitt>`_, flake8 style checking ,mypy static type checking ,tested under `Linux, macOS, Windows <https://travis-ci.org/bitranox/igittigitt>`_, automatic daily builds and monitoring
 
@@ -166,9 +166,7 @@ Usage
 
 .. code-block:: python
 
-        def parse_rule_files(
-            self, base_dir: PathLikeOrString, filename: str = ".gitignore"
-        ) -> None:
+        def parse_rule_files(self, base_dir: PathLikeOrString, filename: str = ".gitignore") -> None:
             """
             get all the rule files (default = '.gitignore') from the base_dir
             all subdirectories will be searched for <filename> and the rules will be appended
@@ -290,7 +288,7 @@ Installation and Upgrade
 - Before You start, its highly recommended to update pip and setup tools:
 
 
-.. code-block:: bash
+.. code-block::
 
     python -m pip --upgrade pip
     python -m pip --upgrade setuptools
@@ -304,14 +302,14 @@ Installation and Upgrade
 - to install the latest version from github via pip:
 
 
-.. code-block:: bash
+.. code-block::
 
     python -m pip install --upgrade git+https://github.com/bitranox/igittigitt.git
 
 
 - include it into Your requirements.txt:
 
-.. code-block:: bash
+.. code-block::
 
     # Insert following line in Your requirements.txt:
     # for the latest Release on pypi:
@@ -326,7 +324,7 @@ Installation and Upgrade
 
 - to install the latest development version from source code:
 
-.. code-block:: bash
+.. code-block::
 
     # cd ~
     $ git clone https://github.com/bitranox/igittigitt.git
@@ -392,10 +390,10 @@ Changelog
 - new MINOR version for added functionality in a backwards compatible manner
 - new PATCH version for backwards compatible bug fixes
 
-TODO:
-    - code coverage
-    - add nested .gitignore files
-    - documentation
+v2.0.5
+--------
+2021-11-16: patch release
+    - Issue 18, 22, support following symlinks
 
 v2.0.4
 --------
