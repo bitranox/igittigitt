@@ -250,7 +250,7 @@ class IgnoreParser(object):
         """
         # match}}}
 
-        path_file_object = pathlib.Path(file_path).resolve()
+        path_file_object = pathlib.Path(os.path.abspath(os.path.expanduser(file_path)))
         is_file = path_file_object.is_file()
         str_file_path = str(path_file_object)
 
