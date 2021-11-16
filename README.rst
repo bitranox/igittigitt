@@ -270,7 +270,7 @@ Usage
 Usage from Commandline
 ------------------------
 
-.. code-block:: bash
+.. code-block::
 
    Usage: igittigitt [OPTIONS] COMMAND [ARGS]...
 
@@ -290,28 +290,28 @@ Installation and Upgrade
 - Before You start, its highly recommended to update pip and setup tools:
 
 
-.. code-block:: bash
+.. code-block::
 
     python -m pip --upgrade pip
     python -m pip --upgrade setuptools
 
 - to install the latest release from PyPi via pip (recommended):
 
-.. code-block:: bash
+.. code-block::
 
     python -m pip install --upgrade igittigitt
 
 - to install the latest version from github via pip:
 
 
-.. code-block:: bash
+.. code-block::
 
     python -m pip install --upgrade git+https://github.com/bitranox/igittigitt.git
 
 
 - include it into Your requirements.txt:
 
-.. code-block:: bash
+.. code-block::
 
     # Insert following line in Your requirements.txt:
     # for the latest Release on pypi:
@@ -326,7 +326,7 @@ Installation and Upgrade
 
 - to install the latest development version from source code:
 
-.. code-block:: bash
+.. code-block::
 
     # cd ~
     $ git clone https://github.com/bitranox/igittigitt.git
@@ -359,7 +359,7 @@ Requirements
 ------------
 following modules will be automatically installed :
 
-.. code-block:: bash
+.. code-block::
 
     ## Project Requirements
     attrs
