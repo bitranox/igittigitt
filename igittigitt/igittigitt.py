@@ -180,6 +180,7 @@ class IgnoreParser(object):
 
         # we need to sort to get the right order.
         # we ignore git files in ignored directories !
+
         rule_files = sorted(list(glob.glob(f"{path_base_dir}/**/{filename.strip()}", recursive=True)))
 
         for rule_file in rule_files:
@@ -194,12 +195,14 @@ class IgnoreParser(object):
         ---------
         full_path
             the full path to the ignore file
+
         base_dir
             since gitignore patterns are relative to a base
             directory, that can be provided here.
             if it is not provided, path_base_dir is the location of the ignore file
             this is needed to be able to import default ignore files from user home directory,
             see README.RST, Section "Default Patterns"
+
         """
         path_rule_file = pathlib.Path(rule_file).resolve()
 

@@ -1,27 +1,19 @@
-# CONF
-
-name = "igittigitt"
-title = "A spec-compliant gitignore parser for Python"
-version = "v2.1.0"
-url = "https://github.com/bitranox/igittigitt"
-author = "Robert Nowotny"
-author_email = "bitranox@gmail.com"
-shell_command = "igittigitt"
+# STDLIB
+import os
+import pathlib
+import sys
 
 
-def print_info() -> None:
-    print(
-        """\
+"""
+set the syspath accordingly, if pytest or doctest is running
+this is needed for local tests
+this should be the first module which is loaded by __init__.py
+to avoid frozen or partially initialized modules for pytest,
+and just before the project imports (for doctest)
+no other module should import or use this module,
+again to avoid frozen or partially initialized modules.
 
-Info for igittigitt:
-
-    A spec-compliant gitignore parser for Python
-
-    Version : v2.1.0
-    Url     : https://github.com/bitranox/igittigitt
-    Author  : Robert Nowotny
-    Email   : bitranox@gmail.com"""
-    )
+"""
 
 
 def is_doctest_running() -> bool:
@@ -57,3 +49,20 @@ def is_doctest_in_arg_string(arg_string: str) -> bool:
         return True
     else:
         return False
+
+
+def add_path_to_syspath() -> None:
+    """
+    >>> add_path_to_syspath()
+    """
+    path_to_append = pathlib.Path(__file__).resolve().parent
+    sys_paths_resolved = [pathlib.Path(path).resolve() for path in sys.path]
+    if path_to_append not in sys_paths_resolved:
+        sys.path.append(str(path_to_append))
+
+
+if is_doctest_running():
+    """
+    we need to add the path to syspath for pytest and doctest
+    """
+    add_path_to_syspath()

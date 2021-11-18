@@ -412,6 +412,7 @@ Changelog
 - new MINOR version for added functionality in a backwards compatible manner
 - new PATCH version for backwards compatible bug fixes
 
+
 v2.1.0
 ------
 2021-11-18: minor release
