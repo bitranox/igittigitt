@@ -1,7 +1,7 @@
 # detect test environment and add path for local testing
 from lib_detect_testenv import *
 
-if is_doctest_running():
+if is_doctest_active():
     add_path_to_syspath(__file__)
 
 # put Your imports here
