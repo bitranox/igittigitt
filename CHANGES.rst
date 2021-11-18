@@ -5,9 +5,10 @@ Changelog
 - new MINOR version for added functionality in a backwards compatible manner
 - new PATCH version for backwards compatible bug fixes
 
-v2.0.6b
---------
-work in progress
+v2.1.0
+------
+2021-11-18: minor release
+    - issue 21, support default ignore files
 
 v2.0.5
 --------

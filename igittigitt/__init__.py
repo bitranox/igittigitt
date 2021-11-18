@@ -6,6 +6,7 @@ if is_testenv_active():
     add_path_to_syspath(__file__)
 
 # put Your imports here
+from .conf_igittigitt import conf_igittigitt
 from .igittigitt import *
 
 # __init__conf__ needs to be imported after Your imports, otherwise we would create circular import on the cli script,
