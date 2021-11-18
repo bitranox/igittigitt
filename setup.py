@@ -84,7 +84,7 @@ if is_travis_deploy() and is_tagged_commit():
 
 setup_kwargs: Dict[str, Any] = dict()
 setup_kwargs["name"] = "igittigitt"
-setup_kwargs["version"] = "v2.1.0"
+setup_kwargs["version"] = "v2.1.1b"
 setup_kwargs["url"] = "https://github.com/bitranox/igittigitt"
 setup_kwargs["packages"] = find_packages()
 setup_kwargs["package_data"] = {"igittigitt": ["py.typed", "*.pyi", "__init__.pyi"]}
