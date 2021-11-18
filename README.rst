@@ -415,6 +415,7 @@ Changelog
 v2.1.1b
 -------
     - work in progress
+    - set __all__ accordingly
 
 v2.1.0
 ------
