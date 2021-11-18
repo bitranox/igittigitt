@@ -2,6 +2,7 @@
 import glob
 import os  # noqa
 import pathlib
+import platform
 import sys
 from types import TracebackType
 from typing import Any, List, Optional, Set, Type, Union  # noqa
@@ -9,6 +10,13 @@ from typing import Any, List, Optional, Set, Type, Union  # noqa
 # EXT
 import attr
 import wcmatch.glob  # type: ignore
+
+# CONF
+try:
+    from .conf_igittigitt import conf_igittigitt
+except ImportError:  # pragma: no cover
+    from conf_igittigitt import conf_igittigitt  # type: ignore  # pragma: no cover
+
 
 PathLikeOrString = Union[str, "os.PathLike[Any]"]
 __all__ = ("IgnoreParser",)
@@ -119,7 +127,9 @@ class IgnoreParser(object):
         pass
 
     # parse_rule_files{{{
-    def parse_rule_files(self, base_dir: PathLikeOrString, filename: str = ".gitignore") -> None:
+    def parse_rule_files(
+        self, base_dir: PathLikeOrString, filename: str = ".gitignore", add_default_patterns: bool = conf_igittigitt.add_default_patterns
+    ) -> None:
         """
         get all the rule files (default = '.gitignore') from the base_dir
         all subdirectories will be searched for <filename> and the rules will be appended
@@ -131,7 +141,15 @@ class IgnoreParser(object):
             the base directory - all subdirectories will be searched for <filename>
         filename
             the rule filename, default = '.gitignore'
+        add_default_patterns
+            if to add the default ignore patterns from user home directory. Those default patterns may reside at :
 
+            LINUX : $XDG_CONFIG_HOME/git/ignore, if not set or empty
+                    $HOME/.config/git/ignore
+
+            WINDOWS : %XDG_CONFIG_HOME%/git/ignore, if not set or empty
+                      %HOME%/.config/git/ignore,  if not set or empty
+                      %USERDATA%/git/ignore
 
         Examples
         --------
@@ -152,28 +170,24 @@ class IgnoreParser(object):
         >>> ignore_parser=IgnoreParser()
         >>> ignore_parser.parse_rule_files(path_test_dir, '.test_not_existing')
 
-
         """
         # parse_rule_files}}}
 
         path_base_dir = pathlib.Path(base_dir).resolve()
+
+        if add_default_patterns:
+            self._add_default_patterns(path_base_dir=path_base_dir)
+
         # we need to sort to get the right order.
         # we ignore git files in ignored directories !
 
-        """
-        # issue 16 - pathlib.glob does not follow symlinks
-        rule_files = sorted(
-            list(path_base_dir.glob("".join(["**/", filename.strip()])))
-        )
-
-        """
         rule_files = sorted(list(glob.glob(f"{path_base_dir}/**/{filename.strip()}", recursive=True)))
 
         for rule_file in rule_files:
             if not self.match(rule_file):
                 self.parse_rule_file(rule_file)
 
-    def parse_rule_file(self, rule_file: PathLikeOrString) -> None:
+    def parse_rule_file(self, rule_file: PathLikeOrString, base_dir: Optional[PathLikeOrString] = None) -> None:
         """
         parse a git ignore file, create rules from a gitignore file
 
@@ -182,9 +196,20 @@ class IgnoreParser(object):
         full_path
             the full path to the ignore file
 
+        base_dir
+            since gitignore patterns are relative to a base
+            directory, that can be provided here.
+            if it is not provided, path_base_dir is the location of the ignore file
+            this is needed to be able to import default ignore files from user home directory,
+            see README.RST, Section "Default Patterns"
+
         """
         path_rule_file = pathlib.Path(rule_file).resolve()
-        path_base_dir = path_rule_file.parent
+
+        if not base_dir:
+            path_base_dir = path_rule_file.parent
+        else:
+            path_base_dir = pathlib.Path(base_dir).resolve()
 
         with open(path_rule_file) as ignore_file:
             counter = 0
@@ -298,6 +323,82 @@ class IgnoreParser(object):
                 self.last_matching_rule = rule
                 return False
         return True
+
+    def _add_default_patterns(self, path_base_dir: pathlib.Path, is_windows: Optional[bool] = None) -> None:
+        """
+        add the default ignore patterns from user home directory. Those default patterns may reside at :
+
+        LINUX : $XDG_CONFIG_HOME/git/ignore, if not set or empty
+                $HOME/.config/git/ignore
+
+        WINDOWS : %XDG_CONFIG_HOME%/git/ignore, if not set or empty
+                  %HOME%/.config/git/ignore,  if not set or empty
+                  %USERDATA%/git/ignore
+
+        >>> # setup
+        >>> path_test_dir = pathlib.Path(__file__).parent.parent.resolve() / 'tests/default_pattern'
+        >>> backup_env_xdg_config_home = get_env_data('XDG_CONFIG_HOME')
+        >>> backup_env_home = get_env_data('HOME')
+        >>> backup_env_userdata = get_env_data('USERDATA')
+        >>> set_env_data('XDG_CONFIG_HOME', '')
+        >>> set_env_data('HOME', '')
+        >>> set_env_data('USERDATA', '')
+        >>> ignore_parser=IgnoreParser()
+
+        >>> # test XDG_CONFIG_HOME
+        >>> ignore_parser.rules = list()
+        >>> set_env_data('XDG_CONFIG_HOME', str(path_test_dir))
+        >>> ignore_parser._add_default_patterns(path_base_dir=path_test_dir)
+        >>> assert len(ignore_parser.rules) > 0
+        >>> set_env_data('XDG_CONFIG_HOME', '')
+
+        >>> # test HOME
+        >>> ignore_parser.rules = list()
+        >>> set_env_data('HOME', str(path_test_dir))
+        >>> ignore_parser._add_default_patterns(path_base_dir=path_test_dir)
+        >>> assert len(ignore_parser.rules) > 0
+        >>> set_env_data('HOME', '')
+
+        >>> # test USERDATA LINUX - this should NOT be found
+        >>> ignore_parser.rules = list()
+        >>> set_env_data('USERDATA', str(path_test_dir))
+        >>> ignore_parser._add_default_patterns(path_base_dir=path_test_dir, is_windows=False)
+        >>> assert len(ignore_parser.rules) == 0
+        >>> set_env_data('USERDATA', '')
+
+        >>> # test USERDATA WINDOWS
+        >>> ignore_parser.rules = list()
+        >>> set_env_data('USERDATA', str(path_test_dir))
+        >>> ignore_parser._add_default_patterns(path_base_dir=path_test_dir, is_windows=True)
+        >>> assert len(ignore_parser.rules) > 0
+        >>> set_env_data('USERDATA', '')
+
+        >>> # teardown
+        >>> set_env_data('XDG_CONFIG_HOME', backup_env_xdg_config_home)
+        >>> set_env_data('HOME', backup_env_home)
+        >>> set_env_data('USERDATA', backup_env_userdata)
+
+        """
+        xdg_conf_home = get_env_data("XDG_CONFIG_HOME")
+        usr_home = get_env_data("HOME")
+        win_userdata = get_env_data("USERDATA")
+        if is_windows is None:
+            is_windows = platform.system() == "Windows"
+
+        if xdg_conf_home:
+            path_default_patterns = pathlib.Path(xdg_conf_home) / "git/ignore"
+
+        elif usr_home:
+            path_default_patterns = pathlib.Path(usr_home) / ".config/git/ignore"
+
+        elif is_windows and win_userdata:
+            path_default_patterns = pathlib.Path(win_userdata) / "git/ignore"
+
+        else:
+            return
+
+        if path_default_patterns.is_file():
+            self.parse_rule_file(rule_file=path_default_patterns, base_dir=path_base_dir)
 
     # shutil_ignore{{{
     def shutil_ignore(self, base_dir: str, file_names: List[str]) -> Set[str]:
@@ -530,6 +631,30 @@ def create_rule_variations(
         )
         l_rules.append(rule_match_subdirs)
     return l_rules
+
+
+def get_env_data(env_variable: str) -> str:
+    """
+    >>> # Setup
+    >>> save_mypy_path = get_env_data('MYPYPATH')
+
+    >>> # Test
+    >>> set_env_data('MYPYPATH', 'some_test')
+    >>> assert get_env_data('MYPYPATH') == 'some_test'
+
+    >>> # Teardown
+    >>> set_env_data('MYPYPATH', save_mypy_path)
+
+    """
+    if env_variable in os.environ:
+        env_data = os.environ[env_variable]
+    else:
+        env_data = ""
+    return env_data
+
+
+def set_env_data(env_variable: str, env_str: str) -> None:
+    os.environ[env_variable] = env_str
 
 
 if __name__ == "__main__":

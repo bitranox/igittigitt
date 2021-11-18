@@ -1,7 +1,12 @@
-# if doctest or pytest is running, set paths accordingly
-from . import __init__pytest__paths__  # noqa
+# detect test environment and add path for local testing
+# this should be the first import in __init__.py
+from lib_detect_testenv import *
+
+if is_testenv_active():
+    add_path_to_syspath(__file__)
 
 # put Your imports here
+from .conf_igittigitt import conf_igittigitt
 from .igittigitt import *
 
 # __init__conf__ needs to be imported after Your imports, otherwise we would create circular import on the cli script,
