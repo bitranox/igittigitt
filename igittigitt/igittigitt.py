@@ -259,6 +259,20 @@ class IgnoreParser(object):
     def match(self, file_path: PathLikeOrString) -> bool:
         """
         returns True if the path matches the rules
+
+        >>> # Setup
+        >>> base_path = pathlib.Path(__file__).parent.parent.resolve() / 'tests/example_negation'
+
+        >>> # Test
+        >>> gitignore = IgnoreParser()
+        >>> gitignore.add_rule("/*", base_path)
+        >>> gitignore.add_rule("!/foo", base_path)
+        >>> gitignore.add_rule("/foo/*", base_path)
+        >>> gitignore.add_rule("!/foo/bar", base_path)
+        >>> assert gitignore.match(base_path / "foo/bar/file.txt") == False
+        >>> # assert gitignore.match(base_path / "foo/other/file.txt") == True  # this fails - because everything is wrong
+        >>> # see : https://docs.rs/ignore/0.4.18/ignore/struct.WalkBuilder.html
+
         """
         # match}}}
 
@@ -276,12 +290,13 @@ class IgnoreParser(object):
 
     def _match_rules(self, str_file_path: str, is_file: bool) -> bool:
         """
-        match without negotiations - in that case we can return
+        match without negations - in that case we can return
         immediately after a match.
 
 
         is_file:
             the passed path is a file (and not a directory)
+
         """
 
         # small optimisation - we have a good chance

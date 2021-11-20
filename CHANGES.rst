@@ -9,6 +9,7 @@ v2.1.1b
 -------
     - work in progress
     - set __all__ accordingly
+    - point out limitations in Readme
 
 v2.1.0
 ------
