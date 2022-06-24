@@ -556,8 +556,9 @@ def git_pattern_handle_blanks(git_pattern: str) -> str:
     >>> assert git_pattern_handle_blanks(r'some\\ thing \\ ') == 'some\\ thing\\ '
     >>> assert git_pattern_handle_blanks(r'some thing \\ ') == 'some thing\\ '
     """
-    parts = [part.strip() for part in git_pattern.split("\\ ")]
-    return "\\ ".join(parts)
+    # parts = [part.strip() for part in git_pattern.split("\\ ")]
+    parts = [part.strip() for part in git_pattern.split(r"\ ")]
+    return r"\ ".join(parts)
 
 
 def get_match_anchored(git_pattern: str) -> bool:

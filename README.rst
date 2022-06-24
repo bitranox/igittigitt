@@ -496,10 +496,12 @@ Changelog
 
 v2.1.1b
 -------
-    - work in progress
+2022-06-24:
     - set __all__ accordingly
     - point out limitations in Readme
     - integrate github actions
+    - adjusting tests: patterns ending with a point can not match on windows
+    - adressing invalid escape sequence '\ '
 
 v2.1.0
 ------
