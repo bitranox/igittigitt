@@ -7,9 +7,10 @@ Changelog
 
 v2.1.1b
 -------
-    - work in progress
+2022-06-24:
     - set __all__ accordingly
     - point out limitations in Readme
+    - integrate github actions
 
 v2.1.0
 ------

@@ -2,21 +2,23 @@ igittigitt
 ==========
 
 
-Version v2.1.1b as of 2021-11-20 see `Changelog`_
+Version v2.1.1b as of 2022-06-24 see `Changelog`_
 
-|travis_build| |license| |jupyter| |pypi| |black|
+|build_badge| |license| |jupyter| |pypi| |pypi-downloads| |black|
 
 |codecov| |better_code| |cc_maintain| |cc_issues| |cc_coverage| |snyk|
 
 
-.. |travis_build| image:: https://img.shields.io/travis/bitranox/igittigitt/master.svg
-   :target: https://travis-ci.com/bitranox/igittigitt
+
+.. |build_badge| image:: https://github.com/bitranox/igittigitt/actions/workflows/python-package.yml/badge.svg
+   :target: https://github.com/bitranox/igittigitt/actions/workflows/python-package.yml
+
 
 .. |license| image:: https://img.shields.io/github/license/webcomics/pywine.svg
    :target: http://en.wikipedia.org/wiki/MIT_License
 
 .. |jupyter| image:: https://mybinder.org/badge_logo.svg
- :target: https://mybinder.org/v2/gh/bitranox/igittigitt/master?filepath=igittigitt.ipynb
+   :target: https://mybinder.org/v2/gh/bitranox/igittigitt/master?filepath=igittigitt.ipynb
 
 .. for the pypi status link note the dashes, not the underscore !
 .. |pypi| image:: https://img.shields.io/pypi/status/igittigitt?label=PyPI%20Package
@@ -45,6 +47,10 @@ Version v2.1.1b as of 2021-11-20 see `Changelog`_
 
 .. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/psf/black
+
+.. |pypi-downloads| image:: https://img.shields.io/pypi/dm/igittigitt
+   :target: https://pypi.org/project/igittigitt/
+   :alt: PyPI - Downloads
 
 - A spec-compliant gitignore parser for Python.
 - IgittIgitt provides methods to intentionally ignore files and directories (usually to copy or distribute them).
@@ -182,9 +188,9 @@ automated tests, Travis Matrix, Documentation, Badges, etc. are managed with `Pi
 
 Python version required: 3.6.0 or newer
 
-tested on linux "bionic" with python 3.6, 3.7, 3.8, 3.9, 3.9-dev, pypy3 - architectures: amd64, ppc64le, s390x, arm64
+tested on recent linux with python 3.6, 3.7, 3.8, 3.9, 3.10, pypy-3.8 - architectures: amd64
 
-`100% code coverage <https://codecov.io/gh/bitranox/igittigitt>`_, flake8 style checking ,mypy static type checking ,tested under `Linux, macOS, Windows <https://travis-ci.org/bitranox/igittigitt>`_, automatic daily builds and monitoring
+`100% code coverage <https://codecov.io/gh/bitranox/igittigitt>`_, flake8 style checking ,mypy static type checking ,tested under `Linux, macOS, Windows <https://github.com/bitranox/igittigitt/actions/workflows/python-package.yml>`_, automatic daily builds and monitoring
 
 ----
 
@@ -493,6 +499,7 @@ v2.1.1b
     - work in progress
     - set __all__ accordingly
     - point out limitations in Readme
+    - integrate github actions
 
 v2.1.0
 ------
