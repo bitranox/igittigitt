@@ -501,7 +501,7 @@ v2.1.1b
     - point out limitations in Readme
     - integrate github actions
     - adjusting tests: patterns ending with a point can not match on windows
-    - adressing invalid escape sequence '\ '
+    - removing invalid escape sequences
 
 v2.1.0
 ------

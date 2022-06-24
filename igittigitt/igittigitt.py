@@ -551,12 +551,11 @@ def git_pattern_handle_blanks(git_pattern: str) -> str:
     see: https://stackoverflow.com/questions/10213653
     wcmatch.glob.globmatch supports both forms
 
-    >>> assert git_pattern_handle_blanks(r'something \\ \\ ') == 'something\\ \\ '
-    >>> assert git_pattern_handle_blanks(r'something \\ \\  ') == 'something\\ \\ '
-    >>> assert git_pattern_handle_blanks(r'some\\ thing \\ ') == 'some\\ thing\\ '
-    >>> assert git_pattern_handle_blanks(r'some thing \\ ') == 'some thing\\ '
+    >>> assert git_pattern_handle_blanks(r'something \\ \\ ') == r'something\\ \\ '
+    >>> assert git_pattern_handle_blanks(r'something \\ \\  ') == r'something\\ \\ '
+    >>> assert git_pattern_handle_blanks(r'some\\ thing \\ ') == r'some\\ thing\\ '
+    >>> assert git_pattern_handle_blanks(r'some thing \\ ') == r'some thing\\ '
     """
-    # parts = [part.strip() for part in git_pattern.split("\\ ")]
     parts = [part.strip() for part in git_pattern.split(r"\ ")]
     return r"\ ".join(parts)
 
