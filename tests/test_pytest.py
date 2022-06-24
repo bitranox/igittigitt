@@ -114,7 +114,13 @@ def test_wildcard(parser_test_wildcard: igittigitt.IgnoreParser, base_path: path
     assert parser_test_wildcard.match(str(base_path) + "/hello.txt")
     assert parser_test_wildcard.match(str(base_path) + "/hello.foobar/")
     assert parser_test_wildcard.match(str(base_path) + "/dir/hello.txt")
-    assert parser_test_wildcard.match(str(base_path) + "/hello.")
+
+    if platform.system() == "Windows":
+        # in Windows there can be no files ending with a point
+        assert not parser_test_wildcard.match(str(base_path) + "/hello.")
+    else:
+        assert parser_test_wildcard.match(str(base_path) + "/hello.")
+
     assert not parser_test_wildcard.match(str(base_path) + "/hello")
     assert not parser_test_wildcard.match(str(base_path) + "/helloX")
 
