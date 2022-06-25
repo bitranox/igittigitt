@@ -5,14 +5,15 @@ Changelog
 - new MINOR version for added functionality in a backwards compatible manner
 - new PATCH version for backwards compatible bug fixes
 
-v2.1.1b
+v2.1.2
 -------
-2022-06-24:
+2022-06-25:
     - set __all__ accordingly
     - point out limitations in Readme
     - integrate github actions
     - adjusting tests: patterns ending with a point can not match on windows
     - removing invalid escape sequences
+    - match on paths with symlinks in their components
 
 v2.1.0
 ------

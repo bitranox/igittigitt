@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v2.1.1b as of 2022-06-24 see `Changelog`_
+Version v2.1.2 as of 2022-06-25 see `Changelog`_
 
 |build_badge| |license| |jupyter| |pypi| |pypi-downloads| |black|
 
@@ -67,13 +67,13 @@ Limitations
 - sizelimit, hidden directories and other features might behave different from git
 - some features are not implemented
 - the limitations are somehow a result of the incomplete documentation at `git-scm.com <https://git-scm.com/docs/gitignore#_pattern_format>`_
-- luckily there is a good explanation at `WalkBuilder <https://https://docs.rs/ignore/0.4.18/ignore/struct.WalkBuilder.html>`_ , so You can expect things
+- luckily there is a good explanation at `WalkBuilder <https://docs.rs/ignore/0.4.18/ignore/struct.WalkBuilder.html>`_ , so You can expect things
   will get better over time
 
 is it still useful ?
 --------------------
 - yes
-- if You dont need negation rules, and dont rely on correct precedence of nested rulefiles, it will work just fine
+- if You dont need negation rules, and dont rely on correct precedence of nested rule files, it will work just fine
 
 
 Ignore rules - correct handling (currently not)
@@ -103,7 +103,7 @@ Those rules are documented here. Note that the rules assume a default configurat
     - as above, if it yields an ignore match, then all matching is stopped and the path is skipped.
     - if it yields a whitelist match, then matching continues.
 
-5)  - if the path hasn’t been whitelisted and it is hidden, then the path is skipped.
+5)  - if the path has not been whitelisted and it is hidden, then the path is skipped.
 
 6)  - unless the path is a directory, the size of the file is compared against the max filesize limit.
       If it exceeds the limit, it is skipped.
@@ -494,14 +494,15 @@ Changelog
 - new MINOR version for added functionality in a backwards compatible manner
 - new PATCH version for backwards compatible bug fixes
 
-v2.1.1b
+v2.1.2
 -------
-2022-06-24:
+2022-06-25:
     - set __all__ accordingly
     - point out limitations in Readme
     - integrate github actions
     - adjusting tests: patterns ending with a point can not match on windows
     - removing invalid escape sequences
+    - match on paths with symlinks in their components
 
 v2.1.0
 ------

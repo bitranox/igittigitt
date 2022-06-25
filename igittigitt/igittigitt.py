@@ -17,7 +17,6 @@ try:
 except ImportError:  # pragma: no cover
     from conf_igittigitt import conf_igittigitt  # type: ignore  # pragma: no cover
 
-
 PathLikeOrString = Union[str, "os.PathLike[Any]"]
 __all__ = ("IgnoreParser",)
 
@@ -126,6 +125,14 @@ class IgnoreParser(object):
     ) -> None:
         pass
 
+    @staticmethod
+    def _expand_base_path(base_path: PathLikeOrString) -> pathlib.Path:
+        """
+        expand the user directory and make absolute, but dont resolve symlinks
+        """
+        path_base_dir = pathlib.Path(os.path.abspath(os.path.expanduser(base_path)))
+        return path_base_dir
+
     # parse_rule_files{{{
     def parse_rule_files(
         self, base_dir: PathLikeOrString, filename: str = ".gitignore", add_default_patterns: bool = conf_igittigitt.add_default_patterns
@@ -173,7 +180,7 @@ class IgnoreParser(object):
         """
         # parse_rule_files}}}
 
-        path_base_dir = pathlib.Path(base_dir).resolve()
+        path_base_dir = self._expand_base_path(base_path=base_dir)
 
         if add_default_patterns:
             self._add_default_patterns(path_base_dir=path_base_dir)
@@ -204,12 +211,12 @@ class IgnoreParser(object):
             see README.RST, Section "Default Patterns"
 
         """
-        path_rule_file = pathlib.Path(rule_file).resolve()
+        path_rule_file = self._expand_base_path(base_path=rule_file)
 
         if not base_dir:
             path_base_dir = path_rule_file.parent
         else:
-            path_base_dir = pathlib.Path(base_dir).resolve()
+            path_base_dir = self._expand_base_path(base_path=base_dir)
 
         with open(path_rule_file) as ignore_file:
             counter = 0
@@ -244,9 +251,7 @@ class IgnoreParser(object):
             directory, that needs to be provided here
         """
         # add_rule}}}
-
-        path_base_dir = pathlib.Path(base_path).resolve()
-
+        path_base_dir = self._expand_base_path(base_path=base_path)
         rules = get_rules_from_git_pattern(git_pattern=pattern, path_base_dir=path_base_dir)
 
         if rules:
@@ -275,8 +280,7 @@ class IgnoreParser(object):
 
         """
         # match}}}
-
-        path_file_object = pathlib.Path(os.path.abspath(os.path.expanduser(file_path)))
+        path_file_object = self._expand_base_path(base_path=file_path)
         is_file = path_file_object.is_file()
         str_file_path = str(path_file_object)
 
@@ -421,8 +425,7 @@ class IgnoreParser(object):
         Ignore function for shutil.copy_tree
         """
         # shutil_ignore}}}
-
-        path_base_dir = pathlib.Path(base_dir).resolve()
+        path_base_dir = self._expand_base_path(base_path=base_dir)
         ignore_files: Set[str] = set()
         for file in file_names:
             if self.match(path_base_dir / file):

@@ -2,7 +2,7 @@
 
 name = "igittigitt"
 title = "A spec-compliant gitignore parser for Python"
-version = "v2.1.1b"
+version = "v2.1.2"
 url = "https://github.com/bitranox/igittigitt"
 author = "Robert Nowotny"
 author_email = "bitranox@gmail.com"
@@ -17,7 +17,7 @@ Info for igittigitt:
 
     A spec-compliant gitignore parser for Python
 
-    Version : v2.1.1b
+    Version : v2.1.2
     Url     : https://github.com/bitranox/igittigitt
     Author  : Robert Nowotny
     Email   : bitranox@gmail.com"""
