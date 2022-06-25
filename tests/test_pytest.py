@@ -101,14 +101,26 @@ def test_wildcard(parser_test_wildcard: igittigitt.IgnoreParser, base_path: path
     assert parser_test_wildcard.match(base_path / "hello.txt")
     assert parser_test_wildcard.match(base_path / "hello.foobar/")
     assert parser_test_wildcard.match(base_path / "dir/hello.txt")
-    assert parser_test_wildcard.match(base_path / "hello.")
+
+    if platform.system() == "Windows":
+        # in Windows there can be no files ending with a point
+        assert not parser_test_wildcard.match(base_path / "hello.")
+    else:
+        assert parser_test_wildcard.match(base_path / "hello.")
+
     assert not parser_test_wildcard.match(base_path / "hello")
     assert not parser_test_wildcard.match(base_path / "helloX")
 
     assert parser_test_wildcard.match(str(base_path) + "/hello.txt")
     assert parser_test_wildcard.match(str(base_path) + "/hello.foobar/")
     assert parser_test_wildcard.match(str(base_path) + "/dir/hello.txt")
-    assert parser_test_wildcard.match(str(base_path) + "/hello.")
+
+    if platform.system() == "Windows":
+        # in Windows there can be no files ending with a point
+        assert not parser_test_wildcard.match(str(base_path) + "/hello.")
+    else:
+        assert parser_test_wildcard.match(str(base_path) + "/hello.")
+
     assert not parser_test_wildcard.match(str(base_path) + "/hello")
     assert not parser_test_wildcard.match(str(base_path) + "/helloX")
 
@@ -136,11 +148,10 @@ def test_negation_rules(parser_negation_git_rules: igittigitt.IgnoreParser, base
 
 
 def test_match_does_not_resolve_symlinks(tmp_path: pathlib.Path) -> None:
-    """Test match does not resolve symlinks.
-
+    """Test match on files under symlinked directories
     This mimics how virtual environment sets up the .venv directory by
     symlinking to an interpreter. This test is to ensure that the symlink is
-    being ignored correctly.
+    being ignored (matched) correctly.
 
     """
     gitignore = igittigitt.IgnoreParser()
@@ -149,6 +160,33 @@ def test_match_does_not_resolve_symlinks(tmp_path: pathlib.Path) -> None:
     linked_python.parent.mkdir(parents=True)
     linked_python.symlink_to(pathlib.Path(sys.executable).resolve())
     assert gitignore.match(linked_python)
+
+
+def test_match_files_under_symlink(tmp_path: pathlib.Path) -> None:
+    """
+    see: https://git-scm.com/docs/gitignore#_pattern_format
+    The pattern foo/ will match a directory foo and paths underneath it,
+    but will not match a regular file or a symbolic link foo
+    (this is consistent with the way how pathspec works in general in Git)
+    """
+    pass
+
+
+def test_handle_base_directories_with_a_symlink_in_their_components(tmp_path: pathlib.Path) -> None:
+    """
+    see https://github.com/bitranox/igittigitt/issues/28
+    """
+    # setup
+    dir01 = pathlib.Path(tmp_path / "igittigitt01")
+    dir01.mkdir(parents=True)
+    dir02 = pathlib.Path(tmp_path / "symlink_to_igittigitt01")
+    dir02.symlink_to(dir01)
+    (dir02 / "file.txt").touch()
+
+    # Test
+    gitignore = igittigitt.IgnoreParser()
+    gitignore.add_rule("*.txt", dir02)
+    assert gitignore.match(dir02 / "file.txt")
 
 
 def test_match_expands_user() -> None:

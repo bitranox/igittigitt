@@ -1,8 +1,70 @@
-A spec-compliant gitignore parser for Python
+- A spec-compliant gitignore parser for Python.
+- IgittIgitt provides methods to intentionally ignore files and directories (usually to copy or distribute them).
+- The patterns to define what should be ignored, are stored in "ignore" files, which are compatible with `git <https://git-scm.com/docs/gitignore#_pattern_format>`_.
 
-after reading (nesting supported) the `.gitignore` file, You can match files against the parsers match function. If the file should be ignored, it matches.
 
+Limitations
+-----------
+
+- at the current stage the parser is ok, as long as You dont use negations (ignore globs, which starts with "!")
+- precedence levels are not supported correctly
+- according to the manual,  more nested ignore files have a higher precedence than less nested ignore files - this is currently
+  neither checked, nor supported correctly.
+- sizelimit, hidden directories and other features might behave different from git
+- some features are not implemented
+- the limitations are somehow a result of the incomplete documentation at `git-scm.com <https://git-scm.com/docs/gitignore#_pattern_format>`_
+- luckily there is a good explanation at `WalkBuilder <https://docs.rs/ignore/0.4.18/ignore/struct.WalkBuilder.html>`_ , so You can expect things
+  will get better over time
+
+is it still useful ?
+--------------------
+- yes
+- if You dont need negation rules, and dont rely on correct precedence of nested rule files, it will work just fine
+
+
+Ignore rules - correct handling (currently not)
+-----------------------------------------------
+There are many rules that influence whether a particular file or directory is skipped.
+Those rules are documented here. Note that the rules assume a default configuration.
+
+1) glob overrides are checked. If a path matches a glob override, then matching stops.
+    - The path is then only skipped if the glob that matched the path is an ignore glob.
+      (An override glob is a whitelist glob unless it starts with a !, in which case it is an ignore glob.)
+
+2) ignore files are checked.
+    - Ignore files currently only come from git ignore files
+      (.gitignore, .git/info/exclude and the configured global gitignore file),
+      plain .ignore files, which have the same format as gitignore files, or explicitly added ignore files.
+    - The precedence order is: .ignore, .gitignore, .git/info/exclude, global gitignore and finally
+      explicitly added ignore files.
+    - Note that precedence between different types of ignore files is not impacted by the directory hierarchy;
+      any .ignore file overrides all .gitignore files.
+    - Within each precedence level, more nested ignore files have a higher precedence than less nested
+      ignore files. (really ? check !)
+
+3)  - if the previous step yields an ignore match, then all matching is stopped and the path is skipped.
+    - if it yields a whitelist match, then matching continues, a whitelist match can be overridden by a later matcher.
+
+4)  - unless the path is a directory, the file type matcher is run on the path.
+    - as above, if it yields an ignore match, then all matching is stopped and the path is skipped.
+    - if it yields a whitelist match, then matching continues.
+
+5)  - if the path has not been whitelisted and it is hidden, then the path is skipped.
+
+6)  - unless the path is a directory, the size of the file is compared against the max filesize limit.
+      If it exceeds the limit, it is skipped.
+
+
+Ignore rules - current handling (not spec compliant)
+----------------------------------------------------
+
+- no precedence levels are supported, rules are just sorted by length (which is terribly wrong if negation rules are used)
+- all other points from above are not implemented
+
+
+After reading (nesting supported) the `.gitignore` file, You can match files against the parsers match function. If the file should be ignored, it matches.
 We also provide an ignore function for `shutil.treecopy` so it is easy just to copy a directory tree without the files which should be ignored.
+A `match` indicates, that the file should be ignored.
 
 Suppose `/home/bitranox/project/.gitignore` contains the following:
 

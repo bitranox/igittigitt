@@ -103,6 +103,8 @@ function install_clean_virtual_environment() {
   clr_green "installing venv"
   delete_virtual_environment
   virtualenv ~/venv
+  sudo chmod -R 0777 ~/venv
+  sudo chmod -R 0777 /usr/local/lib/python3.*/dist-packages
 }
 
 
@@ -110,6 +112,8 @@ function cleanup() {
   trap '' 2 # disable Ctrl+C
   delete_virtual_environment
   clean_caches
+  # delete the link to commandline interface
+  rm -f  /usr/local/bin/igittigitt
   cd "${save_dir}" || exit
   trap 2 # enable Ctrl+C
 }
@@ -141,7 +145,7 @@ function run_flake8_tests() {
 
 function run_mypy_tests() {
   my_banner "mypy tests"
-  if ! python3 -m mypy "${project_root_dir}" --follow-imports=normal --ignore-missing-imports --implicit-reexport --no-warn-unused-ignores --strict; then
+  if ! python3 -m mypy "${project_root_dir}" --follow-imports=normal --ignore-missing-imports --implicit-reexport --install-types --no-warn-unused-ignores --non-interactive --strict; then
     my_banner_warning "mypy tests ERROR"
     beep
     sleep "${sleeptime_on_error}"
@@ -166,7 +170,7 @@ function install_pip_requirements_venv() {
   if test -f "${project_root_dir}/requirements.txt on virtual environment"; then
     my_banner "pip install -r requirements.txt"
     install_clean_virtual_environment
-    if ! ~/venv/bin/python3 -m pip install -r "${project_root_dir}/requirements.txt"; then
+    if ! ~/venv/local/bin/python3 -m pip install -r "${project_root_dir}/requirements.txt"; then
       my_banner_warning "pip install -r requirements.txt ERROR"
       beep
       sleep "${sleeptime_on_error}"
@@ -181,8 +185,23 @@ function setup_install_venv() {
     my_banner "setup.py install on virtual environment"
     install_clean_virtual_environment
     cd "${project_root_dir}" || exit
-    if ! ~/venv/bin/python3 "${project_root_dir}/setup.py" install; then
+    if ! ~/venv/local/bin/python3 "${project_root_dir}/setup.py" install; then
       my_banner_warning "setup.py install ERROR"
+      beep
+      sleep "${sleeptime_on_error}"
+      return 1
+    fi
+  fi
+}
+
+
+function setup_test_venv() {
+  if test -f "${project_root_dir}/setup.py"; then
+    my_banner "setup.py test on virtual environment"
+    install_clean_virtual_environment
+    cd "${project_root_dir}" || exit
+    if ! ~/venv/local/bin/python3 "${project_root_dir}/setup.py" test; then
+      my_banner_warning "setup.py test ERROR"
       beep
       sleep "${sleeptime_on_error}"
       return 1
@@ -195,8 +214,22 @@ function test_commandline_interface_venv() {
   # this will fail if rotek lib directory is in the path - keep this as a reminder
   my_banner "test commandline interface on virtual environment"
 
-  clr_green "issuing command : $HOME/venv/bin/igittigitt --version"
-  if ! "$HOME/venv/bin/igittigitt" --version; then
+  clr_green "issuing command : /usr/local/bin/igittigitt --version"
+  if ! "/usr/local/bin/igittigitt" --version; then
+    my_banner_warning "test commandline interface on virtual environment ERROR"
+    beep
+    sleep "${sleeptime_on_error}"
+    return 1
+  fi
+}
+
+
+function test_commandline_interface_venv_old() {
+  # this will fail if rotek lib directory is in the path - keep this as a reminder
+  my_banner "test commandline interface on virtual environment"
+
+  clr_green "issuing command : $HOME/venv/local/bin/igittigitt --version"
+  if ! "$HOME/venv/local/bin/igittigitt" --version; then
     my_banner_warning "test commandline interface on virtual environment ERROR"
     beep
     sleep "${sleeptime_on_error}"
@@ -210,7 +243,7 @@ function test_setup_test_venv() {
     my_banner "setup.py test"
     install_clean_virtual_environment
     cd "${project_root_dir}" || exit
-    if ! ~/venv/bin/python3 "${project_root_dir}/setup.py" test; then
+    if ! ~/venv/local/bin/python3 "${project_root_dir}/setup.py" test; then
       my_banner_warning "setup.py test ERROR"
       beep
       sleep "${sleeptime_on_error}"

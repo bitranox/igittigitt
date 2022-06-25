@@ -1,16 +1,18 @@
-|travis_build| |license| |jupyter| |pypi| |black|
+|build_badge| |license| |jupyter| |pypi| |pypi-downloads| |black|
 
 |codecov| |better_code| |cc_maintain| |cc_issues| |cc_coverage| |snyk|
 
 
-.. |travis_build| image:: https://img.shields.io/travis/bitranox/igittigitt/master.svg
-   :target: https://travis-ci.com/bitranox/igittigitt
+
+.. |build_badge| image:: https://github.com/bitranox/igittigitt/actions/workflows/python-package.yml/badge.svg
+   :target: https://github.com/bitranox/igittigitt/actions/workflows/python-package.yml
+
 
 .. |license| image:: https://img.shields.io/github/license/webcomics/pywine.svg
    :target: http://en.wikipedia.org/wiki/MIT_License
 
 .. |jupyter| image:: https://mybinder.org/badge_logo.svg
- :target: https://mybinder.org/v2/gh/bitranox/igittigitt/master?filepath=igittigitt.ipynb
+   :target: https://mybinder.org/v2/gh/bitranox/igittigitt/master?filepath=igittigitt.ipynb
 
 .. for the pypi status link note the dashes, not the underscore !
 .. |pypi| image:: https://img.shields.io/pypi/status/igittigitt?label=PyPI%20Package
@@ -39,3 +41,7 @@
 
 .. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/psf/black
+
+.. |pypi-downloads| image:: https://img.shields.io/pypi/dm/igittigitt
+   :target: https://pypi.org/project/igittigitt/
+   :alt: PyPI - Downloads

@@ -2,21 +2,23 @@ igittigitt
 ==========
 
 
-Version v2.1.0 as of 2021-11-18 see `Changelog`_
+Version v2.1.2 as of 2022-06-25 see `Changelog`_
 
-|travis_build| |license| |jupyter| |pypi| |black|
+|build_badge| |license| |jupyter| |pypi| |pypi-downloads| |black|
 
 |codecov| |better_code| |cc_maintain| |cc_issues| |cc_coverage| |snyk|
 
 
-.. |travis_build| image:: https://img.shields.io/travis/bitranox/igittigitt/master.svg
-   :target: https://travis-ci.com/bitranox/igittigitt
+
+.. |build_badge| image:: https://github.com/bitranox/igittigitt/actions/workflows/python-package.yml/badge.svg
+   :target: https://github.com/bitranox/igittigitt/actions/workflows/python-package.yml
+
 
 .. |license| image:: https://img.shields.io/github/license/webcomics/pywine.svg
    :target: http://en.wikipedia.org/wiki/MIT_License
 
 .. |jupyter| image:: https://mybinder.org/badge_logo.svg
- :target: https://mybinder.org/v2/gh/bitranox/igittigitt/master?filepath=igittigitt.ipynb
+   :target: https://mybinder.org/v2/gh/bitranox/igittigitt/master?filepath=igittigitt.ipynb
 
 .. for the pypi status link note the dashes, not the underscore !
 .. |pypi| image:: https://img.shields.io/pypi/status/igittigitt?label=PyPI%20Package
@@ -46,11 +48,77 @@ Version v2.1.0 as of 2021-11-18 see `Changelog`_
 .. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/psf/black
 
-A spec-compliant gitignore parser for Python
+.. |pypi-downloads| image:: https://img.shields.io/pypi/dm/igittigitt
+   :target: https://pypi.org/project/igittigitt/
+   :alt: PyPI - Downloads
 
-after reading (nesting supported) the `.gitignore` file, You can match files against the parsers match function. If the file should be ignored, it matches.
+- A spec-compliant gitignore parser for Python.
+- IgittIgitt provides methods to intentionally ignore files and directories (usually to copy or distribute them).
+- The patterns to define what should be ignored, are stored in "ignore" files, which are compatible with `git <https://git-scm.com/docs/gitignore#_pattern_format>`_.
 
+
+Limitations
+-----------
+
+- at the current stage the parser is ok, as long as You dont use negations (ignore globs, which starts with "!")
+- precedence levels are not supported correctly
+- according to the manual,  more nested ignore files have a higher precedence than less nested ignore files - this is currently
+  neither checked, nor supported correctly.
+- sizelimit, hidden directories and other features might behave different from git
+- some features are not implemented
+- the limitations are somehow a result of the incomplete documentation at `git-scm.com <https://git-scm.com/docs/gitignore#_pattern_format>`_
+- luckily there is a good explanation at `WalkBuilder <https://docs.rs/ignore/0.4.18/ignore/struct.WalkBuilder.html>`_ , so You can expect things
+  will get better over time
+
+is it still useful ?
+--------------------
+- yes
+- if You dont need negation rules, and dont rely on correct precedence of nested rule files, it will work just fine
+
+
+Ignore rules - correct handling (currently not)
+-----------------------------------------------
+There are many rules that influence whether a particular file or directory is skipped.
+Those rules are documented here. Note that the rules assume a default configuration.
+
+1) glob overrides are checked. If a path matches a glob override, then matching stops.
+    - The path is then only skipped if the glob that matched the path is an ignore glob.
+      (An override glob is a whitelist glob unless it starts with a !, in which case it is an ignore glob.)
+
+2) ignore files are checked.
+    - Ignore files currently only come from git ignore files
+      (.gitignore, .git/info/exclude and the configured global gitignore file),
+      plain .ignore files, which have the same format as gitignore files, or explicitly added ignore files.
+    - The precedence order is: .ignore, .gitignore, .git/info/exclude, global gitignore and finally
+      explicitly added ignore files.
+    - Note that precedence between different types of ignore files is not impacted by the directory hierarchy;
+      any .ignore file overrides all .gitignore files.
+    - Within each precedence level, more nested ignore files have a higher precedence than less nested
+      ignore files. (really ? check !)
+
+3)  - if the previous step yields an ignore match, then all matching is stopped and the path is skipped.
+    - if it yields a whitelist match, then matching continues, a whitelist match can be overridden by a later matcher.
+
+4)  - unless the path is a directory, the file type matcher is run on the path.
+    - as above, if it yields an ignore match, then all matching is stopped and the path is skipped.
+    - if it yields a whitelist match, then matching continues.
+
+5)  - if the path has not been whitelisted and it is hidden, then the path is skipped.
+
+6)  - unless the path is a directory, the size of the file is compared against the max filesize limit.
+      If it exceeds the limit, it is skipped.
+
+
+Ignore rules - current handling (not spec compliant)
+----------------------------------------------------
+
+- no precedence levels are supported, rules are just sorted by length (which is terribly wrong if negation rules are used)
+- all other points from above are not implemented
+
+
+After reading (nesting supported) the `.gitignore` file, You can match files against the parsers match function. If the file should be ignored, it matches.
 We also provide an ignore function for `shutil.treecopy` so it is easy just to copy a directory tree without the files which should be ignored.
+A `match` indicates, that the file should be ignored.
 
 Suppose `/home/bitranox/project/.gitignore` contains the following:
 
@@ -120,9 +188,9 @@ automated tests, Travis Matrix, Documentation, Badges, etc. are managed with `Pi
 
 Python version required: 3.6.0 or newer
 
-tested on linux "bionic" with python 3.6, 3.7, 3.8, 3.9, 3.9-dev, pypy3 - architectures: amd64, ppc64le, s390x, arm64
+tested on recent linux with python 3.6, 3.7, 3.8, 3.9, 3.10, pypy-3.8 - architectures: amd64
 
-`100% code coverage <https://codecov.io/gh/bitranox/igittigitt>`_, flake8 style checking ,mypy static type checking ,tested under `Linux, macOS, Windows <https://travis-ci.org/bitranox/igittigitt>`_, automatic daily builds and monitoring
+`100% code coverage <https://codecov.io/gh/bitranox/igittigitt>`_, flake8 style checking ,mypy static type checking ,tested under `Linux, macOS, Windows <https://github.com/bitranox/igittigitt/actions/workflows/python-package.yml>`_, automatic daily builds and monitoring
 
 ----
 
@@ -265,6 +333,20 @@ Usage
         def match(self, file_path: PathLikeOrString) -> bool:
             """
             returns True if the path matches the rules
+
+            >>> # Setup
+            >>> base_path = pathlib.Path(__file__).parent.parent.resolve() / 'tests/example_negation'
+
+            >>> # Test
+            >>> gitignore = IgnoreParser()
+            >>> gitignore.add_rule("/*", base_path)
+            >>> gitignore.add_rule("!/foo", base_path)
+            >>> gitignore.add_rule("/foo/*", base_path)
+            >>> gitignore.add_rule("!/foo/bar", base_path)
+            >>> assert gitignore.match(base_path / "foo/bar/file.txt") == False
+            >>> # assert gitignore.match(base_path / "foo/other/file.txt") == True  # this fails - because everything is wrong
+            >>> # see : https://docs.rs/ignore/0.4.18/ignore/struct.WalkBuilder.html
+
             """
 
 --------------------------------
@@ -412,6 +494,15 @@ Changelog
 - new MINOR version for added functionality in a backwards compatible manner
 - new PATCH version for backwards compatible bug fixes
 
+v2.1.2
+-------
+2022-06-25:
+    - set __all__ accordingly
+    - point out limitations in Readme
+    - integrate github actions
+    - adjusting tests: patterns ending with a point can not match on windows
+    - removing invalid escape sequences
+    - match on paths with symlinks in their components
 
 v2.1.0
 ------

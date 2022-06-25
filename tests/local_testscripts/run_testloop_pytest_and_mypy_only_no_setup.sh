@@ -44,8 +44,8 @@ function pytest_loop {
         fi
 
         # if ! install_pip_requirements_venv; then continue; fi
-        if ! setup_test_venv; then continue; fi
-        if ! setup_install_venv; then continue; fi
+        # if ! setup_test_venv; then continue; fi
+        # if ! setup_install_venv; then continue; fi
         if ! test_commandline_interface_venv; then continue; fi
 
         banner "ALL TESTS PASSED for ${project_root_dir}"
