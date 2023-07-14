@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v2.1.3 as of 2023-07-13 see `Changelog`_
+Version v2.1.4 as of 2023-07-14 see `Changelog`_
 
 
 .. include:: ./badges.rst
