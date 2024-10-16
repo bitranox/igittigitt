@@ -5,6 +5,15 @@ Changelog
 - new MINOR version for added functionality in a backwards compatible manner
 - new PATCH version for backwards compatible bug fixes
 
+v2.1.5
+---------
+2024-10-16:
+    - setup-python@v5
+    - sigterm_handler for CLI
+    - graalpy 24.1 tests
+    - CODECOV_TOKEN
+    - fix mypy error
+
 v2.1.4
 ---------
 2023-07-14:

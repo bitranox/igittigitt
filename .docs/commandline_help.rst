@@ -10,4 +10,4 @@
      -h, --help                    Show this message and exit.
 
    Commands:
-     info  get program informations
+     info  get program information

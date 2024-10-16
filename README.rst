@@ -2,7 +2,7 @@ igittigitt
 ==========
 
 
-Version v2.1.4 as of 2023-07-14 see `Changelog`_
+Version v2.1.5 as of 2024-10-16 see `Changelog`_
 
 |build_badge| |codeql| |license| |jupyter| |pypi|
 |pypi-downloads| |black| |codecov| |cc_maintain| |cc_issues| |cc_coverage| |snyk|
@@ -26,7 +26,10 @@ Version v2.1.4 as of 2023-07-14 see `Changelog`_
 .. |pypi| image:: https://img.shields.io/pypi/status/igittigitt?label=PyPI%20Package
    :target: https://badge.fury.io/py/igittigitt
 
-.. |codecov| image:: https://img.shields.io/codecov/c/github/bitranox/igittigitt
+.. badge until 2023-10-08:
+.. https://img.shields.io/codecov/c/github/bitranox/igittigitt
+.. badge from 2023-10-08:
+.. |codecov| image:: https://codecov.io/gh/bitranox/igittigitt/graph/badge.svg
    :target: https://codecov.io/gh/bitranox/igittigitt
 
 .. |cc_maintain| image:: https://img.shields.io/codeclimate/maintainability-percentage/bitranox/igittigitt?label=CC%20maintainability
@@ -187,7 +190,7 @@ automated tests, Github Actions, Documentation, Badges, etc. are managed with `P
 
 Python version required: 3.8.0 or newer
 
-tested on recent linux with python 3.8, 3.9, 3.10, 3.11, 3.12-dev, pypy-3.9, pypy-3.10 - architectures: amd64
+tested on recent linux with python 3.8, 3.9, 3.10, 3.11, 3.12, pypy-3.9, pypy-3.10, graalpy-24.1 - architectures: amd64
 
 `100% code coverage <https://codeclimate.com/github/bitranox/igittigitt/test_coverage>`_, flake8 style checking ,mypy static type checking ,tested under `Linux, macOS, Windows <https://github.com/bitranox/igittigitt/actions/workflows/python-package.yml>`_, automatic daily builds and monitoring
 
@@ -382,18 +385,17 @@ Usage from Commandline
      -h, --help                    Show this message and exit.
 
    Commands:
-     info  get program informations
+     info  get program information
 
 Installation and Upgrade
 ------------------------
 
-- Before You start, its highly recommended to update pip and setup tools:
+- Before You start, its highly recommended to update pip:
 
 
 .. code-block::
 
     python -m pip --upgrade pip
-    python -m pip --upgrade setuptools
 
 - to install the latest release from PyPi via pip (recommended):
 
@@ -499,6 +501,15 @@ Changelog
 - new MAJOR version for incompatible API changes,
 - new MINOR version for added functionality in a backwards compatible manner
 - new PATCH version for backwards compatible bug fixes
+
+v2.1.5
+---------
+2024-10-16:
+    - setup-python@v5
+    - sigterm_handler for CLI
+    - graalpy 24.1 tests
+    - CODECOV_TOKEN
+    - fix mypy error
 
 v2.1.4
 ---------

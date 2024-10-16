@@ -20,7 +20,10 @@
 .. |pypi| image:: https://img.shields.io/pypi/status/igittigitt?label=PyPI%20Package
    :target: https://badge.fury.io/py/igittigitt
 
-.. |codecov| image:: https://img.shields.io/codecov/c/github/bitranox/igittigitt
+.. badge until 2023-10-08:
+.. https://img.shields.io/codecov/c/github/bitranox/igittigitt
+.. badge from 2023-10-08:
+.. |codecov| image:: https://codecov.io/gh/bitranox/igittigitt/graph/badge.svg
    :target: https://codecov.io/gh/bitranox/igittigitt
 
 .. |cc_maintain| image:: https://img.shields.io/codeclimate/maintainability-percentage/bitranox/igittigitt?label=CC%20maintainability

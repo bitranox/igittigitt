@@ -45,7 +45,7 @@ jobs:
 
         # MYPY tests
         MYPY_DO_TESTS: "True"
-        MYPY_OPTIONS: "--follow-imports=normal --ignore-missing-imports --implicit-reexport --install-types --no-warn-unused-ignores --non-interactive --strict"
+        MYPY_OPTIONS: "--follow-imports=normal --ignore-missing-imports --install-types --no-warn-unused-ignores --non-interactive --strict"
         MYPYPATH: "./.3rd_party_stubs"
 
         # coverage
@@ -61,11 +61,13 @@ jobs:
         RST_INCLUDE_SOURCE: "./.docs/README_template.rst"
         # the target file for rst_include (rebuild rst file includes)
         RST_INCLUDE_TARGET: "./README.rst"
-        # make Code Coverage Secret available in Environment
+        # make Code Climate Code Coverage Secret available in Environment
         CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
-        # make PyPi Password available in Environment
-        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-
+        # make CODECOV_TOKEN Secret available in Environment
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        # make PyPi API token available in Environment
+        PYPI_UPLOAD_API_TOKEN: ${{ secrets.PYPI_UPLOAD_API_TOKEN }}
+        # additional Environment Variables:
 
     strategy:
       matrix:
@@ -74,7 +76,7 @@ jobs:
           # https://github.com/actions/setup-python/blob/main/docs/advanced-usage.md#available-versions-of-python-and-pypy
 
           - os: windows-latest
-            python-version: "3.11"
+            python-version: "3.12"
             env:
               cEXPORT: "SET"
               BUILD_DOCS: "False"
@@ -133,11 +135,11 @@ jobs:
               DO_CLI_TEST: "True"
 
           - os: ubuntu-latest
-            python-version: "3.12-dev"
+            python-version: "3.12"
             env:
               BUILD_DOCS: "True"
-              BUILD: "True"  
-              BUILD_TEST: "True"
+              BUILD: "False"  
+              BUILD_TEST: "False"
               MYPY_DO_TESTS: "True"
               DO_SETUP_INSTALL: "True"
               DO_SETUP_INSTALL_TEST: "True"
@@ -149,7 +151,7 @@ jobs:
               BUILD_DOCS: "False"
               BUILD: "True"  
               BUILD_TEST: "True"
-              MYPY_DO_TESTS: "False"
+              MYPY_DO_TESTS: "True"
               DO_SETUP_INSTALL: "True"
               DO_SETUP_INSTALL_TEST: "True"
               DO_CLI_TEST: "True"
@@ -160,13 +162,24 @@ jobs:
               BUILD_DOCS: "False"
               BUILD: "True"  
               BUILD_TEST: "True"
-              MYPY_DO_TESTS: "False"
+              MYPY_DO_TESTS: "True"
+              DO_SETUP_INSTALL: "True"
+              DO_SETUP_INSTALL_TEST: "True"
+              DO_CLI_TEST: "True"
+
+          - os: ubuntu-latest
+            python-version: "graalpy-24.1"
+            env:
+              BUILD_DOCS: "True"
+              BUILD: "False"  
+              BUILD_TEST: "False"
+              MYPY_DO_TESTS: "True"
               DO_SETUP_INSTALL: "True"
               DO_SETUP_INSTALL_TEST: "True"
               DO_CLI_TEST: "True"
 
           - os: macos-latest
-            python-version: "3.11"
+            python-version: "3.12"
             env:
               cPREFIX: ""               # prefix before commands - used for wine, there the prefix is "wine"
               cPYTHON: "python3"        # command to launch python interpreter (it's different on macOS, there we need python3)
@@ -186,11 +199,11 @@ jobs:
 
     steps:
     # see : https://github.com/actions/checkout
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setting up Python ${{ matrix.python-version }}
       # see: https://github.com/actions/setup-python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
