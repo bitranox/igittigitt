@@ -214,8 +214,8 @@ tested on recent linux with python 3.8, 3.9, 3.10, 3.11, 3.12, pypy-3.9, pypy-3.
 Try it Online
 -------------
 
-You might try it right away in Jupyter Notebook by using the "launch binder" badge, or click `here <https://mybinder.org/v2/gh/{{rst_include.
-repository_slug}}/master?filepath=igittigitt.ipynb>`_
+You might try it right away in Jupyter Notebook by using the "launch binder" badge,
+or click `here <https://mybinder.org/v2/gh/bitranox/igittigitt/master?filepath=igittigitt.ipynb>`_
 
 Usage
 -----------
