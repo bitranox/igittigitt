@@ -130,7 +130,9 @@ class IgnoreParser(object):
         """
         expand the user directory and make absolute, but dont resolve symlinks
         """
-        path_base_dir = pathlib.Path(os.path.abspath(os.path.expanduser(base_path)))
+        # Convert base_path to a string if it's a PathLike object
+        base_path_str = os.fspath(base_path)
+        path_base_dir = pathlib.Path(os.path.abspath(os.path.expanduser(base_path_str)))
         return path_base_dir
 
     # parse_rule_files{{{
