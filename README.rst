@@ -505,7 +505,7 @@ Changelog
 v2.1.5
 ---------
 2024-10-16:
-    - setup-python@v5
+    - setup-python@v6
     - sigterm_handler for CLI
     - graalpy 24.1 tests
     - CODECOV_TOKEN

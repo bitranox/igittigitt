@@ -8,7 +8,7 @@ Changelog
 v2.1.5
 ---------
 2024-10-16:
-    - setup-python@v5
+    - setup-python@v6
     - sigterm_handler for CLI
     - graalpy 24.1 tests
     - CODECOV_TOKEN
@@ -37,7 +37,7 @@ v2.1.3
     - remove travis config
     - remove bettercodehub config
     - do not upload .egg files to pypi.org
-    - update github actions : checkout@v3 and setup-python@v4
+    - update github actions : checkout@v3 and setup-python@v6
     - remove "better code" badges
     - remove python 3.6 tests
     - adding python 3.11 tests
