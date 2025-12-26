@@ -4,3 +4,4 @@ click
 cli_exit_tools
 lib_detect_testenv
 wcmatch
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
