@@ -1,0 +1,386 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    # Run daily at 3:17 AM UTC (off-peak hours, odd minute to avoid congestion)
+    - cron: '17 3 * * *'
+
+jobs:
+  setup:
+    name: Extract Python versions and OS matrix from pyproject.toml
+    runs-on: ubuntu-latest
+    outputs:
+      python-versions: ${{ steps.metadata.outputs.python-versions }}
+      python-latest: ${{ steps.metadata.outputs.python-latest }}
+      os-matrix: ${{ steps.metadata.outputs.os-matrix }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+      - name: Parse pyproject.toml for Python versions and OS matrix
+        id: metadata
+        shell: python
+        run: |
+          import json, os, tomllib
+
+          with open("pyproject.toml", "rb") as f:
+              data = tomllib.load(f)
+
+          # Python versions from classifiers
+          classifiers = data.get("project", {}).get("classifiers", [])
+          prefix = "Programming Language :: Python :: "
+          versions = [
+              c[len(prefix):]
+              for c in classifiers
+              if c.startswith(prefix) and "." in c[len(prefix):]
+          ]
+          if not versions:
+              raise SystemExit("No Python X.Y versions found in classifiers")
+
+          # OS matrix from [tool.ci]
+          ci_config = data.get("tool", {}).get("ci", {})
+          os_list = ci_config.get("os", ["ubuntu-latest"])
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"python-versions={json.dumps(versions)}\n")
+              fh.write(f"python-latest={versions[-1]}\n")
+              fh.write(f"os-matrix={json.dumps(os_list)}\n")
+
+  test:
+    name: Tests (Python ${{ matrix.python }}, ${{ matrix.os }})
+    needs: setup
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(needs.setup.outputs.os-matrix) }}
+        python: ${{ fromJSON(needs.setup.outputs.python-versions) }}
+    env:
+      PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
+      PYTHONIOENCODING: "utf-8"
+      UV_LINK_MODE: "copy"
+      UV_BREAK_SYSTEM_PACKAGES: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          prune-cache: false
+
+      - name: Install bash 4+ on macOS
+        if: runner.os == 'macOS'
+        run: |
+          brew install bash
+          echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
+
+      - name: Extract project metadata
+        id: metadata
+        uses: ./.github/actions/extract-metadata
+
+      - name: Install CI system dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        shell: python
+        run: |
+          import subprocess
+          try:
+              import tomllib
+          except ModuleNotFoundError:
+              import pip._vendor.tomli as tomllib
+          with open("pyproject.toml", "rb") as f:
+              data = tomllib.load(f)
+          deps = data.get("tool", {}).get("ci", {}).get("system-dependencies-ubuntu", [])
+          if deps:
+              print(f"Installing system packages: {' '.join(deps)}")
+              subprocess.check_call(["sudo", "apt-get", "update"])
+              subprocess.check_call(["sudo", "apt-get", "install", "-y", *deps])
+          else:
+              print("No CI system dependencies configured for Ubuntu.")
+
+      - name: Install CI system dependencies (macOS)
+        if: runner.os == 'macOS'
+        shell: python
+        run: |
+          import subprocess
+          try:
+              import tomllib
+          except ModuleNotFoundError:
+              import pip._vendor.tomli as tomllib
+          with open("pyproject.toml", "rb") as f:
+              data = tomllib.load(f)
+          deps = data.get("tool", {}).get("ci", {}).get("system-dependencies-macos", [])
+          if deps:
+              print(f"Installing system packages: {' '.join(deps)}")
+              subprocess.check_call(["brew", "install", *deps])
+          else:
+              print("No CI system dependencies configured for macOS.")
+
+      - name: Install dev deps
+        shell: bash
+        run: |
+          uv pip install -e .[dev] --system
+
+      - name: Install CI system dependencies (Windows/choco)
+        if: runner.os == 'Windows'
+        shell: python
+        run: |
+          import subprocess
+          try:
+              import tomllib
+          except ModuleNotFoundError:
+              import pip._vendor.tomli as tomllib
+          with open("pyproject.toml", "rb") as f:
+              data = tomllib.load(f)
+          deps = data.get("tool", {}).get("ci", {}).get("system-dependencies-windows-choco", [])
+          if deps:
+              print(f"Installing choco packages: {' '.join(deps)}")
+              subprocess.check_call(["choco", "install", "-y", *deps])
+          else:
+              print("No CI choco dependencies configured for Windows.")
+
+      - name: Install CI pip dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: python
+        run: |
+          import subprocess
+          try:
+              import tomllib
+          except ModuleNotFoundError:
+              import pip._vendor.tomli as tomllib
+          with open("pyproject.toml", "rb") as f:
+              data = tomllib.load(f)
+          deps = data.get("tool", {}).get("ci", {}).get("system-dependencies-windows-pip", [])
+          if deps:
+              print(f"Installing pip packages: {' '.join(deps)}")
+              subprocess.check_call(["uv", "pip", "install", *deps, "--system"])
+          else:
+              print("No CI pip dependencies configured for Windows.")
+
+      # Self-hosted runners persist ruff cache via RUFF_CACHE_DIR volume mount,
+      # so actions/cache is only needed on GitHub-hosted runners.
+      - name: Restore ruff cache
+        if: runner.environment == 'github-hosted'
+        id: ruff-cache
+        uses: actions/cache/restore@v5
+        with:
+          path: .ruff_cache
+          key: ruff-${{ runner.os }}-py${{ matrix.python }}-${{ github.sha }}
+          restore-keys: |
+            ruff-${{ runner.os }}-py${{ matrix.python }}-
+            ruff-${{ runner.os }}-
+
+      - name: Run ruff (lint + format)
+        id: ruff
+        continue-on-error: true
+        shell: bash
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Run pyright (type check)
+        id: pyright
+        continue-on-error: true
+        shell: bash
+        run: pyright
+
+      - name: Run pytest (tests + coverage)
+        id: pytest
+        continue-on-error: true
+        shell: bash
+        env:
+          TEST_VERBOSE: "1"
+          # Write coverage SQLite database to local disk — network mounts
+          # and stale journal files cause "database is locked" errors.
+          COVERAGE_FILE: "${{ runner.temp }}/.coverage"
+        run: >-
+          pytest -m "not local_only"
+          --cov=${{ env.SRC_PATH }}/${{ env.PACKAGE_MODULE }}
+          --cov-report=term-missing
+          --cov-report=xml:${{ env.COV_REPORT_FILE }}
+          --cov-fail-under=${{ env.COV_FAIL_UNDER }}
+          ${{ env.PYTEST_VERBOSITY }}
+
+      - name: Upload coverage to Codecov
+        if: >-
+          always()
+          && steps.pytest.outcome == 'success'
+          && matrix.os == 'ubuntu-latest'
+          && matrix.python == needs.setup.outputs.python-latest
+        uses: codecov/codecov-action@v7
+        with:
+          files: ${{ env.COV_REPORT_FILE }}
+          fail_ci_if_error: false
+
+      - name: Run import-linter (architecture)
+        id: importlinter
+        continue-on-error: true
+        shell: bash
+        run: lint-imports
+
+      - name: Run bandit (security scan)
+        id: bandit
+        continue-on-error: true
+        shell: bash
+        run: bandit -q -c pyproject.toml -r ${{ env.SRC_PATH }}/${{ env.PACKAGE_MODULE }} ${{ env.BANDIT_SKIP_FLAG }}
+
+      - name: Run pip-audit (vulnerability scan)
+        id: pipaudit
+        continue-on-error: true
+        shell: python
+        run: |
+          import subprocess, sys
+          import rtoml
+          from pathlib import Path
+          data = rtoml.load(Path("pyproject.toml"))
+          vulns = data.get("tool", {}).get("pip-audit", {}).get("ignore-vulns", [])
+          cmd = ["pip-audit", "--skip-editable"]
+          for v in vulns:
+              cmd.extend(["--ignore-vuln", v])
+          sys.exit(subprocess.call(cmd))
+
+      - name: Check all steps passed
+        shell: bash
+        run: |
+          if [[ "${{ steps.ruff.outcome }}" != "success" ]]; then
+            echo "::error::Ruff check failed"
+            exit 1
+          fi
+          if [[ "${{ steps.pyright.outcome }}" != "success" ]]; then
+            echo "::error::Pyright check failed"
+            exit 1
+          fi
+          if [[ "${{ steps.pytest.outcome }}" != "success" ]]; then
+            echo "::error::Pytest failed"
+            exit 1
+          fi
+          if [[ "${{ steps.importlinter.outcome }}" != "success" ]]; then
+            echo "::error::Import-linter check failed"
+            exit 1
+          fi
+          if [[ "${{ steps.bandit.outcome }}" != "success" ]]; then
+            echo "::error::Bandit security scan failed"
+            exit 1
+          fi
+          if [[ "${{ steps.pipaudit.outcome }}" != "success" ]]; then
+            echo "::warning::pip-audit vulnerability scan failed"
+          fi
+          echo "All checks passed!"
+
+      - name: Build wheel/sdist
+        shell: bash
+        run: uv build
+
+      - name: Verify wheel install in clean env
+        shell: bash
+        run: |
+          uv venv .venv_wheel
+          . .venv_wheel/bin/activate 2>/dev/null || . .venv_wheel/Scripts/activate 2>/dev/null
+          uv pip install dist/*.whl
+          "$CLI_BIN" --version 2>/dev/null || python -m "$PACKAGE_MODULE" --version
+
+      - name: Prune uv cache
+        continue-on-error: true
+        shell: bash
+        run: uv cache prune --ci
+
+      - name: Save ruff cache
+        if: always() && runner.environment == 'github-hosted' && steps.ruff-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: .ruff_cache
+          key: ruff-${{ runner.os }}-py${{ matrix.python }}-${{ github.sha }}
+
+  pipx-uv:
+    name: pipx/uv verification (ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          prune-cache: false
+
+      - name: Extract project metadata
+        id: metadata
+        uses: ./.github/actions/extract-metadata
+
+      - name: Build wheel
+        run: uv build
+      - name: pipx install from wheel
+        run: |
+          uv pip install --system pipx
+          pipx ensurepath
+          export PATH="$HOME/.local/bin:$PATH"
+          pipx install dist/*.whl
+          "$CLI_BIN" --version
+
+      - name: uv tool install
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          uv tool install --force .
+          "$CLI_BIN" --version
+
+      - name: Prune uv cache
+        continue-on-error: true
+        run: uv cache prune --ci
+
+  notebooks:
+    name: Execute notebooks (ubuntu, Python 3.14)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          prune-cache: false
+
+      - name: Install notebook runner deps
+        run: |
+          uv pip install --system nbclient nbformat ipykernel jupyter_client
+          python -m ipykernel install --user --name python3 --display-name "Python 3"
+      - name: Execute Quickstart notebook
+        env:
+          PIP_DISABLE_PIP_VERSION_CHECK: "1"
+          PIP_NO_INPUT: "1"
+        run: |
+          python - << 'PY'
+          from pathlib import Path
+
+          import nbformat
+          from nbclient import NotebookClient
+
+          nb_path = Path('notebooks/Quickstart.ipynb')
+          if not nb_path.exists():
+              raise SystemExit(f"Notebook not found: {nb_path}")
+
+          notebook = nbformat.read(nb_path, as_version=4)
+          client = NotebookClient(
+              notebook,
+              timeout=900,
+              kernel_name='python3',
+              allow_errors=False,
+          )
+          client.execute()
+
+          out_path = Path('notebooks/Quickstart-executed.ipynb')
+          nbformat.write(notebook, out_path)
+          print(f"Executed notebook written to: {out_path}")
+          PY

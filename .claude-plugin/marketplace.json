@@ -1,0 +1,16 @@
+{
+  "name": "igittigitt",
+  "owner": {
+    "name": "bitranox"
+  },
+  "metadata": {
+    "description": "igittigitt delivered as a single Claude Code plugin: a skill to install, configure and use igittigitt (a 100% git-compatible .gitignore parser and path filter for Python and the shell)."
+  },
+  "plugins": [
+    {
+      "name": "igittigitt",
+      "source": ".",
+      "description": "Install, configure and use igittigitt: parse .gitignore, decide if paths are ignored, whitelist/filter huge file sets, as a Python library, a CLI, or in bash pipelines."
+    }
+  ]
+}

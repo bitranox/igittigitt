@@ -1,0 +1,92 @@
+name: Extract project metadata
+description: >-
+  Parse pyproject.toml and expose project metadata as step outputs.
+  Requires Python to be available in the runner environment.
+  Auto-installs rtoml if not already present.
+
+outputs:
+  PACKAGE_MODULE:
+    description: Python-importable module name (underscored)
+    value: ${{ steps.meta.outputs.PACKAGE_MODULE }}
+  PROJECT_NAME:
+    description: Project name from pyproject.toml
+    value: ${{ steps.meta.outputs.PROJECT_NAME }}
+  CLI_BIN:
+    description: CLI entry-point binary name
+    value: ${{ steps.meta.outputs.CLI_BIN }}
+  SRC_PATH:
+    description: Source directory path (e.g. "src")
+    value: ${{ steps.meta.outputs.SRC_PATH }}
+  COV_FAIL_UNDER:
+    description: Minimum coverage percentage from tool.coverage.report.fail_under
+    value: ${{ steps.meta.outputs.COV_FAIL_UNDER }}
+  COV_REPORT_FILE:
+    description: Coverage report filename (e.g. "coverage.xml")
+    value: ${{ steps.meta.outputs.COV_REPORT_FILE }}
+  PYTEST_VERBOSITY:
+    description: Pytest verbosity flag (e.g. "-vv")
+    value: ${{ steps.meta.outputs.PYTEST_VERBOSITY }}
+  BANDIT_SKIP_FLAG:
+    description: Bandit skip flag string (e.g. "-s B101,B601") or empty
+    value: ${{ steps.meta.outputs.BANDIT_SKIP_FLAG }}
+
+runs:
+  using: composite
+  steps:
+    - name: Extract project metadata from pyproject.toml
+      id: meta
+      shell: python
+      run: |
+        import os, subprocess, sys
+        try:
+            import rtoml
+        except ModuleNotFoundError:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "rtoml", "-q"])
+            import rtoml
+
+        from pathlib import Path
+        data = rtoml.load(Path('pyproject.toml'))
+
+        # --- [project] section ---
+        project = data['project']['name']
+        module = project.replace('-', '_')
+        dash = project.replace('_', '-')
+        scripts = list(data['project'].get('scripts', {}).keys())
+        cli_bin = scripts[0] if scripts else dash
+
+        # --- [tool.scripts.test] section ---
+        scripts_test = data.get('tool', {}).get('scripts', {}).get('test', {})
+        src_path = scripts_test.get('src-path', 'src')
+        pytest_verbosity = scripts_test.get('pytest-verbosity', '-vv')
+        cov_report_file = scripts_test.get('coverage-report-file', 'coverage.xml')
+
+        # --- [tool.coverage.report] section ---
+        cov_fail_under = (
+            data.get('tool', {}).get('coverage', {}).get('report', {}).get('fail_under', 90)
+        )
+
+        # --- [tool.bandit] section ---
+        bandit_skips = data.get('tool', {}).get('bandit', {}).get('skips', [])
+        bandit_skip_flag = f"-s {','.join(bandit_skips)}" if bandit_skips else ""
+
+        # Write to GITHUB_OUTPUT for composite action outputs
+        with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+            out.write(f"PROJECT_NAME={project}\n")
+            out.write(f"PACKAGE_MODULE={module}\n")
+            out.write(f"CLI_BIN={cli_bin}\n")
+            out.write(f"SRC_PATH={src_path}\n")
+            out.write(f"PYTEST_VERBOSITY={pytest_verbosity}\n")
+            out.write(f"COV_REPORT_FILE={cov_report_file}\n")
+            out.write(f"COV_FAIL_UNDER={cov_fail_under}\n")
+            out.write(f"BANDIT_SKIP_FLAG={bandit_skip_flag}\n")
+
+        # Also write to GITHUB_ENV so subsequent steps can use ${{ env.VAR }}
+        with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as env:
+            env.write(f"PROJECT_NAME={project}\n")
+            env.write(f"PACKAGE_MODULE={module}\n")
+            env.write(f"CLI_BIN={cli_bin}\n")
+            env.write(f"SRC_PATH={src_path}\n")
+            env.write(f"PYTEST_VERBOSITY={pytest_verbosity}\n")
+            env.write(f"COV_REPORT_FILE={cov_report_file}\n")
+            env.write(f"COV_FAIL_UNDER={cov_fail_under}\n")
+            env.write(f"BANDIT_SKIP_FLAG={bandit_skip_flag}\n")

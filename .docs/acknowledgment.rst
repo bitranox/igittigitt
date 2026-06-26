@@ -1,1 +1,0 @@
-- special thanks to "uncle bob" Robert C. Martin, especially for his books on "clean code" and "clean architecture"

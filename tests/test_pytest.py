@@ -1,9 +1,10 @@
 # STDLIB
 import pathlib
 import platform
-import pytest
 import shutil
 import sys
+
+import pytest
 
 # PROJ
 import igittigitt

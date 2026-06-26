@@ -1,105 +1,193 @@
-# Byte-compiled / optimized / DLL files
+# ====================================
+# PYCHARM SPEZIFISCH: Git commands you might run once
+# git add .gitignore && git commit -m "Ignore IDE settings"
+# git push
+# git rm -r --cached .idea
+# git commit -m "Remove .idea and add to .gitignore"
+# git push
+# alternative : BE CAREFUL: overwrites remote history
+# git push origin master --force
+
+# ====================================
+# APP
+# ====================================
+website/build/
+website/.docusaurus/
+website/node_modules/
+node_modules/
+web-local-preview/
+translation_app*.log
+translation_web*.log
+tmp_github_web_pages/
+tmp_linkcheck_web_pages/
+.eslintcache
+.vitest/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.env.*
+!.env.example
+todo.md
+tmp_*
+
+# ====================================
+# IDEs & Editors
+# ====================================
+# IntelliJ, PyCharm, etc.
+.idea/
+# VS Code workspace settings
+.vscode/
+*.code-workspace
+
+# ====================================
+# Python bytecode & caches
+# ====================================
+# __pycache__: compiled .pyc files at any depth
+# *.py[cod]: catches .pyc, .pyo, .pyd
 __pycache__/
+src/igittigitt/__pycache__/
 *.py[cod]
-*$py.class
+*$py.class     # other compiled artifacts
 
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
+# pytest, coverage, MyPy, Hypothesis
+.pytest_cache/
+.mypy_cache/
+.pyright/
+.coverage*
 htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
 nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+.tox/
+.nox/
 
-# Translations
-*.mo
-*.pot
+# general cache directories (any project-level caching)
+.cache/
+.run/
+.import_linter_cache/
 
-# Django stuff:
+# ====================================
+# Build & distribution artifacts
+# ====================================
+# source/package builds
+build/
+dist/
+*.egg-info/    # metadata for pip installs
+*.egg
+*.whl
+pip-wheel-metadata/
+*.manifest     # PyInstaller metadata
+*.spec         # PyInstaller spec files
+
+# Eggs, parts, wheels, sdist, etc.
+develop-eggs/
+.eggs/
+parts/
+sdist/
+wheels/
+downloads/
+var/
+
+# pip logs & installer leftovers
+pip-log.txt
+pip-delete-this-directory.txt
+.installed.cfg
+
+# ====================================
+# Virtual environments & secrets
+# ====================================
+# common venv folder names
+env/
+venv/
+ENV/
+.venv/
+# backups, alternate names
+env.bak/
+venv.bak/
+# dotenv files with credentials
+.env
+
+# ====================================
+# Project-specific & framework files
+# ====================================
+# Django logs & local overrides
 *.log
 local_settings.py
 
-# Flask stuff:
+# Flask instance folder
 instance/
 .webassets-cache
 
-# Scrapy stuff:
+# Scrapy cache
 .scrapy
 
-# Sphinx documentation
+# Sphinx docs
 docs/_build/
 
-# PyBuilder
+# PyBuilder output
 target/
 
-# Jupyter Notebook
+# Jupyter notebooks checkpoints
 .ipynb_checkpoints
 
-# pyenv
+# pyenv Python version file
 .python-version
 
-# celery beat schedule file
+# Celery beat schedule
 celerybeat-schedule
 
 # SageMath parsed files
 *.sage.py
 
-# dotenv
-.env
-
-# virtualenv
-.venv
-venv/
-ENV/
-
-# Spyder project settings
+# Spyder IDE
 .spyderproject
 .spyproject
 
-# Rope project settings
+# Rope IDE
 .ropeproject
 
-# mkdocs documentation
+# MkDocs static site folder
 /site
 
-# mypy
-.mypy_cache/
+# ====================================
+# OS-specific files
+# ====================================
+# macOS
+.DS_Store
+# Windows
+Thumbs.db
+ehthumbs.db
 
-# pytest
-.pytest_cache
-.idea
+# Archives
+*.zip
+
+# Thunderbird build artifact (created temporarily by pack script)
+sources/manifest.json
+
+# ====================================
+# Tool-specific extras
+# ====================================
+# Codecov uploader script (downloaded during local uploads)
+codecov.sh
+codecov.xml
+
+# Nix build result symlink
+result
+
+# Optional lockfiles (for alternative managers)
+poetry.lock
+pdm.lock
+uv.lock
+
+# div
+# .devcontainer/ # needed for github codespaces
+CLAUDE.md
+prompts.md
+.grimp_cache/
+
+# Personal, per-developer Claude Code settings (never shared)
+.claude/settings.local.json
+
+# Local, per-developer settings (Claude Code etc.) - never commit
+*.local.json

@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      UV_LINK_MODE: "copy"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          prune-cache: false
+
+      - name: Build artifacts
+        run: uv build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/*
+
+      - name: Prune uv cache
+        continue-on-error: true
+        run: uv cache prune --ci
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      # id-token is required for OIDC / PyPI Trusted Publisher. It is harmless when
+      # a PYPI_API_TOKEN secret is configured, in which case the token path runs.
+      id-token: write
+    steps:
+      - name: Select PyPI auth method
+        id: auth
+        env:
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          if [ -n "$PYPI_API_TOKEN" ]; then
+            echo "PYPI_API_TOKEN is set; publishing with the API token."
+            echo "method=token" >> "$GITHUB_OUTPUT"
+          else
+            echo "No PYPI_API_TOKEN; publishing via OIDC Trusted Publisher."
+            echo "method=oidc" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI (API token)
+        if: steps.auth.outputs.method == 'token'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          attestations: false
+          skip-existing: true
+
+      - name: Publish to PyPI (Trusted Publisher / OIDC)
+        if: steps.auth.outputs.method == 'oidc'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          attestations: true
+          skip-existing: true

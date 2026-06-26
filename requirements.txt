@@ -1,6 +1,0 @@
-## Project Requirements
-attrs
-click
-cli_exit_tools
-lib_detect_testenv
-wcmatch

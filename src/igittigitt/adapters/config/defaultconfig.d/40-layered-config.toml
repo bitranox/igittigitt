@@ -1,0 +1,71 @@
+# ==============================================================================
+# lib_layered_config Settings
+# ==============================================================================
+#
+# This section documents lib_layered_config integration settings.
+# These are fixed values from the library, not configurable settings.
+#
+[lib_layered_config]
+
+# Profile Name Validation
+# -----------------------
+# Profile names (--profile option) are validated using lib_layered_config's
+# validate_profile_name() function with the following rules:
+#
+# Maximum length: 64 characters (DEFAULT_MAX_PROFILE_LENGTH)
+#
+# Character rules:
+#   - Must contain only ASCII alphanumeric characters, hyphens, underscores
+#   - Must start with an alphanumeric character
+#   - Must not be empty
+#
+# Security checks:
+#   - Rejects Windows reserved names (CON, PRN, AUX, NUL, COM1-9, LPT1-9)
+#   - Rejects path separators and traversal sequences (/, \, ..)
+#   - Rejects control characters
+#
+# These validation rules are enforced by lib_layered_config and cannot be
+# overridden via configuration.
+
+# ==============================================================================
+# Deployment Permissions
+# ==============================================================================
+#
+# Default file permissions when deploying configuration with `config-deploy`.
+# These can be overridden per-layer or via CLI options.
+#
+# POSIX only: Permissions are set on Linux/macOS. No-op on Windows (uses ACLs).
+#
+# Format: Use octal strings (recommended) or decimal integers:
+#   - Octal string: "0o755", "0o644", "755", "640" (quoted)
+#   - Decimal integer: 493 (= 0o755), 420 (= 0o644)
+#
+# CLI overrides:
+#   --permissions / --no-permissions  Enable/disable permission setting
+#   --dir-mode MODE                   Override directory mode (octal, e.g., 750)
+#   --file-mode MODE                  Override file mode (octal, e.g., 640)
+
+[lib_layered_config.default_permissions]
+
+# App layer - system-wide application config (requires privileges)
+# Default: world-readable
+# Purpose: /etc/xdg/{slug}/config.toml on Linux
+# Environment Variable: IGITTIGITT___LIB_LAYERED_CONFIG__DEFAULT_PERMISSIONS__APP_DIRECTORY="0o755"
+app_directory = "0o755"  # rwxr-xr-x
+app_file = "0o644"       # rw-r--r--
+
+# Host layer - machine-specific config (requires privileges)
+# Default: world-readable (same as app)
+# Purpose: /etc/xdg/{slug}/hosts/{hostname}.toml on Linux
+host_directory = "0o755"  # rwxr-xr-x
+host_file = "0o644"       # rw-r--r--
+
+# User layer - user-specific config (no privileges required)
+# Default: private to user only
+# Purpose: ~/.config/{slug}/config.toml on Linux
+user_directory = "0o700"  # rwx------
+user_file = "0o600"       # rw-------
+
+# Enable permission setting by default
+# Set to false to skip permission changes entirely
+enabled = true

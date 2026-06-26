@@ -1,0 +1,432 @@
+# ==============================================================================
+# lib_log_rich - Rich-powered structured logging with multi-target fan-out
+# ==============================================================================
+#
+# Documentation: https://github.com/bitranox/lib_log_rich
+# Settings are loaded via lib_layered_config and can be overridden via:
+#   - Host/User config files (see precedence list in defaultconfig.toml)
+#   - Environment variables (see below)
+#
+# Environment Variable Naming
+# ---------------------------
+# Use lib_layered_config format for all environment variable overrides:
+#
+#   Format: <SLUG>___<SECTION>__<KEY>=<VALUE>
+#
+#   Examples:
+#     IGITTIGITT___LIB_LOG_RICH__CONSOLE_LEVEL=DEBUG
+#     IGITTIGITT___LIB_LOG_RICH__ENABLE_GRAYLOG=true
+#     IGITTIGITT___LIB_LOG_RICH__SERVICE=my-service
+#
+# .env File Support
+# -----------------
+# In .env files (no prefix needed), use double underscore for nesting:
+#
+#   LIB_LOG_RICH__CONSOLE_LEVEL=DEBUG
+#   LIB_LOG_RICH__ENABLE_GRAYLOG=false
+#   LIB_LOG_RICH__CONSOLE_FORMAT_PRESET=short
+#
+# Precedence (lowest to highest):
+#   defaults -> app config -> host config -> user config -> .env file -> env vars
+#
+# IMPORTANT: Never commit .env files containing secrets to version control
+#
+[lib_log_rich]
+
+# ------------------------------------------------------------------------------
+# Core Identity Settings
+# ------------------------------------------------------------------------------
+
+# Purpose: Logical service name recorded in each log event
+# Type: string (non-empty)
+# Default: "igittigitt" (from package name)
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__SERVICE=my-application
+# .env: LIB_LOG_RICH__SERVICE=my-application
+service = "igittigitt"
+
+# Purpose: Deployment environment label (dev, stage, prod, local, etc.)
+# Type: string (non-empty)
+# Default: "prod"
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__ENVIRONMENT=dev
+# .env: LIB_LOG_RICH__ENVIRONMENT=dev
+environment = "prod"
+
+# ------------------------------------------------------------------------------
+# Console Output Settings
+# ------------------------------------------------------------------------------
+
+# Purpose: Minimum severity level emitted to Rich console
+# Type: string (case-insensitive)
+# Default: "INFO"
+# Values: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__CONSOLE_LEVEL=DEBUG
+# .env: LIB_LOG_RICH__CONSOLE_LEVEL=DEBUG
+console_level = "INFO"
+
+# Purpose: Where to send console output
+# Type: string
+# Default: "stderr"
+# Values: "stdout", "stderr", "both", "custom", "none"
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__CONSOLE_STREAM=stderr
+# .env: LIB_LOG_RICH__CONSOLE_STREAM=stderr
+# Note: "custom" requires console_stream_target parameter in code
+#       "none" suppresses all console output
+console_stream = "stderr"
+
+# Purpose: Console line layout preset
+# Type: string (case-insensitive)
+# Default: None (platform-dependent); set to "short_loc" as explicit default
+# Values: "full", "short", "full_loc", "short_loc"
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__CONSOLE_FORMAT_PRESET=short_loc
+# .env: LIB_LOG_RICH__CONSOLE_FORMAT_PRESET=short_loc
+# Details:
+#   - full: Timestamp, level icon, logger name, message, context
+#   - short: Minimal format with level and message
+#   - full_loc: Like full but with local timezone
+#   - short_loc: Like short but with local timezone
+console_format_preset = "short_loc"
+
+# Purpose: Custom console output template (overrides preset)
+# Type: string (Python str.format template)
+# Default: None (uses preset); empty string is coerced to None
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__CONSOLE_FORMAT_TEMPLATE={timestamp_trimmed_naive_loc} {level_code} {message}
+# .env: LIB_LOG_RICH__CONSOLE_FORMAT_TEMPLATE={timestamp_trimmed_naive_loc} {level_code} {message}
+# Available placeholders:
+#   Timestamps:
+#     {timestamp}                      - ISO 8601 UTC with microseconds (e.g., 2025-09-24T10:15:24.123456+00:00)
+#     {timestamp_trimmed}              - UTC trimmed to seconds with timezone (e.g., 2025-09-24T10:15:24+00:00)
+#     {timestamp_no_us}                - UTC trimmed to seconds with timezone (alias for timestamp_trimmed)
+#     {timestamp_trimmed_naive}        - UTC trimmed to seconds without timezone (e.g., 2025-09-24T10:15:24)
+#     {timestamp_loc}                  - Local time with timezone offset (e.g., 2025-09-24T12:15:24.123456+02:00)
+#     {timestamp_trimmed_loc}          - Local time trimmed to seconds with offset
+#     {timestamp_trimmed_naive_loc}    - Local time trimmed to seconds without offset
+#   UTC Calendar Components:
+#     {YYYY}, {MM}, {DD}               - UTC year, month, day
+#     {hh}, {mm}, {ss}                 - UTC hour, minute, second
+#   Local Calendar Components:
+#     {YYYY_loc}, {MM_loc}, {DD_loc}   - Local year, month, day
+#     {hh_loc}, {mm_loc}, {ss_loc}     - Local hour, minute, second
+#   Level Information:
+#     {LEVEL}                          - Upper-case level name (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+#     {level_icon}                     - Rich glyph
+#     {level_code}                     - Four-character abbreviation (DEBG, INFO, WARN, ERRO, CRIT)
+#   Message & Context:
+#     {message}                        - Raw log message string
+#     {context_fields}                 - Space-prefixed key=value pairs
+#     {context}                        - Full context dictionary (service, environment, job_id, extras, etc.)
+#     {extra}                          - Shallow copy of extra mapping from logger call
+#   Logger Identity:
+#     {logger_name}                    - Logger identifier from getLogger()
+#     {event_id}                       - Unique identifier generated per log event
+#   System Identity:
+#     {user_name}                      - System user captured during init()
+#     {hostname}                       - Short hostname captured during init()
+#     {process_id}                     - Current PID
+#     {process_id_chain}               - Parent>child PID chain (>-joined ancestry)
+#   Miscellaneous:
+#     {theme}                          - Active console theme name
+console_format_template = ""
+
+# Purpose: Rich color palette for console output
+# Type: string
+# Default: "dark"
+# Values: "classic", "dark", "neon", "pastel", or other Rich theme names
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__CONSOLE_THEME=dark
+# .env: LIB_LOG_RICH__CONSOLE_THEME=dark
+console_theme = "dark"
+
+# Purpose: Override Rich styles per severity level
+# Type: table with level keys
+# Default: None (uses theme defaults); empty table is coerced to None
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__CONSOLE_STYLES=DEBUG=dim,ERROR=bold red
+# .env: LIB_LOG_RICH__CONSOLE_STYLES=DEBUG=dim,ERROR=bold red
+# Keys: DEBUG, INFO, WARNING, ERROR, CRITICAL
+# Values: Rich style strings (color, bold, italic, etc.)
+console_styles = {}
+
+# Purpose: Force ANSI color output even when stderr is not a TTY
+# Type: boolean
+# Default: false
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__FORCE_COLOR=true
+# .env: LIB_LOG_RICH__FORCE_COLOR=true
+force_color = false
+
+# Purpose: Disable color output entirely (overrides force_color)
+# Type: boolean
+# Default: false
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__NO_COLOR=false
+# .env: LIB_LOG_RICH__NO_COLOR=false
+no_color = false
+
+# ------------------------------------------------------------------------------
+# Backend Adapters (journald, Windows Event Log)
+# ------------------------------------------------------------------------------
+
+# Purpose: Minimum severity threshold for journald and Windows Event Log
+# Type: string (case-insensitive)
+# Default: "WARNING"
+# Values: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__BACKEND_LEVEL=WARNING
+# .env: LIB_LOG_RICH__BACKEND_LEVEL=WARNING
+backend_level = "WARNING"
+
+# Purpose: Enable systemd journald adapter (Linux only)
+# Type: boolean
+# Default: false
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__ENABLE_JOURNALD=true
+# .env: LIB_LOG_RICH__ENABLE_JOURNALD=true
+# Note: Requires python3-systemd package or pip install systemd
+#       Silently disabled on non-Linux systems
+enable_journald = false
+
+# Purpose: Enable Windows Event Log adapter (Windows only)
+# Type: boolean
+# Default: false
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__ENABLE_EVENTLOG=false
+# .env: LIB_LOG_RICH__ENABLE_EVENTLOG=false
+# Note: Silently disabled on non-Windows systems
+enable_eventlog = false
+
+# ------------------------------------------------------------------------------
+# Graylog / GELF Settings
+# ------------------------------------------------------------------------------
+
+# Purpose: Enable Graylog adapter for centralized logging
+# Type: boolean
+# Default: false
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__ENABLE_GRAYLOG=true
+# .env: LIB_LOG_RICH__ENABLE_GRAYLOG=true
+# Note: Requires graylog_endpoint to be set
+enable_graylog = false
+
+# Purpose: Graylog server host and port for GELF protocol
+# Type: array [host, port] or string "host:port"
+# Default: None (no endpoint); empty list is coerced to None
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__GRAYLOG_ENDPOINT=graylog.example.com:12201
+# .env: LIB_LOG_RICH__GRAYLOG_ENDPOINT=graylog.example.com:12201
+graylog_endpoint = []
+
+# Purpose: Transport protocol for Graylog connection
+# Type: string (case-insensitive)
+# Default: "tcp"
+# Values: "tcp", "udp"
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__GRAYLOG_PROTOCOL=tcp
+# .env: LIB_LOG_RICH__GRAYLOG_PROTOCOL=tcp
+# Note: TLS only supported with TCP
+graylog_protocol = "tcp"
+
+# Purpose: Wrap Graylog TCP connection in TLS
+# Type: boolean
+# Default: false
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__GRAYLOG_TLS=true
+# .env: LIB_LOG_RICH__GRAYLOG_TLS=true
+# Note: Only valid when graylog_protocol = "tcp"
+graylog_tls = false
+
+# Purpose: Minimum severity level sent to Graylog
+# Type: string (case-insensitive)
+# Default: "WARNING"
+# Values: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__GRAYLOG_LEVEL=WARNING
+# .env: LIB_LOG_RICH__GRAYLOG_LEVEL=WARNING
+graylog_level = "WARNING"
+
+# ------------------------------------------------------------------------------
+# Queue Settings (Background Processing)
+# ------------------------------------------------------------------------------
+
+# Purpose: Route log events through background queue worker
+# Type: boolean
+# Default: true
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__QUEUE_ENABLED=true
+# .env: LIB_LOG_RICH__QUEUE_ENABLED=true
+# Note: Disable for synchronous logging (blocks on I/O)
+queue_enabled = true
+
+# Purpose: Maximum pending events before queue full policy applies
+# Type: integer (> 0)
+# Default: 2048
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__QUEUE_MAXSIZE=2048
+# .env: LIB_LOG_RICH__QUEUE_MAXSIZE=2048
+queue_maxsize = 2048
+
+# Purpose: Behavior when queue is full
+# Type: string
+# Default: "block"
+# Values: "block" (wait for space), "drop" (discard events)
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__QUEUE_FULL_POLICY=block
+# .env: LIB_LOG_RICH__QUEUE_FULL_POLICY=block
+queue_full_policy = "block"
+
+# Purpose: Timeout in seconds for blocking queue puts
+# Type: float (> 0) or None for no timeout
+# Default: 1.0
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__QUEUE_PUT_TIMEOUT=1.0
+# .env: LIB_LOG_RICH__QUEUE_PUT_TIMEOUT=1.0
+# Note: Set to 0 or None for infinite wait
+queue_put_timeout = 1.0
+
+# Purpose: Maximum time to wait for queue drain during shutdown
+# Type: float (> 0) or None for infinite wait
+# Default: 5.0
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__QUEUE_STOP_TIMEOUT=5.0
+# .env: LIB_LOG_RICH__QUEUE_STOP_TIMEOUT=5.0
+queue_stop_timeout = 5.0
+
+# ------------------------------------------------------------------------------
+# Ring Buffer (In-Memory Event Storage)
+# ------------------------------------------------------------------------------
+
+# Purpose: Enable in-memory circular buffer for log history
+# Type: boolean
+# Default: true
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__ENABLE_RING_BUFFER=true
+# .env: LIB_LOG_RICH__ENABLE_RING_BUFFER=true
+# Note: Enables log.dump() functionality
+enable_ring_buffer = true
+
+# Purpose: Maximum events retained in ring buffer
+# Type: integer (> 0)
+# Default: 25000
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__RING_BUFFER_SIZE=25000
+# .env: LIB_LOG_RICH__RING_BUFFER_SIZE=25000
+ring_buffer_size = 25000
+
+# ------------------------------------------------------------------------------
+# Dump Format Settings (for log.dump())
+# ------------------------------------------------------------------------------
+
+# Purpose: Default layout for text dumps
+# Type: string (case-insensitive)
+# Default: None (resolves to "full")
+# Values: "full", "short", "full_loc", "short_loc"
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__DUMP_FORMAT_PRESET=full
+# .env: LIB_LOG_RICH__DUMP_FORMAT_PRESET=full
+dump_format_preset = "full"
+
+# Purpose: Custom template for text dumps (overrides preset)
+# Type: string (Python str.format template)
+# Default: None (uses preset); empty string is coerced to None
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__DUMP_FORMAT_TEMPLATE={timestamp_trimmed_naive_loc} {level_code} {message}
+# .env: LIB_LOG_RICH__DUMP_FORMAT_TEMPLATE={timestamp_trimmed_naive_loc} {level_code} {message}
+# Note: Uses same placeholders as console_format_template
+dump_format_template = ""
+
+# ------------------------------------------------------------------------------
+# Security & Payload Management
+# ------------------------------------------------------------------------------
+
+# Purpose: Regex patterns to redact sensitive data from logs
+# Type: table with field=regex pairs
+# Default: { password = ".+", secret = ".+", token = ".+" }
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__SCRUB_PATTERNS=password=.+,secret=.+,token=.+,api_key=.+
+# .env: LIB_LOG_RICH__SCRUB_PATTERNS=password=.+,secret=.+,token=.+,api_key=.+
+# Note: Patterns are merged with built-in defaults
+scrub_patterns = { password = ".+", secret = ".+", token = ".+" }
+
+# ------------------------------------------------------------------------------
+# Rate Limiting
+# ------------------------------------------------------------------------------
+
+# Purpose: Throttle log emissions (max_events per window_seconds)
+# Type: array [max_events, window_seconds]
+# Default: None (no rate limiting); empty list is coerced to None
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__RATE_LIMIT=100:60
+# .env: LIB_LOG_RICH__RATE_LIMIT=100:60
+rate_limit = []
+
+# ------------------------------------------------------------------------------
+# Payload Limits
+# ------------------------------------------------------------------------------
+
+[lib_log_rich.payload_limits]
+# Purpose: Guard against oversized log payloads
+# Note: All limits are optional; unspecified values use defaults
+
+# Purpose: Truncate vs reject oversized messages
+# Type: boolean
+# Default: true
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__PAYLOAD_LIMITS__TRUNCATE_MESSAGE=true
+# .env: LIB_LOG_RICH__PAYLOAD_LIMITS__TRUNCATE_MESSAGE=true
+# Note: When false, oversized messages raise ValueError
+truncate_message = true
+
+# Purpose: Maximum characters in primary log message
+# Type: integer
+# Default: 4096
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__PAYLOAD_LIMITS__MESSAGE_MAX_CHARS=4096
+# .env: LIB_LOG_RICH__PAYLOAD_LIMITS__MESSAGE_MAX_CHARS=4096
+message_max_chars = 4096
+
+# Purpose: Maximum keys in extra metadata dict
+# Type: integer
+# Default: 25
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__PAYLOAD_LIMITS__EXTRA_MAX_KEYS=25
+# .env: LIB_LOG_RICH__PAYLOAD_LIMITS__EXTRA_MAX_KEYS=25
+extra_max_keys = 25
+
+# Purpose: Maximum characters per extra value (after stringify)
+# Type: integer
+# Default: 512
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__PAYLOAD_LIMITS__EXTRA_MAX_VALUE_CHARS=512
+# .env: LIB_LOG_RICH__PAYLOAD_LIMITS__EXTRA_MAX_VALUE_CHARS=512
+extra_max_value_chars = 512
+
+# Purpose: Maximum nesting depth for extra structures
+# Type: integer
+# Default: 3
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__PAYLOAD_LIMITS__EXTRA_MAX_DEPTH=3
+# .env: LIB_LOG_RICH__PAYLOAD_LIMITS__EXTRA_MAX_DEPTH=3
+extra_max_depth = 3
+
+# Purpose: Total UTF-8 byte limit for sanitized extra payload
+# Type: integer or None (no limit)
+# Default: 8192
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__PAYLOAD_LIMITS__EXTRA_MAX_TOTAL_BYTES=8192
+# .env: LIB_LOG_RICH__PAYLOAD_LIMITS__EXTRA_MAX_TOTAL_BYTES=8192
+extra_max_total_bytes = 8192
+
+# Purpose: Maximum keys in LogContext.extra
+# Type: integer
+# Default: 20
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__PAYLOAD_LIMITS__CONTEXT_MAX_KEYS=20
+# .env: LIB_LOG_RICH__PAYLOAD_LIMITS__CONTEXT_MAX_KEYS=20
+context_max_keys = 20
+
+# Purpose: Maximum characters per context value
+# Type: integer
+# Default: 256
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__PAYLOAD_LIMITS__CONTEXT_MAX_VALUE_CHARS=256
+# .env: LIB_LOG_RICH__PAYLOAD_LIMITS__CONTEXT_MAX_VALUE_CHARS=256
+context_max_value_chars = 256
+
+# Purpose: Number of frames preserved in exception tracebacks
+# Type: integer
+# Default: 10
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__PAYLOAD_LIMITS__STACKTRACE_MAX_FRAMES=10
+# .env: LIB_LOG_RICH__PAYLOAD_LIMITS__STACKTRACE_MAX_FRAMES=10
+# Note: Leading and trailing frames kept; middle frames truncated
+stacktrace_max_frames = 10
+
+# ------------------------------------------------------------------------------
+# Advanced Settings (Programmatic only -- not configurable via TOML)
+# ------------------------------------------------------------------------------
+
+# Programmatic only -- not configurable via TOML
+# console_stream_target
+# Purpose: Custom file-like object for console output
+# Note: Only available programmatically when console_stream = "custom"
+
+# Programmatic only -- not configurable via TOML
+# console_adapter_factory
+# Purpose: Custom console adapter factory for queue-backed or test adapters
+# Note: Only available programmatically
+# Documentation: See STREAMINGCONSOLE.md in lib_log_rich docs
+
+# Programmatic only -- not configurable via TOML
+# diagnostic_hook
+# Purpose: Callback for observing runtime diagnostics
+# Note: Only available programmatically
+# Signature: Callable[[str, dict[str, Any]], None]
+# Events: queue_worker_error, queue_drop_callback_error, message_truncated,
+#         extra_keys_dropped, exc_info_truncated, rate_limited, etc.

@@ -1,0 +1,11 @@
+{
+  "name": "igittigitt",
+  "description": "Parse .gitignore files and filter/whitelist large numbers of paths in .gitignore style from Python or the shell. Ships the python-gitignore skill: install, configure (config-deploy + config.d overrides), library API (IgnoreParser/IncludeParser, shutil.copytree filter), the CLI, and bash piping.",
+  "version": "1.0.0",
+  "author": {
+    "name": "bitranox"
+  },
+  "homepage": "https://github.com/bitranox/igittigitt",
+  "repository": "https://github.com/bitranox/igittigitt",
+  "license": "MIT"
+}

@@ -1,101 +1,203 @@
-[build-system]
-requires = ['setuptools', 'setuptools-scm']
-build-backend = "setuptools.build_meta"
-
 [project]
-# see: https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html
 name = "igittigitt"
-authors = [
-    {name = "Robert Nowotny", email = "bitranox@gmail.com"},
-]
-description = "A spec-compliant gitignore parser for Python"
-readme = "README.rst"
-requires-python = ">=3.8.0"
-keywords = [
-]
-license = {text = "MIT"}
-classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Natural Language :: English",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-]
-# dependencies - former setup.cfg "install_requires"
-# see: https://setuptools.pypa.io/en/latest/userguide/dependency_management.html
+version = "2.2.0"
+description = "A spec-compliant .gitignore parser and path filter, 100% git-compatible, with an include/whitelist mode and a streaming, memory-bounded CLI"
+readme = "README.md"
+requires-python = ">=3.10"
 dependencies = [
-    "attrs",
-    "cli_exit_tools",
-    "click",
-    "lib_detect_testenv",
-    "wcmatch",
+    "wcmatch>=8.5",
+    "pydantic>=2.12.5",
+    "rich-click>=1.9.7",
+    "lib_cli_exit_tools>=2.3.2",
+    "lib_log_rich>=6.3.5",
+    "lib_layered_config>=5.5.2",
+    "orjson>=3.11.7",
 ]
-version = "v2.1.5"
-# seems to be not allowed anymore
-# zip-save = false
+license = { text = "MIT" }
+authors = [{ name = "bitranox", email = "bitranox@gmail.com" }]
+keywords = ["gitignore", "ignore", "glob", "wildmatch", "copytree", "cli", "filter", "whitelist"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "License :: OSI Approved :: MIT License",
+  "Environment :: Console",
+  "Operating System :: OS Independent",
+  "Typing :: Typed",
+]
+
+# System packages required for CI runners (read by GitHub Actions workflow template)
+# Format: "apt_package_name" for Ubuntu, future: {"apt": "...", "brew": "...", "choco": "..."}
+[tool.ci]
+system-dependencies-ubuntu = []
+system-dependencies-macos = []
+system-dependencies-windows-pip = []
+system-dependencies-windows-choco = []
+os = ["ubuntu-latest", "windows-latest", "macos-latest"]
 
 [project.urls]
 Homepage = "https://github.com/bitranox/igittigitt"
-Documentation = "https://github.com/bitranox/igittigitt/blob/master/README.rst"
 Repository = "https://github.com/bitranox/igittigitt.git"
-Changelog = "https://github.com/bitranox/igittigitt/blob/master/CHANGES.rst"
+Issues = "https://github.com/bitranox/igittigitt/issues"
 
 [project.optional-dependencies]
-test = [
-    "black",
-    "codecov",
-    "coloredlogs",
-    "coverage",
-    "flake8",
-    "mypy",
-    "pytest",
-    "pytest-cov",
-    "pytest-runner",
-    "readme_renderer",
+dev = [
+  "pytest>=9.0.2",
+  "pytest-cov>=7.1.0",
+  "hypothesis>=6.151.10",
+  "ruff>=0.15.8",
+  "pyright[nodejs]>=1.1.408",
+  "bandit>=1.9.4",
+  "build>=1.4.2",
+  "twine>=6.2.0",
+  "codecov-cli>=11.2.8",
+  "pip-audit>=2.10.0",
+  "textual>=8.2.1",
+  "import-linter>=2.11",
+  "rtoml>=0.13.0",
+  "httpx2>=2.2.0",
+  # Transitive CVE pins
+  "jaraco-context>=6.1.2",       # CVE-2025-23949
+  "python-multipart>=0.0.22",    # CVE-2025-24486
+  "wheel>=0.46.3",               # CVE-2025-24049
+  "pynacl>=1.6.2",               # CVE-2025-69277
+  "urllib3>=2.6.3",              # CVE-2025-66471, CVE-2025-66418
+  "virtualenv>=21.2.0",         # CVE-2025-22702
 ]
 
 [project.scripts]
-    igittigitt = "igittigitt.igittigitt_cli:cli_main"
+igittigitt = "igittigitt.entry:main"
 
-[tool.setuptools.package-data]
-igittigitt = [
-    "*.pyi",
-    "__init__.pyi",
-    "py.typed",
+[build-system]
+requires = ["hatchling>=1.29.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/igittigitt"]
+include = [
+    "src/igittigitt/py.typed",
+    "src/igittigitt/adapters/config/defaultconfig.toml",
+    "src/igittigitt/adapters/config/defaultconfig.d/*.toml",
 ]
 
-[tool.black]
-line-length = 160
-#You should include all Python versions that you want your code to run under
-target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
-# Note that you have to use single-quoted strings in TOML for regular expressions
-include = '\.pyi?$'
-exclude = '/(\.eggs|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.venv|_build|buck-out|build|dist)/'
+[tool.ruff]
+line-length = 120
+target-version = "py310"
 
-[tool.mypy]
-verbosity=0
-warn_unused_configs = true
-ignore_missing_imports = true
-no_implicit_optional = true
-no_strict_optional = true
-show_error_context = true
+[tool.ruff.lint]
+select = [
+  "E", "W",     # pycodestyle
+  "F",           # pyflakes
+  "I",           # isort
+  "N",           # pep8-naming
+  "UP",          # pyupgrade
+  "B",           # bugbear
+  "A",           # builtins shadowing
+  "C4",          # comprehension simplification
+  "SIM",         # simplification
+  "TCH",         # type-checking imports
+  "RUF",         # ruff-specific
+  "G",           # logging format (catches f-string in logger)
+  "T20",         # print statements
+  "PTH",         # pathlib preference
+  "PLC", "PLE",  # pylint conventions/errors
+  "S",           # flake8-bandit security checks
+  "PERF",        # performance anti-patterns
+  "ERA",         # eradicate dead/commented-out code
+  "FBT",         # boolean trap (boolean positional args)
+  "PLR",         # pylint refactor
+  "PLW",         # pylint warnings
+]
+ignore = [
+  "RUF002",    # ambiguous unicode characters in docstrings (en-dash) - typography choice
+  "RUF022",    # unsorted __all__ - kept in logical grouping order
+  "PLC0415",   # deferred imports inside functions - circular import prevention
+  "TC001",     # stdlib imports at runtime - needed, not just for type hints
+  "TC002",     # third-party imports at runtime - needed, not just for type hints
+  "TC003",     # stdlib imports - same as TC001
+  "TC006",     # cast() type expressions - existing code uses unquoted
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# Notebooks: unused imports are often intentional for side effects
+"notebooks/*.ipynb" = ["F401"]
+# Tests: assert is standard, test fixtures have passwords, magic values are clearer inline, temp paths are fine
+"tests/*.py" = ["T20", "S101", "S105", "S106", "S108", "S311", "S603", "S607", "PLW1510", "FBT001", "FBT003", "PLR0913", "PLR2004", "C408", "PERF401"]
+# CLI: Click framework injects boolean params; commands have many options; the
+# error boundary naturally has several return branches (PLR0911).
+"src/igittigitt/adapters/cli/**/*.py" = ["FBT001", "FBT002", "PLR0913", "PLR0911"]
+# Ports / config / memory adapters: many-parameter signatures by design.
+"src/igittigitt/application/*.py" = ["PLR0913"]
+"src/igittigitt/adapters/config/*.py" = ["PLR0913", "FBT001", "FBT002"]
+"src/igittigitt/adapters/memory/*.py" = ["PLR0913", "FBT001", "FBT002"]
+# Core engine: a ported, doctest-heavy module with an established public API.
+# It deliberately uses os.path (not pathlib) so it never resolves symlinks, and
+# keeps boolean-flag function signatures used by the doctests; both are by design.
+"src/igittigitt/igittigitt.py" = [
+  "SLF001", "PLR0913", "N818", "FBT001", "FBT002", "C408", "SIM108", "SIM113",
+  "PTH100", "PTH111", "PTH123", "PTH207", "PLW2901", "PERF401", "T201",
+]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+extraPaths = [
+  "src",
+]
 
 [tool.pytest.ini_options]
-addopts = "-vvl --doctest-modules"
-doctest_optionflags =  "NORMALIZE_WHITESPACE ELLIPSIS ALLOW_UNICODE ALLOW_BYTES IGNORE_EXCEPTION_DETAIL"
-log_cli = true
-log_cli_level = "CRITICAL"
+addopts = ["--doctest-modules"]
+doctest_optionflags = ["ELLIPSIS", "NORMALIZE_WHITESPACE"]
+pythonpath = ["src"]
+markers = [
+  "os_agnostic: test runs on every supported operating system",
+  "os_windows: test exercises Windows-only behavior",
+  "os_macos: test exercises macOS-only behavior",
+  "os_posix: test exercises behavior requiring POSIX semantics",
+  "os_linux: test exercises Linux-only behavior",
+  "local_only: tests that require the local dev environment (external resources, script composition); skipped in CI",
+  "integration: tests requiring external resources (SMTP, databases, APIs); run via 'bmk ti' or 'mktesti.sh'",
+]
 
-[tool.pip-audit]
-# Known vulnerabilities to ignore (unfixable or accepted risk)
-# GHSA-4xh5-x5gv-qwph: py library ReDoS (no fix available, low risk)
-# PYSEC-2022-42969: same as above (alias)
-ignore-vulns = ["GHSA-4xh5-x5gv-qwph", "PYSEC-2022-42969"]
+[tool.coverage.run]
+branch = true
+parallel = false
+# Use a temp directory for the coverage database to avoid SQLite locking
+# issues on network-mounted filesystems. The {envtmpdir} placeholder is
+# not supported by coverage.py, so we use an environment variable with
+# fallback to a cross-platform temp location via the pytest_configure
+# hook in tests/conftest.py. CI also sets COVERAGE_FILE via workflow env.
+#
+# For local development, the pytest hook automatically redirects to
+# tempfile.gettempdir() before pytest-cov creates its Coverage() object.
+# This static fallback catches edge cases where coverage is run directly.
+data_file = "/tmp/.coverage.igittigitt"
+source = ["src/igittigitt"]
+
+[tool.coverage.report]
+omit = [
+  "tests/*",
+]
+fail_under = 80
+show_missing = true
+
+[tool.coverage.json]
+output = "coverage.json"
+pretty_print = true
+
 [tool.clean]
-# Patterns to remove when running `make clean` or `python -m scripts clean`
+# Patterns to remove when running `make clean`
 patterns = [
+  "**/__pycache__",
   ".hypothesis",
   ".import_linter_cache",
   ".pytest_cache",
@@ -114,6 +216,7 @@ patterns = [
   "codecov.sh",
   ".cache",
   "result",
+  ".data_arch_violations.json",
 ]
 
 [tool.git]
@@ -121,7 +224,62 @@ patterns = [
 default-remote = "origin"
 
 [tool.scripts.test]
-# Configuration for scripts/test.py test runner
+# Configuration for CI/CD test runner
 pytest-verbosity = "-vv"
 coverage-report-file = "coverage.xml"
 src-path = "src"
+
+[tool.importlinter]
+root_package = "igittigitt"
+exclude_type_checking_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Core engine is independent of the CLI adapters"
+type = "forbidden"
+source_modules = [
+  "igittigitt.igittigitt",
+  "igittigitt.conf_igittigitt",
+]
+forbidden_modules = [
+  "igittigitt.adapters",
+  "igittigitt.application",
+  "igittigitt.composition",
+]
+
+[[tool.importlinter.contracts]]
+name = "Domain is pure (no adapter/application/composition dependencies)"
+type = "forbidden"
+source_modules = [
+  "igittigitt.domain",
+]
+forbidden_modules = [
+  "igittigitt.adapters",
+  "igittigitt.application",
+  "igittigitt.composition",
+]
+
+[[tool.importlinter.contracts]]
+name = "Clean Architecture layers"
+type = "layers"
+layers = [
+  "igittigitt.composition",
+  "igittigitt.adapters",
+  "igittigitt.application",
+  "igittigitt.domain",
+]
+
+[tool.pip-audit]
+# Known vulnerabilities to ignore (environment-level packages, not project dependencies)
+# PYSEC-2022-42969: py library ReDoS — py 1.11.0 is installed in the development
+#   environment but is not a dependency of this project; no fix available.
+ignore-vulns = [
+  "PYSEC-2022-42969",  # py 1.11.0 — ReDoS, env-only, no fix available
+  "CVE-2025-8869",     # pip 24.3.1 — env-only, not a project dependency
+  "CVE-2026-1703",     # pip 24.3.1 — env-only, not a project dependency
+  "CVE-2026-25990",    # pillow 12.0.0 — env-only, fix in 12.1.1
+]
+
+[tool.bashate]
+# bashate style settings for .sh files (E003 excluded: indent handled by shfmt)
+max-line-length = 120
+ignores = ["E003"]

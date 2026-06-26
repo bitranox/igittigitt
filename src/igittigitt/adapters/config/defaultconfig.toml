@@ -1,0 +1,43 @@
+# Default configuration for igittigitt
+#
+# This file contains the default configuration that ships with the application.
+# Additional settings can be placed in defaultconfig.d/*.toml
+#
+# Settings can be overridden via:
+#   - Application-level config (Linux):
+#        - /etc/xdg/igittigitt/config.[toml|yaml|json]
+#        - /etc/xdg/igittigitt/config.d/*.[toml|yaml|json]
+#   - Host-level config (macOS):
+#        - /Library/Application Support/bitranox/igittigitt/config.[toml|yaml|json]
+#        - /Library/Application Support/bitranox/igittigitt/config.d/*.[toml|yaml|json]
+#   - User-level config (Linux):
+#        - ~/.config/igittigitt/config.[toml|yaml|json]
+#        - ~/.config/igittigitt/config.d/*.[toml|yaml|json]
+#   - User-level config (macOS):
+#        - ~/Library/Application Support/bitranox/igittigitt/config.[toml|yaml|json]
+#   - .env files: .env in current directory or parent directories
+#   - Environment variables: Prefix with IGITTIGITT___
+#
+# Precedence (lowest to highest): defaults → app → host → user → dotenv → env
+#
+# IMPORTANT: Naming Conventions for .env Files vs Environment Variables
+# ----------------------------------------------------------------------
+#
+# .env FILES (no prefix needed):
+#   Format: SECTION__KEY=value
+#   Uses double underscore (__) to create nested structures.
+#
+#   Examples in .env file:
+#     PERFORMANCE__DIR_CACHE_MAX=8192
+#     LIB_LOG_RICH__CONSOLE_LEVEL=DEBUG
+#
+# ENVIRONMENT VARIABLES (require prefix):
+#   Format: PREFIX___SECTION__KEY=value
+#   Uses triple underscore (___) to separate PREFIX from SECTION,
+#   and double underscore (__) to separate SECTION from KEY.
+#
+#   Examples as environment variables:
+#     IGITTIGITT___PERFORMANCE__DIR_CACHE_MAX=8192
+#     IGITTIGITT___LIB_LOG_RICH__CONSOLE_LEVEL=DEBUG
+#
+# Value coercion: "true"/"false" → bool, "null"/"none" → None, numbers → int/float

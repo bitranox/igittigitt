@@ -1,17 +1,48 @@
-# Contributing
+# Contributing Guide
 
-When contributing to this repository, please first discuss the change you wish to make via issue,
-email, or any other method with the owners of this repository before making a change. 
+Thanks for helping improve **igittigitt**. The sections below summarise the day-to-day workflow, highlight the repository automation, and list the checks that must pass before a change is merged.
 
-Please note we have a code of conduct, please follow it in all your interactions with the project.
+## 1. Workflow Overview
 
-## Pull Request Process
+1. Fork and branch -- use short, imperative branch names (`feature/cli-extension`, `fix/codecov-token`).
+2. Make focused commits -- keep unrelated refactors out of the same change.
+3. Run `make test` locally before pushing (see the automation note below).
+4. Update documentation and changelog entries that are affected by the change.
+5. Open a pull request referencing any relevant issues.
 
-1. Ensure any install or build dependencies are removed before the end of the layer when doing a 
-   build.
-2. Update the README.md with details of changes to the interface, this includes new environment 
-   variables, exposed ports, useful file locations and container parameters.
-3. Increase the version numbers in any examples files and the README.md to the new version that this
-   Pull Request would represent. The versioning scheme we use is [SemVer](http://semver.org/).
-4. You may merge the Pull Request in once you have the sign-off of two other developers, or if you 
-   do not have permission to do that, you may request the second reviewer to merge it for you.
+## 2. Commits & Pushes
+
+- Commit messages should be imperative (`Add rich handler`, `Fix CLI exit codes`).
+- The test harness (`make test`) runs the full lint/type/test pipeline but leaves the repository untouched; create commits yourself before pushing or uploading coverage artifacts.
+- `make push` always performs a commit before pushing. It prompts for a message when run interactively, honours `COMMIT_MESSAGE="..."` when provided, and creates an empty commit if nothing is staged. The Textual menu (`make menu -> push`) exposes the same behaviour via an input field.
+
+## 3. Coding Standards
+
+- Apply the repository's Clean Architecture / SOLID rules (see `CLAUDE.md` and the system prompts listed there).
+- Prefer small, single-purpose modules and functions; avoid mixing orthogonal concerns.
+- Free functions and modules use `snake_case`; classes are `PascalCase`.
+- Keep runtime dependencies minimal. Use the standard library where practical.
+
+## 4. Tests & Tooling
+
+- `make test` runs Ruff (lint + format check), Pyright, and Pytest with coverage. Coverage is `on` by default; override with `COVERAGE=off` if you explicitly need a no-coverage run.
+- The harness auto-installs dev tools with `pip install -e .[dev]` when Ruff, Pyright, or Pytest are missing. Skip this by exporting `SKIP_BOOTSTRAP=1`.
+- Codecov uploads require a commit (provided by the automatic commit described above). For private repositories set `CODECOV_TOKEN` in your environment or `.env`.
+- Tests follow a narrative style: prefer names like `test_when_<condition>_<outcome>()`, keep each case laser-focused, and mark OS constraints with the provided markers (`@pytest.mark.os_agnostic`, `@pytest.mark.os_windows`, etc.).
+- Whenever you add a CLI behaviour or change metadata fallbacks, update the relevant story in `tests/test_cli.py` or `tests/test_metadata.py` so the specification remains complete.
+
+## 5. Documentation Checklist
+
+Before opening a PR, confirm the following:
+
+- [ ] `make test` passes locally (and you removed the auto-created Codecov commit if you do not want to keep it).
+- [ ] Relevant documentation (`README.md`, `DEVELOPMENT.md`, `docs/systemdesign/*`) is updated.
+- [ ] No generated artefacts or virtual environments are committed.
+- [ ] Version bumps, when required, touch **only** `pyproject.toml` and `CHANGELOG.md`.
+
+## 6. Security & Configuration
+
+- Never commit secrets. Tokens (Codecov, PyPI) belong in `.env` (ignored by git) or CI secrets.
+- Sanitise any payloads you emit via logging once richer logging features ship.
+
+Happy hacking!

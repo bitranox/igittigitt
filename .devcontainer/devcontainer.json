@@ -1,0 +1,22 @@
+{
+  "image": "mcr.microsoft.com/devcontainers/python:3.13",
+
+  "postCreateCommand": "bash -lc '\nPY=/usr/local/bin/python;\n$PY -m pip install -U pip && \\\n$PY -m pip install ipykernel && \\\n$PY -m pip install -e . && \\\n# register kernel using this exact interpreter\n$PY -m ipykernel install --name=python3 --display-name=\"Python 3 (3.13)\" --user && \\\n# patch the notebook to point to the python3 kernelspec (VS Code will bind to /usr/local/bin/python)\n$PY - <<\"PY\"\nimport json, pathlib\np = pathlib.Path(\"notebooks/Quickstart.ipynb\")\nif p.exists():\n    nb = json.loads(p.read_text(encoding=\"utf-8\"))\n    md = nb.setdefault(\"metadata\", {})\n    md[\"kernelspec\"] = {\n        \"name\": \"python3\",\n        \"display_name\": \"Python 3 (3.13)\",\n        \"language\": \"python\"\n    }\n    md[\"language_info\"] = {\"name\": \"python\"}\n    p.write_text(json.dumps(nb, ensure_ascii=False, indent=1), encoding=\"utf-8\")\n    print(\"Pinned kernelspec to python3 in\", p)\nelse:\n    print(\"Notebook not found:\", p)\nPY'\n",
+
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-toolsai.jupyter", "ms-python.python"],
+      "settings": {
+        "workbench.startupEditor": "none",
+        "jupyter.alwaysTrustNotebooks": true,
+        "jupyter.kernelPickerType": "OnlyRecommended",
+        "python.defaultInterpreterPath": "/usr/local/bin/python"
+      }
+    },
+    "codespaces": {
+      "openFiles": ["README.md"]
+    }
+  },
+
+  "postAttachCommand": "bash -lc 'if [ -f notebooks/Quickstart.ipynb ]; then code -r notebooks/Quickstart.ipynb; fi'"
+}

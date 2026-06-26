@@ -1,0 +1,55 @@
+# ============================================================================
+# [performance] - tuning knobs for the matching engine and the streaming CLI
+# ============================================================================
+#
+# Every value below is a *performance* knob only: changing it never changes
+# WHICH paths are ignored/kept (git compatibility is unaffected), only how fast
+# the work runs and how much memory the caches may use. All defaults were chosen
+# by measurement (see CLAUDE.md "Performance"), not guessed.
+#
+# Override precedence (lowest -> highest): this default -> app -> host -> user
+#   -> .env -> environment variable. Examples:
+#     .env file:              PERFORMANCE__DIR_CACHE_MAX=16384
+#     environment variable:   IGITTIGITT___PERFORMANCE__DIR_CACHE_MAX=16384
+#     one-off CLI override:   igittigitt --set performance.dir_cache_max=16384 ...
+#
+# Memory note: all four knobs keep memory BOUNDED. Memory scales with these caps
+# (and the number of rules), never with the number of files/paths processed.
+
+[performance]
+
+# dir_cache_max - capacity of the per-parser "directory decision" LRU cache.
+#   The engine memoizes, per directory, whether that directory (or an ancestor)
+#   is excluded/kept, so sibling paths reuse the decision instead of recomputing
+#   it. This is the single biggest speed-up on tree-shaped workloads (copytree,
+#   `find | igittigitt filter`).
+#   Trade-off: higher = more cache hits on very deep/wide trees, but up to this
+#   many directory entries held in memory (each entry is one path string + a
+#   rule reference, on the order of a few hundred bytes).
+#   Measured: throughput plateaus from ~1024 upward; 256 starts to thrash.
+#   Default 8192 leaves comfortable headroom at ~1-2 MiB worst case.
+#   Set to 0 to disable the directory cache entirely (lowest memory, slower).
+dir_cache_max = 8192
+
+# pattern_cache_max - capacity of the compiled-regex cache (process-wide).
+#   Each gitignore glob is translated and compiled to a regular expression
+#   exactly once; matching then uses the compiled pattern (~8x faster per call
+#   than re-running the glob matcher). The cache is keyed by the glob string, so
+#   its real size equals the number of DISTINCT patterns across all rule files -
+#   typically tens to a few hundred. 4096 is far more than any real .gitignore
+#   set needs; raise it only if you load thousands of distinct patterns.
+pattern_cache_max = 4096
+
+# stdin_chunk_bytes - read size (in bytes) for streaming paths from stdin in the
+#   `check`/`filter` commands. Paths are tokenised as they stream in, so this
+#   only affects read syscall granularity, not memory.
+#   Measured: throughput is flat from 16 KiB to 256 KiB and peaks at 64 KiB.
+stdin_chunk_bytes = 65536
+
+# max_token_bytes - safety bound (in bytes) for a single input path token while
+#   no separator (newline, or NUL with -z) has been seen. A path that exceeds
+#   this without a separator is rejected with a clear error instead of being
+#   buffered without limit - this is what guarantees bounded memory even for a
+#   pathological, separator-less input stream. Real paths are well under this;
+#   1 MiB is deliberately generous.
+max_token_bytes = 1048576
