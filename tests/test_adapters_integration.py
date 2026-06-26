@@ -9,6 +9,7 @@ exception into a clean, formatted exit - the integration points we actually own.
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable
 from pathlib import Path
 
@@ -25,11 +26,16 @@ Factory = Callable[[], object]
 # --- config adapters: our usage of lib_layered_config -------------------------
 
 
-@pytest.mark.os_agnostic
+@pytest.mark.os_posix
+@pytest.mark.skipif(sys.platform == "win32", reason="user config dir is %APPDATA%-based on Windows, not HOME/XDG")
 def test_config_deploy_writes_files(
     cli_runner: CliRunner, production_factory: Factory, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """`config-deploy --target user` actually writes the bundled config files."""
+    """`config-deploy --target user` actually writes the bundled config files.
+
+    POSIX-only: we redirect the user config dir via HOME/XDG, which only controls
+    the path on Linux/macOS. The deploy logic itself is exercised here; its
+    Windows path computation is lib_layered_config's own (upstream-tested)."""
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / ".config"))
     result = cli_runner.invoke(cli, ["config-deploy", "--target", "user"], obj=production_factory)
