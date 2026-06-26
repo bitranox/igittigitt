@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "wcmatch>=8.5",
-    "pydantic>=2.12.5",
+    "pydantic>=2.13.4",
     "rich-click>=1.9.7",
     "lib_cli_exit_tools>=2.3.2",
     "lib_log_rich>=6.3.5",
