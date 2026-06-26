@@ -169,7 +169,7 @@ jobs:
       - name: Restore ruff cache
         if: runner.environment == 'github-hosted'
         id: ruff-cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: .ruff_cache
           key: ruff-${{ runner.os }}-py${{ matrix.python }}-${{ github.sha }}
@@ -293,7 +293,7 @@ jobs:
 
       - name: Save ruff cache
         if: always() && runner.environment == 'github-hosted' && steps.ruff-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: .ruff_cache
           key: ruff-${{ runner.os }}-py${{ matrix.python }}-${{ github.sha }}
