@@ -8,7 +8,7 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
-## [2.2.0]
+## [2.2.0] - 2026-06-26
 
 Full rebuild of the project scaffolding on the `bitranox_template_py_cli` template
 (src layout, hatchling, ruff + pyright strict, clean-architecture CLI). The public

@@ -5,13 +5,13 @@ description = "A spec-compliant .gitignore parser and path filter, 100% git-comp
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "wcmatch>=8.5",
-    "pydantic>=2.12.5",
-    "rich-click>=1.9.7",
+    "wcmatch>=10.1",
+    "pydantic>=2.13.4",
+    "rich-click>=1.9.8",
     "lib_cli_exit_tools>=2.3.2",
     "lib_log_rich>=6.3.5",
     "lib_layered_config>=5.5.2",
-    "orjson>=3.11.7",
+    "orjson>=3.11.9",
 ]
 license = { text = "MIT" }
 authors = [{ name = "bitranox", email = "bitranox@gmail.com" }]
@@ -46,34 +46,34 @@ Issues = "https://github.com/bitranox/igittigitt/issues"
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=9.0.2",
+  "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
-  "hypothesis>=6.151.10",
-  "ruff>=0.15.8",
-  "pyright[nodejs]>=1.1.408",
+  "hypothesis>=6.155.7",
+  "ruff>=0.15.20",
+  "pyright[nodejs]>=1.1.411",
   "bandit>=1.9.4",
-  "build>=1.4.2",
+  "build>=1.5.0",
   "twine>=6.2.0",
   "codecov-cli>=11.2.8",
-  "pip-audit>=2.10.0",
-  "textual>=8.2.1",
-  "import-linter>=2.11",
+  "pip-audit>=2.10.1",
+  "textual>=8.2.7",
+  "import-linter>=2.12",
   "rtoml>=0.13.0",
-  "httpx2>=2.2.0",
+  "httpx2>=2.5.0",
   # Transitive CVE pins
   "jaraco-context>=6.1.2",       # CVE-2025-23949
-  "python-multipart>=0.0.22",    # CVE-2025-24486
-  "wheel>=0.46.3",               # CVE-2025-24049
+  "python-multipart>=0.0.32",    # CVE-2025-24486
+  "wheel>=0.47.0",               # CVE-2025-24049
   "pynacl>=1.6.2",               # CVE-2025-69277
-  "urllib3>=2.6.3",              # CVE-2025-66471, CVE-2025-66418
-  "virtualenv>=21.2.0",         # CVE-2025-22702
+  "urllib3>=2.7.0",              # CVE-2025-66471, CVE-2025-66418
+  "virtualenv>=21.5.1",         # CVE-2025-22702
 ]
 
 [project.scripts]
 igittigitt = "igittigitt.entry:main"
 
 [build-system]
-requires = ["hatchling>=1.29.0"]
+requires = ["hatchling>=1.30.1"]
 build-backend = "hatchling.build"
 
 [tool.hatch.metadata]
@@ -129,8 +129,9 @@ ignore = [
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-# Notebooks: unused imports are often intentional for side effects
-"notebooks/*.ipynb" = ["F401"]
+# Notebooks: unused imports are often intentional for side effects; print() is
+# how a notebook shows output.
+"notebooks/*.ipynb" = ["F401", "T201"]
 # Tests: assert is standard, test fixtures have passwords, magic values are clearer inline, temp paths are fine
 "tests/*.py" = ["T20", "S101", "S105", "S106", "S108", "S311", "S603", "S607", "PLW1510", "FBT001", "FBT003", "PLR0913", "PLR2004", "C408", "PERF401"]
 # CLI: Click framework injects boolean params; commands have many options; the
@@ -153,6 +154,16 @@ typeCheckingMode = "strict"
 extraPaths = [
   "src",
 ]
+
+# `src` stays fully strict. Tests do legitimate white-box access of internal
+# members (cache caps, the streaming token bound) and include a ported, loosely
+# typed legacy suite; relax only the "unknown type" / private-usage rules there.
+[[tool.pyright.executionEnvironments]]
+root = "tests"
+reportPrivateUsage = false
+reportUnknownVariableType = false
+reportUnknownMemberType = false
+reportUnknownArgumentType = false
 
 [tool.pytest.ini_options]
 addopts = ["--doctest-modules"]
@@ -273,10 +284,16 @@ layers = [
 # PYSEC-2022-42969: py library ReDoS — py 1.11.0 is installed in the development
 #   environment but is not a dependency of this project; no fix available.
 ignore-vulns = [
-  "PYSEC-2022-42969",  # py 1.11.0 — ReDoS, env-only, no fix available
-  "CVE-2025-8869",     # pip 24.3.1 — env-only, not a project dependency
-  "CVE-2026-1703",     # pip 24.3.1 — env-only, not a project dependency
-  "CVE-2026-25990",    # pillow 12.0.0 — env-only, fix in 12.1.1
+  "PYSEC-2022-42969",       # py 1.11.0 - ReDoS, env-only, no fix available
+  "CVE-2025-8869",          # pip 24.3.1 - env-only, not a project dependency
+  "CVE-2026-1703",          # pip 24.3.1 - env-only, not a project dependency
+  "CVE-2026-25990",         # pillow 12.0.0 - env-only, fix in 12.1.1
+  # Transitive / dev-environment packages (not direct igittigitt deps); fix
+  # version noted so the entry can be dropped once the env updates.
+  "GHSA-537c-gmf6-5ccf",    # cryptography 48.0.0 - bundled OpenSSL, transitive, fix 48.0.1
+  "GHSA-6v7p-g79w-8964",    # msgpack 1.1.2 - Unpacker reuse-after-error, transitive, fix 1.2.1
+  "GHSA-4xgf-cpjx-pc3j",    # pydantic-settings 2.14.1 - NestedSecrets source, transitive, fix 2.14.2
+  "GHSA-4cc2-g9w2-fhf6",    # zeep 4.3.2 - XXE in WSDL/XSD parsing, env-only (not a dep), fix 4.3.3
 ]
 
 [tool.bashate]
