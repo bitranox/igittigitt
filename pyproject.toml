@@ -294,6 +294,7 @@ ignore-vulns = [
   "GHSA-6v7p-g79w-8964",    # msgpack 1.1.2 - Unpacker reuse-after-error, transitive, fix 1.2.1
   "GHSA-4xgf-cpjx-pc3j",    # pydantic-settings 2.14.1 - NestedSecrets source, transitive, fix 2.14.2
   "GHSA-4cc2-g9w2-fhf6",    # zeep 4.3.2 - XXE in WSDL/XSD parsing, env-only (not a dep), fix 4.3.3
+  "PYSEC-2026-2132",      # click 8.2.1: click.edit() command injection (fixed 8.3.3); dev-env-only, codecov-cli caps click<8.3.0, app never calls click.edit()
 ]
 
 [tool.bashate]
