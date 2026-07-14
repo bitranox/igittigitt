@@ -1,16 +1,16 @@
 [project]
 name = "igittigitt"
-version = "2.2.0"
+version = "2.2.1"
 description = "A spec-compliant .gitignore parser and path filter, 100% git-compatible, with an include/whitelist mode and a streaming, memory-bounded CLI"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "wcmatch>=10.1",
+    "wcmatch>=11.0",
     "pydantic>=2.13.4",
     "rich-click>=1.9.8",
     "lib_cli_exit_tools>=2.3.2",
     "lib_log_rich>=6.3.5",
-    "lib_layered_config>=5.5.2",
+    "lib_layered_config>=5.6.0",
     "orjson>=3.11.9",
 ]
 license = { text = "MIT" }
@@ -48,11 +48,11 @@ Issues = "https://github.com/bitranox/igittigitt/issues"
 dev = [
   "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
-  "hypothesis>=6.155.7",
-  "ruff>=0.15.20",
+  "hypothesis>=6.156.6",
+  "ruff>=0.15.21",
   "pyright[nodejs]>=1.1.411",
   "bandit>=1.9.4",
-  "build>=1.5.0",
+  "build>=1.5.1",
   "twine>=6.2.0",
   # codecov-cli is disabled, not dropped: it requires click<8.3.0, which drags click back to
   # 8.2.1 - the version with CVE-2026-7246 (command injection in click.edit(), fixed in 8.3.3).
@@ -63,24 +63,24 @@ dev = [
   # Re-enable once codecov-cli relaxes its click<8.3.0 pin.
   # "codecov-cli>=11.2.8",
   "pip-audit>=2.10.1",
-  "textual>=8.2.7",
-  "import-linter>=2.12",
+  "textual>=8.2.8",
+  "import-linter>=2.13",
   "rtoml>=0.13.0",
-  "httpx2>=2.5.0",
+  "httpx2>=2.6.0",
   # Transitive CVE pins
   "jaraco-context>=6.1.2",       # CVE-2025-23949
   "python-multipart>=0.0.32",    # CVE-2025-24486
   "wheel>=0.47.0",               # CVE-2025-24049
   "pynacl>=1.6.2",               # CVE-2025-69277
   "urllib3>=2.7.0",              # CVE-2025-66471, CVE-2025-66418
-  "virtualenv>=21.5.1",         # CVE-2025-22702
+  "virtualenv>=21.6.1",         # CVE-2025-22702
 ]
 
 [project.scripts]
 igittigitt = "igittigitt.entry:main"
 
 [build-system]
-requires = ["hatchling>=1.30.1"]
+requires = ["hatchling>=1.31.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.metadata]
@@ -287,22 +287,12 @@ layers = [
 ]
 
 [tool.pip-audit]
-# Known vulnerabilities to ignore (environment-level packages, not project dependencies)
-# PYSEC-2022-42969: py library ReDoS — py 1.11.0 is installed in the development
-#   environment but is not a dependency of this project; no fix available.
-ignore-vulns = [
-  "PYSEC-2022-42969",       # py 1.11.0 - ReDoS, env-only, no fix available
-  "CVE-2025-8869",          # pip 24.3.1 - env-only, not a project dependency
-  "CVE-2026-1703",          # pip 24.3.1 - env-only, not a project dependency
-  "CVE-2026-25990",         # pillow 12.0.0 - env-only, fix in 12.1.1
-  # Transitive / dev-environment packages (not direct igittigitt deps); fix
-  # version noted so the entry can be dropped once the env updates.
-  "GHSA-537c-gmf6-5ccf",    # cryptography 48.0.0 - bundled OpenSSL, transitive, fix 48.0.1
-  "GHSA-6v7p-g79w-8964",    # msgpack 1.1.2 - Unpacker reuse-after-error, transitive, fix 1.2.1
-  "GHSA-4xgf-cpjx-pc3j",    # pydantic-settings 2.14.1 - NestedSecrets source, transitive, fix 2.14.2
-  "GHSA-4cc2-g9w2-fhf6",    # zeep 4.3.2 - XXE in WSDL/XSD parsing, env-only (not a dep), fix 4.3.3
-  "PYSEC-2026-2132",      # click 8.2.1: click.edit() command injection (fixed 8.3.3); dev-env-only, codecov-cli caps click<8.3.0, app never calls click.edit()
-]
+# Empty on purpose: "pip-audit --skip-editable" is clean against the resolved dev
+# tree, so nothing needs suppressing. An id listed here also swallows any FUTURE
+# vulnerability filed under that same id, so an entry that no longer fires is a
+# blind spot, not a leftover - add one only while a finding is live and unfixable,
+# with the package, the fix version, and the condition to drop it again.
+ignore-vulns = []
 
 [tool.bashate]
 # bashate style settings for .sh files (E003 excluded: indent handled by shfmt)

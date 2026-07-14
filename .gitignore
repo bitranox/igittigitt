@@ -191,3 +191,9 @@ prompts.md
 
 # Local, per-developer settings (Claude Code etc.) - never commit
 *.local.json
+# bitranox curated memory (local; CLAUDE.local.md @imports it)
+CLAUDE.local.md
+
+# Python virtual environments (managed by bmk)
+.venv-win/
+.venv-bmk/

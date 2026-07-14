@@ -8,7 +8,7 @@ import rich_click as click
 
 from ..constants import CLICK_CONTEXT_SETTINGS
 from ..exit_codes import ExitCode
-from ..typed_click import option
+from ..typed_click import argument, option
 from ._common import (
     build_ignore_parser,
     emit,
@@ -46,7 +46,7 @@ from ._common import (
 )
 @option("-z", "--zero", "zero", is_flag=True, default=False, help="Input and output are NUL-separated.")
 @option("-v", "--verbose", "verbose", is_flag=True, default=False, help="Also print the matching source:line:pattern.")
-@click.argument("paths", nargs=-1)
+@argument("paths", nargs=-1)
 @click.pass_context
 def cli_check(
     ctx: click.Context,

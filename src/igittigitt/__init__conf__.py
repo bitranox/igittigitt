@@ -40,7 +40,7 @@ name = "igittigitt"
 #: Human-readable summary shown in CLI help output.
 title = "A spec-compliant .gitignore parser and path filter (library + CLI)"
 #: Current release version pulled from ``pyproject.toml`` by automation.
-version = "2.2.0"
+version = "2.2.1"
 #: Repository homepage presented to users.
 homepage = "https://github.com/bitranox/igittigitt"
 #: Author attribution surfaced in CLI output.

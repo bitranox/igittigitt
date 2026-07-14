@@ -1,4 +1,4 @@
-# BMK MAKEFILE 2.9.5
+# BMK MAKEFILE 3.6.0
 # do not alter this file - it might be overwritten on new versions of BMK
 # if You want to alter it, remove the first line # BMK MAKEFILE 1.0 - then it is a custom makefile and will not be overwritten
 # bmk Makefile — thin wrapper using `uv tool install` for persistent bmk
@@ -11,10 +11,14 @@
 #   make custom deploy                # run custom command
 #   make custom deploy --dry-run
 #
-# On every invocation, bmk is (re-)installed as a persistent uv tool
-# together with the current project's dependencies (read from ./pyproject.toml).
-# This ensures pyright, pytest, pip-audit etc. can resolve the full
-# dependency tree without PYTHONPATH hacks or a local .venv.
+# bmk is installed into THIS PROJECT's own tool env (.venv-bmk) together with the
+# project's dependencies (read from ./pyproject.toml), so pyright, pytest,
+# pip-audit etc. resolve the full dependency tree without PYTHONPATH hacks. The
+# env belongs to this repo alone, so projects cannot overwrite each other's
+# dependencies. It is re-resolved on every invocation, so a new bmk release and any
+# dependency change are picked up automatically.
+#
+# .venv-bmk is disposable - delete it and the next make rebuilds it.
 #
 # Arguments after the target name are forwarded automatically.
 # You can also use ARGS="..." explicitly if preferred.
@@ -22,18 +26,69 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-# Use absolute path to the uv tool binary so active virtualenvs cannot shadow it.
-BMK := $(HOME)/.local/bin/bmk
+# uv names the executable bmk.exe on Windows.
+ifeq ($(OS),Windows_NT)
+  BMK_EXE := .exe
+else
+  BMK_EXE :=
+endif
+
+# bmk lives in a venv OF THIS PROJECT, not in a machine-wide one. The tool env
+# holds bmk's toolchain PLUS this project's dependencies, so a single
+# shared env cannot serve two projects: whichever ran `make` last wins, and the
+# other silently gets the wrong dependency tree. Per-project is the only layout
+# where "the env is correct" is a question about THIS repo alone.
+BMK_TOOL_DIR := $(CURDIR)/.venv-bmk
+BMK := $(BMK_TOOL_DIR)/bin/bmk$(BMK_EXE)
 ARGS ?=
 
 # ──────────────────────────────────────────────────────────────
-# Ensure bmk + project deps are installed as a persistent uv tool
+# Ensure bmk + project deps are installed in this project's tool env
 # ──────────────────────────────────────────────────────────────
-# --reinstall re-resolves deps on every call (fast when cached).
-# Fallback handles first-time install where --reinstall would fail.
+# This runs before EVERY target, on purpose. `uv tool install --reinstall bmk`
+# re-resolves the unpinned `bmk` spec against PyPI, so each make picks up a new bmk
+# release and any change to this project's dependencies, with nothing to remember and
+# no version marker to go stale. It costs a couple of seconds per invocation; that is
+# the price of never running against a bmk or a dependency tree that has quietly
+# drifted, and it is cheap next to a wrong test result.
+#
+# Every part of the recipe is load-bearing. Do not:
+#
+#   * drop `.[dev]` from either attempt, or add a `|| --with .` fallback. A project
+#     with no [dev] extra does not fail here - uv warns and installs the base deps -
+#     so such a fallback can only ever produce an env WITHOUT the test deps, which
+#     surfaces as a ModuleNotFoundError (hypothesis, starlette.testclient) far from
+#     the install that caused it.
+#   * change `--with-editable` to `--with`. Editable keeps the project's code in the
+#     env identical to the working tree. A non-editable `--with .` installs a SNAPSHOT;
+#     it happens to work because tools run with cwd=<project>, whose source shadows the
+#     snapshot on sys.path, but that is a coincidence of import order and would serve
+#     stale code to anything running from another directory.
+#   * drop `--reinstall` from either attempt. `uv tool install` without it NO-OPS when
+#     the tool is already present, ignoring `--with` and the available version
+#     entirely, and keeps a stale env.
+#   * drop `--force`. The entry points exist in this project's bin dir on every rebuild.
+#   * add `2>/dev/null`. A real failure must reach the terminal; a suppressed one
+#     surfaces later, somewhere unrelated.
+#   * collapse the retry. It covers the transient __pycache__ removal race
+#     ("Directory not empty", os error 39). If BOTH attempts fail, make fails loudly -
+#     correct, because there is no safe degraded state to continue from.
+#   * drop the FLOOR from `bmk>=$(BMK_MIN)`. bmk and the project's deps resolve TOGETHER,
+#     so a project dependency that caps something bmk requires does not fail - uv simply
+#     backtracks BMK to an older release that fits, silently. That is not hypothetical:
+#     `codecov-cli` caps click<8.3.0 while bmk requires click>=8.4.2 (CVE-2026-7246), so an
+#     unpinned `bmk` resolves to 3.1.7 and the repo never sees another bmk update, with no
+#     error at all. The floor turns that into an unsatisfiable-requirements error that names
+#     the offending package. If it fires, remove the capping dependency - do not lower the
+#     floor, or you are back to a silently ancient bmk.
+BMK_MIN := 3.6.0
+
 .PHONY: _ensure_bmk
 _ensure_bmk:
-	@uv tool install --reinstall bmk --with . 2>/dev/null || uv tool install bmk --with .
+	@UV_TOOL_DIR="$(BMK_TOOL_DIR)" UV_TOOL_BIN_DIR="$(BMK_TOOL_DIR)/bin" \
+	  uv tool install --reinstall --force "bmk>=$(BMK_MIN)" --with-editable ".[dev]" \
+	  || UV_TOOL_DIR="$(BMK_TOOL_DIR)" UV_TOOL_BIN_DIR="$(BMK_TOOL_DIR)/bin" \
+	  uv tool install --reinstall --force "bmk>=$(BMK_MIN)" --with-editable ".[dev]"
 
 # ──────────────────────────────────────────────────────────────
 # Argument forwarding via MAKECMDGOALS
@@ -44,7 +99,7 @@ _ensure_bmk:
 # All targets that accept trailing arguments
 _BMK_TARGETS := test t test-human th testintegration testi ti testintegration-human tih \
 	codecov coverage cov \
-	build bld clean cln cl run \
+	build bld clean cln cl run ensure \
 	bump-major bump-minor bump-patch bump \
 	commit c push psh p release rel r ship sh \
 	dependencies deps d dependencies-update \
@@ -116,6 +171,10 @@ cln cl: _ensure_bmk
 .PHONY: run
 run: _ensure_bmk  ## Run the project CLI
 	$(BMK) run $(ARGS)
+
+.PHONY: ensure
+ensure: _ensure_bmk  ## Install missing external tools for this OS
+	$(BMK) ensure $(ARGS)
 
 # ──────────────────────────────────────────────────────────────
 # Version Bumping

@@ -3,12 +3,15 @@
 Provides a single :class:`ExitCode` enum so every ``SystemExit`` raised by a
 CLI command carries a meaningful, grep-friendly integer instead of a bare ``1``.
 
-Signal codes (130, 141, 143) are informational constants only — the application
-never raises ``SystemExit`` with these values; ``lib_cli_exit_tools`` handles
-signal-to-exit-code translation automatically.
+``SIGNAL_INT`` (130) and ``SIGNAL_TERM`` (143) are informational constants only:
+``lib_cli_exit_tools`` translates those signals to exit codes automatically, so
+the application never raises them itself. ``BROKEN_PIPE`` (141) is the exception
+and IS raised directly, by ``check`` and ``filter``, when their output pipe closes
+early (``head``, a closed pager); a signal handler cannot cover that, because
+Python surfaces it as a ``BrokenPipeError`` rather than a ``SIGPIPE``.
 
 Contents:
-    * :class:`ExitCode` — IntEnum of all exit codes used by this application.
+    * :class:`ExitCode` - IntEnum of all exit codes used by this application.
 """
 
 from __future__ import annotations
@@ -26,7 +29,7 @@ class ExitCode(IntEnum):
     * 22: EINVAL
     * 78: EX_CONFIG (sysexits.h)
     * 110: ETIMEDOUT
-    * 128+N: signal N (informational only)
+    * 128+N: signal N (informational, except BROKEN_PIPE - see the module docstring)
 
     Example:
         >>> ExitCode.SUCCESS

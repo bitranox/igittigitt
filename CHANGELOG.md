@@ -8,6 +8,41 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-07-14
+
+A maintenance release: no library or CLI behaviour changes beyond the profile
+validation fix below. The public API is unchanged.
+
+### Fixed
+- `validate_profile()` raises `ValueError` for every invalid profile again. Newer
+  `lib_layered_config` raises its own `ValidationError`, which escaped the
+  documented `ValueError` contract and slipped past callers' `except ValueError`
+  guards; the dependency's exception is now normalised back to `ValueError`.
+- Pyright strict passes against click 8.3+. The `argument` decorator's re-exported
+  signature carries an unknown `type` parameter, so it joins `option` and
+  `version_option` behind a fully-typed wrapper in `adapters/cli/typed_click`
+  instead of the rule being disabled.
+
+### Documentation
+- `ExitCode`'s docstring no longer claims the application never exits with a
+  signal code. `BROKEN_PIPE` (141) is raised directly by `check` and `filter` when
+  their output pipe closes early; only 130 and 143 are informational.
+- `INSTALL.md`: the install-from-tag example pointed at `v1.1.0`, a tag that was
+  never cut, and the closing line named the installed command twice. Both fixed.
+
+### Changed
+- `codecov-cli` is disabled as a dev dependency. It pins `click<8.3.0`, which both
+  held click at a version with a known `click.edit()` command-injection flaw and
+  silently backtracked `bmk` to 3.1.7. CI uploads coverage via
+  `codecov/codecov-action`, so nothing is lost.
+- The bmk-managed `Makefile` regenerates at 3.6.0 (from 2.9.5), and bmk now lives
+  in a per-project `.venv-bmk` tool environment rather than a shared one. This is
+  the first bmk update the repo has picked up since the `click` pin was removed.
+- The `[tool.pip-audit]` ignore list is now empty. Every entry it carried had
+  become inert (fixed upstream, or naming a package absent from the dependency
+  tree), and a stale entry silently suppresses any future advisory filed under the
+  same id.
+
 ## [2.2.0] - 2026-06-26
 
 Full rebuild of the project scaffolding on the `bitranox_template_py_cli` template

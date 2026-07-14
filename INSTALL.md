@@ -104,8 +104,8 @@ pipx install "git+https://github.com/bitranox/igittigitt"
 # optional install from local
 pipx install .
 pipx upgrade igittigitt
-# install from Git tag
-pipx install "git+https://github.com/bitranox/igittigitt@v1.1.0"
+# install from a Git tag (any released version tag)
+pipx install "git+https://github.com/bitranox/igittigitt@v2.2.0"
 ```
 
 ## From Build Artifacts
@@ -138,5 +138,4 @@ pip install "git+https://github.com/bitranox/igittigitt"
 
 - Use [fpm](https://fpm.readthedocs.io/) to repackage the Python wheel into `.deb` or `.rpm` for distribution via `apt` or `yum`/`dnf`.
 
-All methods register both the `igittigitt` and
-`igittigitt` commands on your PATH.
+All methods register the `igittigitt` command on your PATH.
