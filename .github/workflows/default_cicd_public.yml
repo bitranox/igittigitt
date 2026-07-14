@@ -261,10 +261,33 @@ jobs:
           elif "dev" in data.get("dependency-groups", {}):
               selector = ["--group", "dev"]
 
-          req = Path(tempfile.mkdtemp()) / "audit-requirements.txt"
+          tmp = Path(tempfile.mkdtemp())
+          req = tmp / "compiled-requirements.txt"
           subprocess.check_call(
               ["uv", "pip", "compile", *selector, "pyproject.toml", "-o", str(req), "--quiet"]
           )
+
+          # Drop direct URL references ("pkg @ git+https://...") before auditing.
+          # pip-audit cannot audit those (they are not on PyPI) but, given a
+          # requirements file, first tries to `git clone` each one to resolve a
+          # version - a slow, credential-dependent fetch. No public project here
+          # uses one today, yet "allow-direct-references" is enabled, so this
+          # guards the day one appears and keeps this step identical to the
+          # default_cicd_private template's.
+          audit_req = tmp / "audit-requirements.txt"
+          kept, dropped = [], []
+          for line in req.read_text(encoding="utf-8").splitlines():
+              if " @ " in line and not line.lstrip().startswith("#"):
+                  dropped.append(line.split(" @ ", 1)[0].strip())
+              else:
+                  kept.append(line)
+          audit_req.write_text("\n".join(kept) + "\n", encoding="utf-8")
+          if dropped:
+              # Never drop coverage silently: name what is not being audited here.
+              print(f"::notice::pip-audit: not auditing {len(dropped)} direct-URL dependency/ies "
+                    f"(audited in their own repo): {', '.join(sorted(dropped))}")
+
+          req = audit_req
           vulns = data.get("tool", {}).get("pip-audit", {}).get("ignore-vulns", [])
           # --no-deps: the compiled file is already a complete pinned resolution,
           # so pip-audit must audit it verbatim rather than re-resolving it.
