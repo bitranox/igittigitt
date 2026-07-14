@@ -54,7 +54,14 @@ dev = [
   "bandit>=1.9.4",
   "build>=1.5.0",
   "twine>=6.2.0",
-  "codecov-cli>=11.2.8",
+  # codecov-cli is disabled, not dropped: it requires click<8.3.0, which drags click back to
+  # 8.2.1 - the version with CVE-2026-7246 (command injection in click.edit(), fixed in 8.3.3).
+  # Worse, bmk requires click>=8.4.2, so uv cannot satisfy both and silently BACKTRACKS bmk to
+  # 3.1.7 - this repo would never receive another bmk update, with no error at all.
+  # Leaving it off costs nothing: CI uploads coverage via codecov/codecov-action, not this CLI,
+  # and "bmk codecov" resolves codecovcli from PATH and only warns when absent.
+  # Re-enable once codecov-cli relaxes its click<8.3.0 pin.
+  # "codecov-cli>=11.2.8",
   "pip-audit>=2.10.1",
   "textual>=8.2.7",
   "import-linter>=2.12",
