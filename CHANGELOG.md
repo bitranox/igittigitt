@@ -8,6 +8,14 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+### Changed
+- CI (template-managed, from `default_cicd_public`): `pip-audit` now audits this
+  project's own resolved dependency tree instead of the whole `--system`
+  environment, so runner-image packages we neither declare nor ship (`setuptools`,
+  `pip`, `wheel`) can no longer report findings against us. `actions/cache` moves
+  to v6 in the same distribution.
+- Dev dependency floor: `httpx2>=2.7.0` (was `>=2.6.0`).
+
 ## [2.2.1] - 2026-07-14
 
 A maintenance release: no library or CLI behaviour changes beyond the profile

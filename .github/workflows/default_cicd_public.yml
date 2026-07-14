@@ -169,7 +169,7 @@ jobs:
       - name: Restore ruff cache
         if: runner.environment == 'github-hosted'
         id: ruff-cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: .ruff_cache
           key: ruff-${{ runner.os }}-py${{ matrix.python }}-${{ github.sha }}
@@ -236,12 +236,39 @@ jobs:
         continue-on-error: true
         shell: python
         run: |
-          import subprocess, sys
+          import subprocess, sys, tempfile
           import rtoml
           from pathlib import Path
+
+          # Audit the project's OWN resolved dependency tree, not the ambient
+          # environment. "Install dev deps" uses --system, so the interpreter
+          # being audited is the runner image's, and that image ships packages
+          # this project neither declares nor distributes (setuptools, pip,
+          # wheel). Auditing those reported CVEs no consumer of this project is
+          # exposed to, and a scan that is permanently yellow is a scan everyone
+          # learns to ignore. Resolving pyproject.toml here keeps the result
+          # identical on every OS/python and dependent only on what we declare.
           data = rtoml.load(Path("pyproject.toml"))
+
+          # Not every project declares dev dependencies, and those that do may use
+          # either an extra or a PEP 735 group. Asking uv for one that does not
+          # exist is a hard error ("Requested extra not found"), which would leave
+          # the audit permanently broken here rather than merely noisy, so select
+          # the flag from what this project actually declares.
+          selector = []
+          if "dev" in data.get("project", {}).get("optional-dependencies", {}):
+              selector = ["--extra", "dev"]
+          elif "dev" in data.get("dependency-groups", {}):
+              selector = ["--group", "dev"]
+
+          req = Path(tempfile.mkdtemp()) / "audit-requirements.txt"
+          subprocess.check_call(
+              ["uv", "pip", "compile", *selector, "pyproject.toml", "-o", str(req), "--quiet"]
+          )
           vulns = data.get("tool", {}).get("pip-audit", {}).get("ignore-vulns", [])
-          cmd = ["pip-audit", "--skip-editable"]
+          # --no-deps: the compiled file is already a complete pinned resolution,
+          # so pip-audit must audit it verbatim rather than re-resolving it.
+          cmd = ["pip-audit", "--no-deps", "-r", str(req)]
           for v in vulns:
               cmd.extend(["--ignore-vuln", v])
           sys.exit(subprocess.call(cmd))
@@ -293,7 +320,7 @@ jobs:
 
       - name: Save ruff cache
         if: always() && runner.environment == 'github-hosted' && steps.ruff-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: .ruff_cache
           key: ruff-${{ runner.os }}-py${{ matrix.python }}-${{ github.sha }}
