@@ -52,7 +52,9 @@ dev = [
   "ruff>=0.15.21",
   "pyright[nodejs]>=1.1.411",
   "bandit>=1.9.4",
-  "build>=1.5.1",
+  # 1.5.1 was yanked upstream (unintended breaking changes), so 1.5.0 is the newest usable
+  # release; a >=1.5.1 floor has ZERO candidates and makes this extra unresolvable.
+  "build>=1.5.0",
   "twine>=6.2.0",
   # codecov-cli is disabled, not dropped: it requires click<8.3.0, which drags click back to
   # 8.2.1 - the version with CVE-2026-7246 (command injection in click.edit(), fixed in 8.3.3).
