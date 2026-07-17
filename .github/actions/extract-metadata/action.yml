@@ -29,6 +29,11 @@ outputs:
   BANDIT_SKIP_FLAG:
     description: Bandit skip flag string (e.g. "-s B101,B601") or empty
     value: ${{ steps.meta.outputs.BANDIT_SKIP_FLAG }}
+  PYTEST_MARKER_EXPR:
+    description: >-
+      Marker expression for the CI test run (e.g. "not local_only and not integration"),
+      built from tool.ci.pytest-exclude-markers
+    value: ${{ steps.meta.outputs.PYTEST_MARKER_EXPR }}
 
 runs:
   using: composite
@@ -69,6 +74,15 @@ runs:
         bandit_skips = data.get('tool', {}).get('bandit', {}).get('skips', [])
         bandit_skip_flag = f"-s {','.join(bandit_skips)}" if bandit_skips else ""
 
+        # --- [tool.ci] section ---
+        # CI always skips local_only (those tests need a dev box). A project whose
+        # suite also carries markers CI cannot satisfy - integration tests needing a
+        # container that a separate workflow starts - names them here, rather than
+        # every such repo forking this workflow to edit one -m expression.
+        ci_config = data.get('tool', {}).get('ci', {})
+        exclude_markers = ['local_only', *ci_config.get('pytest-exclude-markers', [])]
+        pytest_marker_expr = ' and '.join(f'not {m}' for m in exclude_markers)
+
         # Write to GITHUB_OUTPUT for composite action outputs
         with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
             out.write(f"PROJECT_NAME={project}\n")
@@ -79,6 +93,7 @@ runs:
             out.write(f"COV_REPORT_FILE={cov_report_file}\n")
             out.write(f"COV_FAIL_UNDER={cov_fail_under}\n")
             out.write(f"BANDIT_SKIP_FLAG={bandit_skip_flag}\n")
+            out.write(f"PYTEST_MARKER_EXPR={pytest_marker_expr}\n")
 
         # Also write to GITHUB_ENV so subsequent steps can use ${{ env.VAR }}
         with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as env:
@@ -90,3 +105,4 @@ runs:
             env.write(f"COV_REPORT_FILE={cov_report_file}\n")
             env.write(f"COV_FAIL_UNDER={cov_fail_under}\n")
             env.write(f"BANDIT_SKIP_FLAG={bandit_skip_flag}\n")
+            env.write(f"PYTEST_MARKER_EXPR={pytest_marker_expr}\n")

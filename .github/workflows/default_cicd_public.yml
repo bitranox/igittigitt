@@ -201,7 +201,7 @@ jobs:
           # and stale journal files cause "database is locked" errors.
           COVERAGE_FILE: "${{ runner.temp }}/.coverage"
         run: >-
-          pytest -m "not local_only"
+          pytest -m "${{ env.PYTEST_MARKER_EXPR }}"
           --cov=${{ env.SRC_PATH }}/${{ env.PACKAGE_MODULE }}
           --cov-report=term-missing
           --cov-report=xml:${{ env.COV_REPORT_FILE }}
