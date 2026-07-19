@@ -284,7 +284,10 @@ def _report_deployment_result(deployed_paths: list[Path], profile: str | None, s
         perm_msg = "" if set_permissions else " (permissions not set)"
         click.echo(f"\nConfiguration deployed successfully{profile_msg}{perm_msg}:")
         for path in deployed_paths:
-            click.echo(f"  ✓ {path}")
+            # ASCII marker on purpose: a non-ASCII glyph here crashes config-deploy with a
+            # UnicodeEncodeError on a legacy Windows console codepage (cp1252) even though the
+            # files were already written, so exit 1 misreports a deploy that actually succeeded.
+            click.echo(f"  + {path}")
     else:
         click.echo("\nNo files were created (all target files already exist).")
         click.echo("Use --force to overwrite existing configuration files.")
