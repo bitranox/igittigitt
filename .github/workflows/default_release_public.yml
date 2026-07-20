@@ -1,12 +1,22 @@
 name: Release
 
+# The tag push is the only release event bmk guarantees: it runs
+# `git push <remote> <tag>` unconditionally, whereas `gh release create` sits
+# behind a gh-availability check and runs with check=False, so a missing or
+# failing gh would leave nothing to publish. Listening for `release: published`
+# as well fired a second, redundant run that raced the first to the upload and
+# only ever logged "Skipping ... already exists".
 on:
-  release:
-    types: [published]
   push:
     tags:
       - 'v*'
   workflow_dispatch: {}
+
+# One publish at a time per tag, so a workflow_dispatch re-run cannot overlap
+# the run the tag push started.
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
   build:
