@@ -1,42 +1,57 @@
-"""Strictly-typed wrappers for the rich_click decorators with unknown types.
+"""Strictly-typed wrappers for rich_click's partially-typed decorators.
 
-rich_click ships ``py.typed``, but it re-exports click's ``option``,
-``argument`` and ``version_option`` decorators, whose ``type: ParamType[Unknown]``
-parameter makes pyright (strict mode) report ``reportUnknownMemberType`` at every
-call site. Wrapping the affected decorators here behind explicit, fully-known
-signatures keeps the rest of the CLI layer strict-clean without disabling the
-rule. This module is the single boundary that touches the untyped surface, so
-the only ``# pyright: ignore`` for this third-party gap lives here.
+rich_click ships ``py.typed``, but its ``option````, ``argument`` and ``version_option``
+decorators are typed with a partially-unknown return, so the strict type checker
+reports ``reportUnknownMemberType`` at every call site. click's own decorators
+are fully typed, but they default the parameter class to ``click.Option`` rather
+than rich_click's ``RichOption``, which would change help rendering.
 
-Other click members (``command``, ``group``, ``echo``, ``Context``, ``Path`` …)
+This module forwards to rich_click's decorators (so ``RichOption``/``RichArgument``
+are still used at runtime) through a typed ``Protocol``: the ``cast`` is a no-op
+at runtime, and the wrappers keep the exact same public signatures they always
+had, so no rule needs to be silenced anywhere.
+
+Other click members (``command``, ``group``, ``echo``, ``Context``, ``Path`` ...)
 type cleanly and are still used directly as ``click.X`` at call sites.
 """
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Protocol, cast
 
 import rich_click as click
 
-# Click decorators turn a command function (or another decorator's result) into
-# a wrapped callable. ``Any`` is fully known to pyright (unlike ``Unknown``), so
-# this alias is strict-clean and works both as ``@option(...)`` and as a value
-# collected into a list (see email/_common.py's shared-options pattern).
+# Click decorators turn a command function (or another decorator's result) into a
+# wrapped callable. ``Any`` is fully known to the type checker, so this alias stays
+# clean and works both as ``@option(...)`` and as a value collected into a list.
 _CommandDecorator = Callable[[Callable[..., Any]], Callable[..., Any]]
+
+
+class _RichClickDecorators(Protocol):
+    """rich_click's decorator surface, declared with complete types."""
+
+    argument: Callable[..., _CommandDecorator]
+    option: Callable[..., _CommandDecorator]
+    version_option: Callable[..., _CommandDecorator]
+
+
+# ``cast`` is type-only; at runtime these forward to rich_click's own decorators,
+# so ``RichOption``/``RichArgument`` behavior is unchanged.
+_click = cast("_RichClickDecorators", click)
 
 
 def option(*param_decls: str, **attrs: Any) -> _CommandDecorator:
     """Typed wrapper over :func:`rich_click.option`. See module docstring."""
-    return click.option(*param_decls, **attrs)  # pyright: ignore[reportUnknownMemberType]
+    return _click.option(*param_decls, **attrs)
 
 
 def argument(*param_decls: str, **attrs: Any) -> _CommandDecorator:
     """Typed wrapper over :func:`rich_click.argument`. See module docstring."""
-    return click.argument(*param_decls, **attrs)  # pyright: ignore[reportUnknownMemberType]
+    return _click.argument(*param_decls, **attrs)
 
 
 def version_option(*param_decls: str, **attrs: Any) -> _CommandDecorator:
     """Typed wrapper over :func:`rich_click.version_option`. See module docstring."""
-    return click.version_option(*param_decls, **attrs)  # pyright: ignore[reportUnknownMemberType]
+    return _click.version_option(*param_decls, **attrs)
 
 
 __all__ = ["argument", "option", "version_option"]
