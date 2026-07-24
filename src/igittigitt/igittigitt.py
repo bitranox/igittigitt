@@ -870,6 +870,7 @@ def get_match_files(git_pattern: str) -> bool:
 
 
 def create_rule_variations(
+    *,
     pattern: str,
     pattern_original: str,
     path_base_dir: pathlib.Path,

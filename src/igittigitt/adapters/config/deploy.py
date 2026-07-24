@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from lib_layered_config import deploy_config
 from lib_layered_config.examples.deploy import DeployAction
 
 from igittigitt import __init__conf__
 from igittigitt.adapters.config.loader import get_default_config_path, validate_profile
-from igittigitt.domain.enums import DeployTarget
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from pathlib import Path
+
+    from igittigitt.domain.enums import DeployTarget
 
 _DEPLOYED_ACTIONS = frozenset({DeployAction.CREATED, DeployAction.OVERWRITTEN})
 

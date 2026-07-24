@@ -17,9 +17,9 @@ from .loader import get_config, get_default_config_path
 from .overrides import apply_overrides
 
 __all__ = [
-    "get_config",
-    "get_default_config_path",
+    "apply_overrides",
     "deploy_configuration",
     "display_config",
-    "apply_overrides",
+    "get_config",
+    "get_default_config_path",
 ]

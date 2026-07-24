@@ -82,8 +82,8 @@ parser.parse_rule_files(base_dir="/home/user/project")
 parser.add_rule("*.py[cod]", base_path="/home/user/project")
 parser.add_rule("!keep.pyc", base_path="/home/user/project")
 
-parser.match("/home/user/project/main.pyc")   # True  (ignored)
-parser.match("/home/user/project/keep.pyc")   # False (re-included by the negation)
+parser.match("/home/user/project/main.pyc")  # True  (ignored)
+parser.match("/home/user/project/keep.pyc")  # False (re-included by the negation)
 ```
 
 Use it as a `shutil.copytree` filter to copy a tree without the ignored files:
@@ -105,13 +105,13 @@ directory keeps its whole subtree, and unanchored patterns are found at any dept
 import shutil, igittigitt
 
 inc = igittigitt.IncludeParser()
-inc.add_rule("*.py", base_path="src_tree")          # keep only python files...
-inc.add_rule("docs/", base_path="src_tree")         # ...and the whole docs/ subtree
+inc.add_rule("*.py", base_path="src_tree")  # keep only python files...
+inc.add_rule("docs/", base_path="src_tree")  # ...and the whole docs/ subtree
 
 # copy only the kept files (parent directories are descended into automatically)
 shutil.copytree("src_tree", "dst_tree", ignore=inc.shutil_include)
 
-inc.match("src_tree/pkg/deep.py")                   # True  (kept)
+inc.match("src_tree/pkg/deep.py")  # True  (kept)
 ```
 
 ---

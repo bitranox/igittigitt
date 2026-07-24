@@ -11,14 +11,18 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Callable
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
-from click.testing import CliRunner
 
 from igittigitt import __init__conf__
 from igittigitt.adapters.cli import cli, main
 from igittigitt.composition import build_production, build_testing
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from click.testing import CliRunner
 
 Factory = Callable[[], object]
 

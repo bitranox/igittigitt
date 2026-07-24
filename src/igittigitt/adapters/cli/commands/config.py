@@ -11,7 +11,7 @@ Contents:
 from __future__ import annotations
 
 import logging
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import lib_log_rich.runtime
 import rich_click as click
@@ -26,6 +26,9 @@ from ..constants import CLICK_CONTEXT_SETTINGS
 from ..context import CLIContext, get_cli_context
 from ..exit_codes import ExitCode
 from ..typed_click import option
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -178,6 +181,7 @@ def _parse_octal_mode(ctx: click.Context, param: click.Parameter, value: str | N
 @click.pass_context
 def cli_config_deploy(
     ctx: click.Context,
+    *,
     targets: tuple[str, ...],
     force: bool,
     profile: str | None,
@@ -218,11 +222,20 @@ def cli_config_deploy(
             "Deploying configuration",
             extra={"targets": target_values, "force": force, "profile": effective_profile},
         )
-        _execute_deploy(cli_ctx, deploy_targets, force, effective_profile, set_permissions, dir_mode, file_mode)
+        _execute_deploy(
+            cli_ctx,
+            targets=deploy_targets,
+            force=force,
+            profile=effective_profile,
+            set_permissions=set_permissions,
+            dir_mode=dir_mode,
+            file_mode=file_mode,
+        )
 
 
 def _execute_deploy(
     cli_ctx: CLIContext,
+    *,
     targets: tuple[DeployTarget, ...],
     force: bool,
     profile: str | None,

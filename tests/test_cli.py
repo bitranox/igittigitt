@@ -7,14 +7,17 @@ import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
-from click.testing import CliRunner
 
 from igittigitt import __init__conf__
 from igittigitt.adapters.cli import cli, main
 from igittigitt.adapters.cli.exit_codes import ExitCode
 from igittigitt.composition import build_production
+
+if TYPE_CHECKING:
+    from click.testing import CliRunner
 
 _SRC_DIR = str(Path(__file__).resolve().parents[1] / "src")
 

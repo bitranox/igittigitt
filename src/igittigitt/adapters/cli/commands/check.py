@@ -50,6 +50,7 @@ from ._common import (
 @click.pass_context
 def cli_check(
     ctx: click.Context,
+    *,
     base_dir: str,
     ignore_files: tuple[str, ...],
     rules: tuple[str, ...],
@@ -64,7 +65,12 @@ def cli_check(
     perf = resolve_performance(ctx)
     do_scan = scan if scan is not None else not (ignore_files or rules)
     parser = build_ignore_parser(
-        base_dir, ignore_files, rules, do_scan, default_patterns, dir_cache_max=perf.dir_cache_max
+        base_dir,
+        ignore_files=ignore_files,
+        rules=rules,
+        scan=do_scan,
+        add_default_patterns=default_patterns,
+        dir_cache_max=perf.dir_cache_max,
     )
 
     use_stdin = stdin_flag or not paths or tuple(paths) == ("-",)

@@ -1,7 +1,7 @@
-# BMK MAKEFILE 3.9.0
+# BMK MAKEFILE 3.13.0
 # do not alter this file - it might be overwritten on new versions of BMK
 # if You want to alter it, remove the first line # BMK MAKEFILE 1.0 - then it is a custom makefile and will not be overwritten
-# bmk Makefile — thin wrapper using `uv tool install` for persistent bmk
+# bmk Makefile - thin wrapper using `uv tool upgrade` for persistent bmk
 #
 # Usage:
 #   make test                        # run test suite
@@ -40,11 +40,14 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-# uv names the executable bmk.exe on Windows.
+# uv names the executable bmk.exe on Windows, and lays a tool env out like a venv, so its
+# interpreter is under Scripts/ there and bin/ everywhere else.
 ifeq ($(OS),Windows_NT)
   BMK_EXE := .exe
+  BMK_ENV_BIN := Scripts
 else
   BMK_EXE :=
+  BMK_ENV_BIN := bin
 endif
 
 # ONE bmk per machine, in uv's own tool dir - not a copy per project.
@@ -63,6 +66,12 @@ endif
 # behaviour if uv is too old to answer.
 BMK_BIN_DIR := $(shell uv tool dir --bin 2>/dev/null)
 BMK := $(if $(BMK_BIN_DIR),$(BMK_BIN_DIR)/bmk$(BMK_EXE),bmk$(BMK_EXE))
+
+# The interpreter INSIDE bmk's env, which is a different directory from the entry-point bin
+# dir above: `uv tool dir` is the tools root, `uv tool dir --bin` is where the shims go.
+# Used only by the integrity check in _ensure_bmk.
+BMK_TOOLS_DIR := $(shell uv tool dir 2>/dev/null)
+BMK_PY := $(if $(BMK_TOOLS_DIR),$(BMK_TOOLS_DIR)/bmk/$(BMK_ENV_BIN)/python$(BMK_EXE),)
 ARGS ?=
 
 # ──────────────────────────────────────────────────────────────
@@ -106,16 +115,41 @@ endif
 # ──────────────────────────────────────────────────────────────
 # Ensure bmk (and ONLY bmk) is installed, once per machine
 # ──────────────────────────────────────────────────────────────
-# This runs before EVERY target, on purpose: `--reinstall` re-resolves the `bmk` spec so
-# each make picks up a new bmk release with nothing to remember and no version marker to
-# go stale. It costs a couple of seconds; that is the price of never running against a bmk
-# that has quietly drifted.
+# This runs before EVERY target, on purpose, so a new bmk release is picked up with
+# nothing to remember and no version marker to go stale.
 #
-# `--reinstall` alone does NOT deliver that, which is why $(BMK_REFRESH) exists: uv
-# re-resolves against its CACHED package index, so a release published minutes ago is
-# invisible and you silently keep the old bmk until the cache revalidates (measured: with
-# 3.8.0 on PyPI, `uv tool install "bmk>=3.7.1"` still installed 3.7.1). Refreshing just
-# bmk's own metadata makes "picked up automatically" true immediately, for ~1s per make.
+# It UPGRADES; it does not reinstall. That distinction is the whole point. `uv tool install
+# --reinstall --force` tears the env down and rebuilds it on every single make, and that env
+# is shared by every repo on the machine - so a make in repo B was deleting the
+# site-packages out from under a bmk still RUNNING in repo A, minutes into its test suite.
+# The symptom is an ImportError deep inside bmk's OWN dependencies (a vanished
+# `pip_api._hash`, a half-written pyright typeshed) that clears by itself on a re-run, which
+# is what makes it read as a flake rather than a bug. `uv tool upgrade` leaves the
+# environment untouched when bmk is already current (measured: "Nothing to upgrade" in
+# ~0.9s, directory mtimes unchanged), so the destructive window shrinks from every make to
+# only an actual version change.
+#
+# It needs no --refresh flag, and REJECTS one (exit 2). `uv tool install` re-resolves
+# against uv's CACHED index, which is why this recipe used to carry `--refresh-package bmk`
+# (measured: with 3.8.0 on PyPI, `uv tool install "bmk>=3.7.1"` still installed 3.7.1).
+# `uv tool upgrade` revalidates `pypi.org/simple/bmk/` on EVERY run with no freshness
+# window, so a release published a minute ago is seen immediately. That also retires the
+# `UV_OFFLINE` carve-out this block used to need: uv refused `--refresh` when offline, while
+# `UV_OFFLINE=1 uv tool upgrade bmk` simply answers "Nothing to upgrade".
+#
+# The integrity check in front of it replaces a repair that used to be accidental: when
+# every make rebuilt the env, a corrupted env silently fixed itself. Upgrading does not, so
+# `python -m bmk_selfcheck` (shipped by bmk, stdlib-only, ~0.23s for ~14k files) compares
+# every installed distribution's RECORD against the filesystem and fails if a package was
+# only partially written. uv's copy fallback on a filesystem it cannot hardlink across has
+# left `pip_api._hash` and `pydantic.functional_serializers` missing exactly this way, and
+# that flavour does NOT clear on a re-run. On failure the recipe falls through to the full
+# reinstall, which does rebuild. Net cost is still lower than before: ~1.15s here against
+# ~2s of unconditional teardown.
+#
+# The check runs the interpreter directly rather than `bmk --version`: an import probe costs
+# 1.3s (more than the upgrade it guards) and would have missed the real failure anyway,
+# because bmk's startup never imports pip_api.
 #
 # NOTE what is NOT here: the project. bmk is installed on its own, so its env holds bmk's
 # toolchain and nothing else. The project's dependencies live in the project's own venv
@@ -131,11 +165,17 @@ endif
 #
 # The rest of the recipe is load-bearing. Do not:
 #
-#   * drop `--reinstall` from either attempt. `uv tool install` without it NO-OPS when the
-#     tool is already present, ignoring the available version entirely, and keeps a stale env.
+#   * turn the upgrade back into an unconditional `uv tool install --reinstall`. That is the
+#     race described above, and it is not theoretical: it has produced failing gates in
+#     unrelated repos that looked like real test failures.
+#   * drop `--reinstall` from the FALLBACK attempts. `uv tool install` without it NO-OPS
+#     when the tool is already present, so the repair path would silently repair nothing.
 #   * drop `--force`. The entry point already exists in uv's bin dir on every rebuild.
-#   * add `2>/dev/null`. A real failure must reach the terminal; a suppressed one surfaces
-#     later, somewhere unrelated.
+#   * add `2>/dev/null` to the upgrade or the installs. A real failure must reach the
+#     terminal; a suppressed one surfaces later, somewhere unrelated. (The integrity check
+#     is the one exception: its non-zero exit IS the signal, it prints its own diagnosis,
+#     and it must stay quiet about an env that is merely absent - a fresh machine has no
+#     tool env yet, and that is not an error, it is the first install.)
 #   * collapse the retry. It covers the transient __pycache__ removal race ("Directory not
 #     empty", os error 39). If BOTH attempts fail, make fails loudly - correct, because
 #     there is no safe degraded state to continue from.
@@ -143,21 +183,20 @@ endif
 #     which is now correct: with no project dependencies in it, the env is identical for
 #     all of them and there is nothing left to collide.
 #
-# BMK_MIN is kept as a floor even though nothing can cap bmk any more (that needed the
-# co-resolution this recipe no longer does). It is inert insurance and costs nothing.
-BMK_MIN := 3.9.0
+# BMK_MIN floors the FALLBACK install. The upgrade path does not consult it: uv re-resolves
+# the requirement recorded at install time, which is itself a `bmk>=...`, so it always lands
+# on the newest release and clears the floor anyway.
+BMK_MIN := 3.13.0
 
-# Refresh bmk's cached index metadata so a new release is seen the moment it exists -
-# EXCEPT when uv is in offline mode, where uv refuses the combination outright ("the
-# argument UV_OFFLINE cannot be used with --refresh") and would fail every single make
-# with an error blaming an env var the user never connected to this flag. Offline then
-# keeps working from the cache, which is exactly what an offline user wants anyway.
-BMK_REFRESH := $(if $(UV_OFFLINE),,--refresh-package bmk)
+# Absent env, missing check, or damaged env - all three mean "do not upgrade, rebuild".
+# `test -x` keeps a fresh machine quiet: there is no interpreter to run yet.
+BMK_INTACT := $(if $(BMK_PY),test -x "$(BMK_PY)" && "$(BMK_PY)" -m bmk_selfcheck,false)
 
 .PHONY: _ensure_bmk
 _ensure_bmk:
-	@uv tool install --reinstall --force $(BMK_REFRESH) "bmk>=$(BMK_MIN)" \
-	  || uv tool install --reinstall --force $(BMK_REFRESH) "bmk>=$(BMK_MIN)"
+	@$(BMK_INTACT) && uv tool upgrade bmk \
+	  || uv tool install --reinstall --force "bmk>=$(BMK_MIN)" \
+	  || uv tool install --reinstall --force "bmk>=$(BMK_MIN)"
 
 # ──────────────────────────────────────────────────────────────
 # Argument forwarding via MAKECMDGOALS
@@ -166,9 +205,9 @@ _ensure_bmk:
 # instead of: make push ARGS="fix login bug"
 
 # All targets that accept trailing arguments
-_BMK_TARGETS := test t test-human th testintegration testi ti testintegration-human tih \
+_BMK_TARGETS := test t test-all test-human th testintegration testi ti testintegration-human tih \
 	codecov coverage cov \
-	build bld clean cln cl run ensure \
+	build bld clean cln cl clean-all run ensure \
 	bump-major bump-minor bump-patch bump \
 	commit c push psh p release rel r ship sh \
 	dependencies deps d dependencies-update \
@@ -192,6 +231,10 @@ test: _ensure_bmk  ## Run test suite [alias: t]
 	$(BMK) test $(ARGS)
 t: _ensure_bmk
 	$(BMK) test $(ARGS)
+
+.PHONY: test-all
+test-all: _ensure_bmk  ## Run pytest + pyright on every declared Python version (matrix)
+	$(BMK) test-all $(ARGS)
 
 .PHONY: test-human th
 test-human: _ensure_bmk  ## Run test suite with human-readable output [alias: th]
@@ -232,6 +275,10 @@ clean: _ensure_bmk  ## Remove build artifacts and caches [aliases: cln, cl]
 	$(BMK) clean $(ARGS)
 cln cl: _ensure_bmk
 	$(BMK) clean $(ARGS)
+
+.PHONY: clean-all
+clean-all: _ensure_bmk  ## Remove build artifacts, caches AND every virtual environment (.venv*)
+	$(BMK) clean-all $(ARGS)
 
 # ──────────────────────────────────────────────────────────────
 # Run
@@ -398,7 +445,7 @@ help:  ## Show this help
 # ──────────────────────────────────────────────────────────────
 # Placed after all real target definitions so the no-op recipes
 # override them.  This prevents "make push codecov fix" from
-# executing the real codecov target — "codecov" is an argument
+# executing the real codecov target - "codecov" is an argument
 # to push, not a separate command.
 ifneq (,$(_EXTRA))
 $(_EXTRA):

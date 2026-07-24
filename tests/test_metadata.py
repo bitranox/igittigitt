@@ -20,12 +20,12 @@ def _load_pyproject() -> dict[str, Any]:
 def _get_package_dir() -> Path:
     """Locate the package directory based on pyproject.toml configuration."""
     pyproject = _load_pyproject()
-    project_table = cast(dict[str, Any], pyproject["project"])
-    tool_table = cast(dict[str, Any], pyproject.get("tool", {}))
-    hatch_table = cast(dict[str, Any], tool_table.get("hatch", {}))
-    targets_table = cast(dict[str, Any], cast(dict[str, Any], hatch_table.get("build", {})).get("targets", {}))
-    wheel_table = cast(dict[str, Any], targets_table.get("wheel", {}))
-    packages = cast(list[Any], wheel_table.get("packages", []))
+    project_table = cast("dict[str, Any]", pyproject["project"])
+    tool_table = cast("dict[str, Any]", pyproject.get("tool", {}))
+    hatch_table = cast("dict[str, Any]", tool_table.get("hatch", {}))
+    targets_table = cast("dict[str, Any]", cast("dict[str, Any]", hatch_table.get("build", {})).get("targets", {}))
+    wheel_table = cast("dict[str, Any]", targets_table.get("wheel", {}))
+    packages = cast("list[Any]", wheel_table.get("packages", []))
 
     for package_entry in packages:
         if isinstance(package_entry, str):
@@ -75,10 +75,10 @@ def test_py_typed_marker_exists() -> None:
 def test_py_typed_marker_included_in_wheel_config() -> None:
     """Verify py.typed is listed in wheel build includes."""
     pyproject = _load_pyproject()
-    tool_table = cast(dict[str, Any], pyproject.get("tool", {}))
-    hatch_table = cast(dict[str, Any], tool_table.get("hatch", {}))
-    build_table = cast(dict[str, Any], hatch_table.get("build", {}))
-    targets_table = cast(dict[str, Any], build_table.get("targets", {}))
-    wheel_table = cast(dict[str, Any], targets_table.get("wheel", {}))
-    includes = cast(list[str], wheel_table.get("include", []))
+    tool_table = cast("dict[str, Any]", pyproject.get("tool", {}))
+    hatch_table = cast("dict[str, Any]", tool_table.get("hatch", {}))
+    build_table = cast("dict[str, Any]", hatch_table.get("build", {}))
+    targets_table = cast("dict[str, Any]", build_table.get("targets", {}))
+    wheel_table = cast("dict[str, Any]", targets_table.get("wheel", {}))
+    includes = cast("list[str]", wheel_table.get("include", []))
     assert any("py.typed" in entry for entry in includes), "py.typed must be in wheel build includes"

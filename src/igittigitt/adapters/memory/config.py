@@ -8,12 +8,15 @@ no lib_layered_config.
 from __future__ import annotations
 
 import tempfile
-from collections.abc import Sequence
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from lib_layered_config import Config
 
 from ...domain.enums import DeployTarget, OutputFormat
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 def get_config_in_memory(

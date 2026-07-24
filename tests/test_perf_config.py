@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
-from click.testing import CliRunner
 
 from igittigitt.adapters.cli import cli
 from igittigitt.adapters.config.performance import PerformanceSettings, load_performance_settings
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from click.testing import CliRunner
 
 Factory = Callable[[], object]
 

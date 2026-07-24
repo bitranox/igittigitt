@@ -30,19 +30,14 @@ __all__ = [
     "CLICK_CONTEXT_SETTINGS",
     "TRACEBACK_SUMMARY_LIMIT",
     "TRACEBACK_VERBOSE_LIMIT",
-    # Exit codes
-    "ExitCode",
     # Context + traceback management
     "CLIContext",
+    # Exit codes
+    "ExitCode",
     "TracebackState",
     "apply_traceback_preferences",
-    "get_cli_context",
-    "restore_traceback_state",
-    "snapshot_traceback_state",
-    "store_cli_context",
     # Root command + entry
     "cli",
-    "main",
     # Commands
     "cli_check",
     "cli_config",
@@ -51,4 +46,9 @@ __all__ = [
     "cli_filter",
     "cli_info",
     "cli_logdemo",
+    "get_cli_context",
+    "main",
+    "restore_traceback_state",
+    "snapshot_traceback_state",
+    "store_cli_context",
 ]

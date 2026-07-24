@@ -10,8 +10,7 @@ from __future__ import annotations
 import os
 import pathlib
 import sys
-from collections.abc import Iterator
-from typing import TextIO
+from typing import TYPE_CHECKING, TextIO
 
 import rich_click as click
 
@@ -24,6 +23,9 @@ from igittigitt.igittigitt import IgnoreParser, IncludeParser
 
 from ..context import get_cli_context
 
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
 _CHUNK = 65536
 #: Upper bound for a single input token (path) while no separator has been seen.
 #: Guards the bounded-memory guarantee against a separator-less giant stream.
@@ -32,6 +34,7 @@ _MAX_TOKEN_BYTES = 1 << 20  # 1 MiB
 
 def build_ignore_parser(
     base_dir: str,
+    *,
     ignore_files: tuple[str, ...],
     rules: tuple[str, ...],
     scan: bool,

@@ -5,7 +5,10 @@ Provides a no-op logging initializer that satisfies the InitLogging protocol.
 
 from __future__ import annotations
 
-from lib_layered_config import Config
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from lib_layered_config import Config
 
 
 def init_logging_in_memory(config: Config) -> None:

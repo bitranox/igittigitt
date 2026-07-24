@@ -9,8 +9,8 @@ stays memory-bounded for very large inputs:
 
 from __future__ import annotations
 
-import pathlib
 import sys
+from typing import TYPE_CHECKING
 
 import rich_click as click
 
@@ -26,6 +26,9 @@ from ._common import (
     resolve_performance,
     silence_broken_pipe,
 )
+
+if TYPE_CHECKING:
+    import pathlib
 
 
 @click.command("filter", context_settings=CLICK_CONTEXT_SETTINGS)
@@ -59,6 +62,7 @@ from ._common import (
 @click.pass_context
 def cli_filter(
     ctx: click.Context,
+    *,
     base_dir: str,
     rule_files: tuple[str, ...],
     rules: tuple[str, ...],
@@ -78,7 +82,12 @@ def cli_filter(
     else:
         do_scan = scan if scan is not None else not (rule_files or rules)
         ignore_parser = build_ignore_parser(
-            base_dir, rule_files, rules, do_scan, default_patterns, dir_cache_max=perf.dir_cache_max
+            base_dir,
+            ignore_files=rule_files,
+            rules=rules,
+            scan=do_scan,
+            add_default_patterns=default_patterns,
+            dir_cache_max=perf.dir_cache_max,
         )
 
         def survives(path: pathlib.Path) -> bool:

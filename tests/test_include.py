@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import shutil
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 import igittigitt
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _build_tree(root: Path) -> None:

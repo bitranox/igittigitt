@@ -16,11 +16,14 @@ from __future__ import annotations
 import random
 import shutil
 import subprocess
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 import igittigitt
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 pytestmark = pytest.mark.skipif(shutil.which("git") is None, reason="git not installed")
 

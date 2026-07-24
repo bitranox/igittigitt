@@ -9,10 +9,11 @@ Contents:
 
 from __future__ import annotations
 
+import sys
 import threading
-from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING
 
+import click
 import lib_cli_exit_tools
 import lib_log_rich.runtime
 
@@ -24,8 +25,11 @@ from .context import (
     restore_traceback_state,
     snapshot_traceback_state,
 )
+from .root import cli
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+
     from igittigitt.composition import AppServices
 
 
@@ -39,12 +43,6 @@ def _run_cli(argv: Sequence[str] | None, *, services_factory: Callable[[], AppSe
     Returns:
         Exit code produced by the command.
     """
-    import sys
-
-    import click
-
-    from .root import cli
-
     # Use Click's native invocation with obj parameter since lib_cli_exit_tools.run_cli
     # doesn't support passing obj. We replicate its behavior while adding obj support.
     args = list(argv) if argv is not None else sys.argv[1:]

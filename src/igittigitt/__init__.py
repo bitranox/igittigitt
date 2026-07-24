@@ -19,7 +19,7 @@ from .igittigitt import IgnoreParser, IncludeParser
 __all__ = [
     "IgnoreParser",
     "IncludeParser",
+    "__init__conf__",
     "conf_igittigitt",
     "print_info",
-    "__init__conf__",
 ]

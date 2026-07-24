@@ -8,6 +8,8 @@ Contents:
 
 from __future__ import annotations
 
+import lib_log_rich
+import lib_log_rich.runtime
 import rich_click as click
 
 from ..constants import CLICK_CONTEXT_SETTINGS
@@ -19,9 +21,6 @@ from ..typed_click import option
 @click.pass_context
 def cli_logdemo(ctx: click.Context, theme: str) -> None:
     """Run a logging demonstration to preview log output."""
-    import lib_log_rich
-    import lib_log_rich.runtime
-
     # logdemo() requires uninitialized runtime
     if lib_log_rich.runtime.is_initialised():
         lib_log_rich.runtime.shutdown()

@@ -6,12 +6,15 @@ import contextlib
 import os
 import re
 import tempfile
-from collections.abc import Callable, Iterator
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import lib_cli_exit_tools
 import pytest
 from click.testing import CliRunner
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
 
 _COVERAGE_BASENAME = ".coverage.igittigitt"
 

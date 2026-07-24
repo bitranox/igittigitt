@@ -188,11 +188,11 @@ def _cache_clear() -> None:
 # when the decorated function is later cast to a Protocol type. The type: ignore
 # is necessary since we're dynamically adding an attribute to a function object.
 _get_config.cache_clear = _cache_clear  # type: ignore[attr-defined]
-get_config: ConfigLoaderProtocol = cast(ConfigLoaderProtocol, _get_config)
+get_config: ConfigLoaderProtocol = cast("ConfigLoaderProtocol", _get_config)
 
 
 __all__ = [
-    "validate_profile",
     "get_config",
     "get_default_config_path",
+    "validate_profile",
 ]

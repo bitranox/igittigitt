@@ -56,7 +56,8 @@ def build_production() -> AppServices:
 
 def build_testing() -> AppServices:
     """Wire in-memory adapters into an AppServices container (no filesystem I/O)."""
-    from ..adapters.memory import (
+    # Deferred: test-only in-memory adapters must not load in the production import graph.
+    from ..adapters.memory import (  # noqa: PLC0415 - lazy load, test-only adapters
         deploy_configuration_in_memory,
         display_config_in_memory,
         get_config_in_memory,
@@ -74,15 +75,15 @@ def build_testing() -> AppServices:
 
 
 __all__ = [
-    # Configuration
-    "get_config",
-    "get_default_config_path",
-    "deploy_configuration",
-    "display_config",
-    # Logging
-    "init_logging",
     # Composition
     "AppServices",
     "build_production",
     "build_testing",
+    "deploy_configuration",
+    "display_config",
+    # Configuration
+    "get_config",
+    "get_default_config_path",
+    # Logging
+    "init_logging",
 ]

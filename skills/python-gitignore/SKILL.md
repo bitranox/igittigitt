@@ -69,8 +69,8 @@ parser.parse_rule_files(base_dir="/path/to/project")
 parser.add_rule("*.py[cod]", base_path="/path/to/project")
 parser.add_rule("!keep.pyc", base_path="/path/to/project")
 
-parser.match("/path/to/project/main.pyc")   # True  -> ignored
-parser.match("/path/to/project/keep.pyc")   # False -> re-included by the negation
+parser.match("/path/to/project/main.pyc")  # True  -> ignored
+parser.match("/path/to/project/keep.pyc")  # False -> re-included by the negation
 ```
 
 Key methods on `IgnoreParser`:
@@ -103,11 +103,11 @@ inversion prunes the parent directories and never reaches the file.
 import shutil, igittigitt
 
 inc = igittigitt.IncludeParser()
-inc.add_rule("*.py", base_path="src_tree")     # keep python files anywhere
-inc.add_rule("docs/", base_path="src_tree")    # keep the whole docs/ subtree
+inc.add_rule("*.py", base_path="src_tree")  # keep python files anywhere
+inc.add_rule("docs/", base_path="src_tree")  # keep the whole docs/ subtree
 
 shutil.copytree("src_tree", "dst_tree", ignore=inc.shutil_include)
-inc.match("src_tree/pkg/deep.py")              # True -> kept
+inc.match("src_tree/pkg/deep.py")  # True -> kept
 ```
 
 ## CLI usage

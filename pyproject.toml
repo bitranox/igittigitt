@@ -1,6 +1,6 @@
 [project]
 name = "igittigitt"
-version = "2.2.1"
+version = "2.2.2"
 description = "A spec-compliant .gitignore parser and path filter, 100% git-compatible, with an include/whitelist mode and a streaming, memory-bounded CLI"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -8,9 +8,9 @@ dependencies = [
     "wcmatch>=11.0",
     "pydantic>=2.13.4",
     "rich-click>=1.9.8",
-    "lib_cli_exit_tools>=2.3.2",
-    "lib_log_rich>=6.3.5",
-    "lib_layered_config>=5.6.0",
+    "lib_cli_exit_tools>=2.3.3",
+    "lib_log_rich>=6.3.6",
+    "lib_layered_config>=5.6.1",
     "orjson>=3.11.9",
 ]
 license = { text = "MIT" }
@@ -48,8 +48,8 @@ Issues = "https://github.com/bitranox/igittigitt/issues"
 dev = [
   "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
-  "hypothesis>=6.156.6",
-  "ruff>=0.15.21",
+  "hypothesis>=6.161.2",
+  "ruff>=0.16.0",
   "pyright[nodejs]>=1.1.411",
   "bandit>=1.9.4",
   # 1.5.1 was yanked upstream (unintended breaking changes), so 1.5.0 is the newest usable
@@ -68,14 +68,14 @@ dev = [
   "textual>=8.2.8",
   "import-linter>=2.13",
   "rtoml>=0.13.0",
-  "httpx2>=2.7.0",
+  "httpx2>=2.9.1",
   # Transitive CVE pins
   "jaraco-context>=6.1.2",       # CVE-2025-23949
   "python-multipart>=0.0.32",    # CVE-2025-24486
   "wheel>=0.47.0",               # CVE-2025-24049
   "pynacl>=1.6.2",               # CVE-2025-69277
   "urllib3>=2.7.0",              # CVE-2025-66471, CVE-2025-66418
-  "virtualenv>=21.6.1",         # CVE-2025-22702
+  "virtualenv>=21.7.0",         # CVE-2025-22702
 ]
 
 [project.scripts]
@@ -124,25 +124,21 @@ select = [
   "PLR",         # pylint refactor
   "PLW",         # pylint warnings
 ]
-ignore = [
-  "RUF002",    # ambiguous unicode characters in docstrings (en-dash) - typography choice
-  "RUF022",    # unsorted __all__ - kept in logical grouping order
-  "PLC0415",   # deferred imports inside functions - circular import prevention
-  "TC001",     # stdlib imports at runtime - needed, not just for type hints
-  "TC002",     # third-party imports at runtime - needed, not just for type hints
-  "TC003",     # stdlib imports - same as TC001
-  "TC006",     # cast() type expressions - existing code uses unquoted
-]
-
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.ruff.lint.flake8-type-checking]
+# Pydantic resolves field annotations at runtime, so its base class must stay
+# importable outside TYPE_CHECKING (else the TC00x autofix breaks model classes).
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
 
 [tool.ruff.lint.per-file-ignores]
 # Notebooks: unused imports are often intentional for side effects; print() is
 # how a notebook shows output.
 "notebooks/*.ipynb" = ["F401", "T201"]
-# Tests: assert is standard, test fixtures have passwords, magic values are clearer inline, temp paths are fine
-"tests/*.py" = ["T20", "S101", "S105", "S106", "S108", "S311", "S603", "S607", "PLW1510", "FBT001", "FBT003", "PLR0913", "PLR2004", "C408", "PERF401"]
+# Tests: assert is standard, test fixtures have passwords, magic values are clearer inline, temp paths are
+# fine, deferred imports exercise import/cache behaviour or avoid module-level fixture pollution
+"tests/*.py" = ["T20", "S101", "S105", "S106", "S108", "S311", "S603", "S607", "PLW1510", "FBT001", "FBT003", "PLR0913", "PLR2004", "C408", "PERF401", "PLC0415"]
 # CLI: Click framework injects boolean params; commands have many options; the
 # error boundary naturally has several return branches (PLR0911).
 "src/igittigitt/adapters/cli/**/*.py" = ["FBT001", "FBT002", "PLR0913", "PLR0911"]

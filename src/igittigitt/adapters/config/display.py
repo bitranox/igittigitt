@@ -7,13 +7,17 @@ configuration display.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import lib_log_rich.runtime
 from lib_layered_config import Config
 from lib_layered_config import OutputFormat as LibOutputFormat
 from lib_layered_config import display_config as _lib_display
-from rich.console import Console
 
 from igittigitt.domain.enums import OutputFormat
+
+if TYPE_CHECKING:
+    from rich.console import Console
 
 
 def display_config(
