@@ -1,4 +1,4 @@
-# BMK MAKEFILE 3.13.0
+# BMK MAKEFILE 3.14.0
 # do not alter this file - it might be overwritten on new versions of BMK
 # if You want to alter it, remove the first line # BMK MAKEFILE 1.0 - then it is a custom makefile and will not be overwritten
 # bmk Makefile - thin wrapper using `uv tool upgrade` for persistent bmk
@@ -186,7 +186,7 @@ endif
 # BMK_MIN floors the FALLBACK install. The upgrade path does not consult it: uv re-resolves
 # the requirement recorded at install time, which is itself a `bmk>=...`, so it always lands
 # on the newest release and clears the floor anyway.
-BMK_MIN := 3.13.0
+BMK_MIN := 3.14.0
 
 # Absent env, missing check, or damaged env - all three mean "do not upgrade, rebuild".
 # `test -x` keeps a fresh machine quiet: there is no interpreter to run yet.

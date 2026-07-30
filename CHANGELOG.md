@@ -8,6 +8,15 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+## [2.2.3] 2026-07-30 18:08:55
+
+### Changed
+
+- **The shipped skill's plugin version now tracks the package version.** bmk 3.14.0 raises
+  `.claude-plugin/plugin.json` to the package version on bump, push and release, and never lowers
+  it. An install re-fetches a skill only when that version changes, so the two numbers drifting
+  apart meant a skill edit could ship to nobody. No functional change to the library.
+
 ## [2.2.2] 2026-07-24 18:15:33
 
 ### Fixed
