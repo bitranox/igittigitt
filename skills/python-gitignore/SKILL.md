@@ -161,8 +161,10 @@ bundled defaults -> app -> host -> user -> .env -> environment variables -> --se
 ```
 
 - Inspect the effective config (with provenance): `igittigitt config`
-- Deploy editable copies into the standard directories: `igittigitt config-deploy`
-- Generate example files to copy: `igittigitt config-generate-examples`
+- Deploy editable copies into the standard directories: `igittigitt config-deploy --target user`
+  (`--target` is required: `app`, `host` or `user`)
+- Generate example files to copy: `igittigitt config-generate-examples --destination ./examples`
+  (`--destination` is required)
 
 ### Adding your own config (config.d drop-in)
 
