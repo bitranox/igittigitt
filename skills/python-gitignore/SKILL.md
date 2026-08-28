@@ -189,6 +189,10 @@ set ad hoc with `igittigitt --set performance.dir_cache_max=32768 ...`, in a `.e
 
 ### `[performance]` knobs (speed/memory only - never change matching)
 
+Defaults below are igittigitt 2.2.3 (checked 2026-08-28). Confirm the one you care about
+against your own install rather than this table:
+`python -c "import igittigitt, inspect; print(inspect.signature(igittigitt.IgnoreParser.__init__))"`
+
 | Key                 | Default   | Meaning                                                                                                               |
 |---------------------|-----------|-----------------------------------------------------------------------------------------------------------------------|
 | `dir_cache_max`     | `8192`    | Per-parser directory-decision LRU capacity (`0` disables). Main speed-up on trees; memory `O(this)`, not `O(#files)`. |
