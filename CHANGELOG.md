@@ -27,6 +27,12 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   which it reads from the terminal and from GITHUB_ACTIONS once at import, so a usage-error box
   no longer wraps a message the test looks for on a narrow terminal.
 
+### Changed
+
+- **`click` is a declared dependency.** The package imports it directly (`adapters/cli/main.py`)
+  but only had it through rich-click. A new test fails when a module imported at run time is
+  missing from `[project].dependencies`.
+
 ## [2.2.3] 2026-07-30 18:08:55
 
 ### Changed
