@@ -20,6 +20,12 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   `main()` returns the code of a `ctx.exit(N)` under `standalone_mode=False`; `main()` discarded
   that return value and reported 0, and its `except click.exceptions.Exit` branch could never
   fire. It now returns the code (exit code change: such a command exits N instead of 0).
+- **Conflicting `--set` overrides are a usage error.** `--set a.b=1 --set a.b.c=2` escaped as a
+  `TypeError` from the override nesting, and the other order, `--set a.b.c=2 --set a.b=1`,
+  silently dropped the earlier override. All `--set` values are now checked together and a key
+  that one gives a value and another puts a key under is refused, naming both (exit code change:
+  exit 2 for every command, where the second order used to exit 0). The same key given twice still
+  takes the last value; `a.b` and `a.bc` stay siblings.
 - **Tests no longer depend on test order, colour or terminal width.** An autouse fixture shuts the
   logging runtime down and restores the root logger's handlers, level and propagate flag after
   every test (production `init_logging` attaches a stdlib handler and raises the root level, which
