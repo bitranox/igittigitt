@@ -16,6 +16,10 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   `RuntimeError('lib_log_rich.init() must be called before using the logging API')` under
   `build_testing()`. The in-memory initializer now starts a quiet runtime: journald, event log,
   Graylog and the queue off, console at ERROR, and no `.env` loading.
+- **`main()` keeps the exit code of a command that exits through click's context.** rich_click's
+  `main()` returns the code of a `ctx.exit(N)` under `standalone_mode=False`; `main()` discarded
+  that return value and reported 0, and its `except click.exceptions.Exit` branch could never
+  fire. It now returns the code (exit code change: such a command exits N instead of 0).
 - **Tests no longer depend on test order, colour or terminal width.** An autouse fixture shuts the
   logging runtime down and restores the root logger's handlers, level and propagate flag after
   every test (production `init_logging` attaches a stdlib handler and raises the root level, which
