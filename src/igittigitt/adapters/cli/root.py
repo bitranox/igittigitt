@@ -14,36 +14,14 @@ from typing import TYPE_CHECKING
 import rich_click as click
 
 from igittigitt import __init__conf__
-from igittigitt.adapters.config.overrides import apply_overrides
 
+from .config_load import load_config
 from .constants import CLICK_CONTEXT_SETTINGS
 from .context import apply_traceback_preferences, store_cli_context
 from .typed_click import option, version_option
 
 if TYPE_CHECKING:
-    from lib_layered_config import Config
-
     from igittigitt.composition import AppServices
-
-
-def _apply_cli_overrides(config: Config, set_overrides: tuple[str, ...]) -> Config:
-    """Apply ``--set`` overrides to a Config, raising UsageError on failure.
-
-    Args:
-        config: Base configuration loaded from file/env layers.
-        set_overrides: Raw ``SECTION.KEY=VALUE`` strings from the CLI.
-
-    Returns:
-        New Config with overrides applied, or original if none given.
-
-    Raises:
-        click.UsageError: If any override string is malformed or targets
-            a non-dict section/intermediate.
-    """
-    try:
-        return apply_overrides(config, set_overrides)
-    except ValueError as exc:
-        raise click.UsageError(str(exc)) from exc
 
 
 @click.group(
@@ -94,7 +72,9 @@ def cli(
     """Root command storing global flags and syncing shared traceback state.
 
     Loads configuration once with the profile, applies any ``--set`` overrides,
-    and stores it in the Click context for all subcommands to access. Mirrors
+    and stores it in the Click context for all subcommands to access. A load
+    failure is stored rather than raised, so a command that does not read the
+    configuration still runs. Mirrors
     the traceback flag into ``lib_cli_exit_tools.config`` so downstream helpers
     observe the preference.
 
@@ -110,8 +90,8 @@ def cli(
     if not callable(ctx.obj):
         raise RuntimeError("Services factory not provided. This is a bug.")
     services: AppServices = ctx.obj()  # type: ignore[assignment]  # Click's obj is typed as Any
-    config = services.get_config(profile=profile, dotenv_path=env_file)
-    config = _apply_cli_overrides(config, set_overrides)
+    # A load failure is recorded, not reported here: see config_load for who reports it.
+    config, config_error = load_config(services, profile=profile, env_file=env_file, set_overrides=set_overrides)
     services.init_logging(config)
     store_cli_context(
         ctx,
@@ -120,6 +100,8 @@ def cli(
         services=services,
         profile=profile,
         set_overrides=set_overrides,
+        env_file=env_file,
+        config_error=config_error,
     )
     apply_traceback_preferences(traceback)
 

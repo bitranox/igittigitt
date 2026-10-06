@@ -24,6 +24,13 @@ value can be overridden per run with `--set SECTION.KEY=VALUE`.
 
 Value coercion: `"true"`/`"false"` -> bool, `"null"`/`"none"` -> None, numeric strings -> int/float.
 
+A configuration file that cannot be loaded (invalid TOML, not UTF-8, unreadable) does not stop
+every command. `config`, `check` and `filter`, which read the configuration, refuse with exit 78
+and one line naming the file (`--traceback` adds the loader's traceback); `info`,
+`config-deploy` (the command that replaces the broken file), `config-generate-examples` and
+`--help` still run. A malformed or conflicting `--set` and an invalid `--profile` name are usage
+errors (exit 2) for every command, whether or not the configuration loads.
+
 ## Settings reference
 
 The authoritative, fully-commented reference is the set of bundled TOML files (one key per
@@ -82,7 +89,9 @@ Hint: to deploy anyway, pass both --dir-mode and --file-mode (the built-in modes
 ```
 
 A refused `--set` of the section names `(source: override)` and has no hint, since no option gets
-past it: fix or drop the `--set`.
+past it: fix or drop the `--set`. The files a deploy writes are never read for it, so
+`config-deploy --force` replaces a destination that carries a bad value, or does not parse at all,
+without further options.
 
 ### `[lib_log_rich]`
 

@@ -26,6 +26,20 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   that one gives a value and another puts a key under is refused, naming both (exit code change:
   exit 2 for every command, where the second order used to exit 0). The same key given twice still
   takes the last value; `a.b` and `a.bc` stay siblings.
+- **A broken configuration file no longer disables every command.** The root group loaded the
+  configuration before any subcommand option was parsed and let a load error escape, so a
+  malformed `config.toml`, a `.env` that is not UTF-8 or an unreadable file made every command,
+  `--help` and `config-deploy` (the command that replaces the file) exit 1. The root now records
+  the failure (`adapters/cli/config_load.py`): `config`, `check` and `filter`, which read the
+  configuration, refuse with exit 78 and one line naming the file, after the loader's traceback
+  with `--traceback`; `info`, `config-deploy`, `config-generate-examples` and help still run
+  (exit code change: 78 or 0 where every command exited 1). What the command line gets wrong is
+  checked before loading, so a broken file cannot hide it: a malformed or conflicting `--set` or
+  an invalid `--profile` name is a usage error (exit 2) for every command, where an invalid
+  root `--profile` used to exit 22 and an invalid `config-deploy --profile` failed inside the
+  deploy with exit 1. Any other exception from the loader is a bug and propagates as one.
+  `config --profile X` reloads with the root's `--env-file` instead of searching for another
+  `.env`.
 - **`config-deploy` leaves every permission decision to lib_layered_config.** The command read
   `[lib_layered_config.default_permissions]` from its own merged configuration, so a `.env` found
   upward from the working directory decided or blocked a system deploy, and of the whole section

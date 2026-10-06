@@ -538,6 +538,17 @@ def test_a_dotenv_enabled_false_does_not_turn_permission_setting_off(tmp_path: P
     assert _user_modes(tmp_path) == (0o700, 0o600)
 
 
+@_LINUX_ONLY
+def test_a_malformed_dotenv_does_not_block_the_deploy(tmp_path: Path) -> None:
+    (tmp_path / ".env").write_text("NOT A KEY VALUE LINE\n", encoding="utf-8")
+    assert _show_layered_config(tmp_path).returncode == 78  # liveness: the command's own read fails on it
+
+    completed = _deploy_user(tmp_path)
+
+    assert completed.returncode == 0, _stderr(completed)
+    assert (_user_dir(tmp_path) / "config.toml").is_file()
+
+
 def _force_deploy_user(tmp_path: Path) -> subprocess.CompletedProcess[bytes]:
     return subprocess.run(
         [sys.executable, "-m", "igittigitt", "config-deploy", "--target", "user", "--force"],
@@ -546,6 +557,19 @@ def _force_deploy_user(tmp_path: Path) -> subprocess.CompletedProcess[bytes]:
         cwd=tmp_path,
         env=_env(tmp_path),
     )
+
+
+@_LINUX_ONLY
+def test_a_broken_deployed_user_file_is_replaced_by_a_forced_deploy(tmp_path: Path) -> None:
+    """The destination a deploy overwrites is outside its read, so its breakage cannot block it."""
+    _user_dir(tmp_path).mkdir()
+    (_user_dir(tmp_path) / "config.toml").write_text("[broken\n", encoding="utf-8")
+    assert _show_layered_config(tmp_path).returncode == 78  # liveness: the file is broken
+
+    completed = _force_deploy_user(tmp_path)
+
+    assert completed.returncode == 0, _stderr(completed)
+    assert (_user_dir(tmp_path) / "config.toml").read_bytes() == get_default_config_path().read_bytes()
 
 
 @_LINUX_ONLY

@@ -122,6 +122,19 @@ def production_factory() -> Callable[[], object]:
 
 
 @pytest.fixture
+def clear_config_cache() -> Iterator[None]:
+    """Clear the ``get_config`` lru_cache before the test, so it loads from the environment it sets.
+
+    Only before, not after: a test that monkeypatches the loader would leave nothing with a
+    ``cache_clear`` to call.
+    """
+    from igittigitt.adapters.config import loader as config_mod
+
+    config_mod.get_config.cache_clear()
+    yield
+
+
+@pytest.fixture
 def strip_ansi() -> Callable[[str], str]:
     """Return a helper that strips ANSI escape sequences from a string."""
 

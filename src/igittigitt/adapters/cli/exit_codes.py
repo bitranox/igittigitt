@@ -1,7 +1,9 @@
 """POSIX-conventional exit codes for CLI error paths.
 
 Provides a single :class:`ExitCode` enum so every ``SystemExit`` raised by a
-CLI command carries a meaningful, grep-friendly integer instead of a bare ``1``.
+CLI command, and every ``ctx.exit()`` call (``config_load.require_config``),
+carries a meaningful, grep-friendly integer instead of a bare ``1``.
+``adapters/cli/main.py`` turns either into the process exit code.
 
 ``SIGNAL_INT`` (130) and ``SIGNAL_TERM`` (143) are informational constants only:
 ``lib_cli_exit_tools`` translates those signals to exit codes automatically, so
