@@ -56,6 +56,15 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   `Error:` line per problem naming the key, never the value, and `info`, `config-deploy` and help
   run (exit code change). The `InitLogging` port takes `dotenv_path`, and the root types the
   services factory instead of ignoring the type.
+- **A refused `LOG_*` variable no longer disables every command (exit code change).** A value
+  lib_log_rich refuses in a `LOG_*` variable, set in the environment or in the `.env` logging reads
+  (`LOG_CONSOLE_LEVEL=bogus`), made every command but a bare `--help` exit 22 with lib_log_rich's
+  `ValueError`. Logging now falls back to its defaults with every `LOG_*` variable hidden for that
+  start (and put back afterwards), so only `config`, `check` and `filter` exit 78, and `info`,
+  `config-deploy` and the help of every command run with exit 0. The 78 carries lib_log_rich's own
+  message, `Error: lib_log_rich: Unknown log level: 'bogus'`, which may name neither the variable
+  nor where it was set. A refused `[lib_log_rich]` value still leaves every valid `LOG_*` variable
+  in force for the fallback: only a refused variable hides them.
 - **`config-deploy` leaves every permission decision to lib_layered_config.** The command read
   `[lib_layered_config.default_permissions]` from its own merged configuration, so a `.env` found
   upward from the working directory decided or blocked a system deploy, and of the whole section

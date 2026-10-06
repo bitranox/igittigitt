@@ -120,7 +120,12 @@ lib_log_rich also reads its own `LOG_*` variables. Logging takes those, and only
 up to the project root, never replacing a variable that is already set. No other `.env` line
 reaches the process environment.
 
-A `[lib_log_rich]` value lib_log_rich refuses (a wrong type, or its own range checks such as
-`queue_maxsize = 0`) is a configuration failure like a broken file: logging starts with its
-defaults, `config`, `check` and `filter` exit 78 with one `Error:` line per refused key (never
-its value), and the other commands run.
+A `[lib_log_rich]` value or `LOG_*` variable lib_log_rich refuses (a wrong type, its own range
+checks such as `queue_maxsize = 0`, or an unknown level such as `LOG_CONSOLE_LEVEL=bogus`) is a
+configuration failure like a broken file: logging starts with its defaults, `config`, `check` and
+`filter` exit 78, and the other commands run. A refused `[lib_log_rich]` value leaves every valid
+`LOG_*` variable in force; only a refused `LOG_*` variable makes logging start without all of them.
+A problem the type check of the section finds gets one `Error:` line naming the key, never its
+value; a value only lib_log_rich itself refuses is reported in lib_log_rich's own words
+(`Error: lib_log_rich: Unknown log level: 'bogus'`), which may name neither the setting nor where
+it was set.

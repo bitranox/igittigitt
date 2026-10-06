@@ -14,7 +14,8 @@ configuration.
 
 Contents:
     * :func:`load_config` - load with profile, ``.env`` and ``--set``, or say why not.
-    * :func:`start_logging` - start logging; an invalid ``[lib_log_rich]`` is a load failure.
+    * :func:`start_logging` - start logging; an invalid ``[lib_log_rich]`` value or ``LOG_*``
+      variable is a load failure.
     * :func:`require_config` - the configuration, or exit 78 naming the failure.
     * :func:`report_load_failure` - the one-line report, after the traceback on request.
     * :func:`echo_load_traceback` - the loader's traceback alone, for a caller with its own line.
@@ -95,9 +96,13 @@ def start_logging(
 ) -> tuple[Config, Exception | None]:
     """Start logging with ``config``; a logging section it refuses is recorded like a load failure.
 
-    An invalid ``[lib_log_rich]`` value would otherwise stop every command, ``config-deploy``
-    (which replaces the file holding it) included. Logging then starts with its defaults, and
-    the commands that read the configuration refuse with exit 78 naming the key.
+    An invalid ``[lib_log_rich]`` value or ``LOG_*`` variable would otherwise stop every
+    command, ``config-deploy`` (which replaces the file holding it) included. ``init_logging``
+    then starts logging with its defaults (and no ``LOG_*`` variable, if one of them is the
+    refused setting) before it raises, and the commands that read the configuration refuse with
+    exit 78 and the refusal: ``lib_log_rich.<key>: <reason>`` for a problem the section's type
+    check finds, lib_log_rich's own message for a value only lib_log_rich refuses, whether it
+    came from the section or a ``LOG_*`` variable (``lib_log_rich: Unknown log level: 'bogus'``).
 
     Args:
         services: The composition's services; only ``init_logging`` is used.
@@ -112,7 +117,6 @@ def start_logging(
     try:
         services.init_logging(config, dotenv_path=env_file)
     except InvalidLoggingConfigError as exc:
-        services.init_logging(Config({}, {}), dotenv_path=env_file)
         return Config({}, {}), config_error or exc
     return config, config_error
 

@@ -5,8 +5,10 @@ eliminating duplication between module entry (__main__.py) and console script
 (cli.py) while ensuring initialization happens exactly once.
 
 Contents:
-    * :func:`init_logging` - idempotent logging initialization with layered config.
-    * :class:`InvalidLoggingConfigError` - the ``[lib_log_rich]`` section cannot configure logging.
+    * :func:`init_logging` - idempotent logging initialization from the ``[lib_log_rich]``
+      section and the ``LOG_*`` variables (the environment, plus the ``LOG_*`` lines of a ``.env``).
+    * :class:`InvalidLoggingConfigError` - the ``[lib_log_rich]`` section or a ``LOG_*`` variable
+      cannot configure logging.
     * :func:`_build_runtime_config` - constructs RuntimeConfig from layered sources.
 
 System Role:
@@ -18,17 +20,19 @@ System Role:
 from __future__ import annotations
 
 import os
+from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 import lib_log_rich.runtime
 from dotenv import dotenv_values
+from lib_layered_config import Config
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from igittigitt import __init__conf__
 
 if TYPE_CHECKING:
-    from lib_layered_config import Config
+    from collections.abc import Generator
 
 
 class LoggingConfigModel(BaseModel):
@@ -93,18 +97,20 @@ def _build_runtime_config(config: Config) -> lib_log_rich.runtime.RuntimeConfig:
 class InvalidLoggingConfigError(Exception):
     """lib_log_rich refuses its settings: one ``<key>: <reason>`` in :attr:`problems` per problem.
 
-    The settings are the ``[lib_log_rich]`` section plus any ``LOG_*`` variable. A problem names
-    the key and never repeats the refused value.
+    The settings are the ``[lib_log_rich]`` section plus any ``LOG_*`` variable. A problem the
+    type check of the section finds names the key and never repeats the refused value. A value
+    only lib_log_rich itself refuses, such as an unknown level in ``LOG_CONSOLE_LEVEL`` or in the
+    section's ``console_level``, is reported in lib_log_rich's own words (``lib_log_rich: Unknown
+    log level: 'bogus'``), which may name neither the setting nor where it was set.
 
     Attributes:
         problems: One line per refused setting.
 
     Example:
-        >>> from lib_layered_config import Config
         >>> try:
-        ...     init_logging(Config({"lib_log_rich": {"rate_limit": "100:60"}}, {}))
-        ... except InvalidLoggingConfigError as exc:
-        ...     print(exc)
+        ...     _build_runtime_config(Config({"lib_log_rich": {"rate_limit": "100:60"}}, {}))
+        ... except ValidationError as exc:
+        ...     print(InvalidLoggingConfigError(_problems(exc)))
         lib_log_rich.rate_limit: Input should be a valid tuple
     """
 
@@ -125,8 +131,8 @@ def _problems(error: BaseException) -> list[str]:
     while cause is not None and not isinstance(cause, ValidationError):
         cause = cause.__cause__ or cause.__context__
     if cause is None:
-        # Not a pydantic error (e.g. an unknown level name): its own first line, which names
-        # the setting.
+        # Not a pydantic error (e.g. an unknown level name in a LOG_* variable): lib_log_rich's
+        # own first line, which may name neither the variable nor where it was set.
         return [f"lib_log_rich: {str(error).splitlines()[0]}"]
     return [f"lib_log_rich.{'.'.join(str(part) for part in item['loc'])}: {item['msg']}" for item in cause.errors()]
 
@@ -181,6 +187,41 @@ def _load_log_variables(dotenv_path: str | None) -> None:
             os.environ.setdefault(name, value)
 
 
+@contextmanager
+def _log_variables_hidden() -> Generator[None]:
+    """Remove every ``LOG_*`` variable from the environment for the block, then put each back.
+
+    Example:
+        >>> os.environ["LOG_HIDDEN_PROBE"] = "x"
+        >>> with _log_variables_hidden():
+        ...     "LOG_HIDDEN_PROBE" in os.environ
+        False
+        >>> os.environ.pop("LOG_HIDDEN_PROBE")
+        'x'
+    """
+    names = [name for name in os.environ if name.startswith(_LOG_VARIABLE_PREFIX)]
+    hidden = {name: os.environ.pop(name) for name in names}
+    try:
+        yield
+    finally:
+        os.environ.update(hidden)
+
+
+def _start_default_logging() -> None:
+    """Start lib_log_rich with the package defaults; without the ``LOG_*`` variables only if needed.
+
+    lib_log_rich reads the ``LOG_*`` variables from the environment on every init. When the
+    refused setting came from the ``[lib_log_rich]`` section, the defaults start with them and
+    a valid ``LOG_CONSOLE_LEVEL`` still applies. When one of them is the refused setting, that
+    start is refused again, and only then do the defaults start with every ``LOG_*`` hidden.
+    """
+    try:
+        lib_log_rich.runtime.init(_build_runtime_config(Config({}, {})))
+    except ValueError:  # pydantic's ValidationError is a ValueError
+        with _log_variables_hidden():
+            lib_log_rich.runtime.init(_build_runtime_config(Config({}, {})))
+
+
 def init_logging(config: Config, *, dotenv_path: str | None = None) -> None:
     """Initialize lib_log_rich runtime with the provided configuration.
 
@@ -198,8 +239,12 @@ def init_logging(config: Config, *, dotenv_path: str | None = None) -> None:
             to use the nearest ``.env`` from the working directory up to the project root.
 
     Raises:
-        InvalidLoggingConfigError: The ``[lib_log_rich]`` section holds a value lib_log_rich
-            refuses; logging is not started.
+        InvalidLoggingConfigError: The ``[lib_log_rich]`` section or a ``LOG_*`` variable holds
+            a value lib_log_rich refuses. Logging is started anyway, with the package defaults
+            and the ``LOG_*`` variables (every one of them ignored if the defaults are refused
+            with them too), so the caller can record the failure and run the commands that do
+            not read the configuration. Only the first call can raise: logging is running after
+            it, so a later call returns at once, also with the same refused configuration.
 
     Side Effects:
         Copies the ``LOG_*`` lines of that ``.env`` into the process environment on first
@@ -225,9 +270,11 @@ def init_logging(config: Config, *, dotenv_path: str | None = None) -> None:
     _load_log_variables(dotenv_path)
     try:
         lib_log_rich.runtime.init(_build_runtime_config(config))
-    except (ValidationError, ValueError) as exc:
+    except ValueError as exc:  # pydantic's ValidationError is a ValueError
         # The type check of the section and lib_log_rich's own range checks (which also see the
         # LOG_* variables) both refuse here; neither has started the runtime.
+        _start_default_logging()
+        lib_log_rich.runtime.attach_std_logging()
         raise InvalidLoggingConfigError(_problems(exc)) from exc
     lib_log_rich.runtime.attach_std_logging()
 
