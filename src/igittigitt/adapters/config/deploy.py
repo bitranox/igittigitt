@@ -11,7 +11,7 @@ from igittigitt import __init__conf__
 from igittigitt.adapters.config.loader import get_default_config_path, validate_profile
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
     from pathlib import Path
 
     from igittigitt.domain.enums import DeployTarget
@@ -24,9 +24,10 @@ def deploy_configuration(
     targets: Sequence[DeployTarget],
     force: bool = False,
     profile: str | None = None,
-    set_permissions: bool = True,
+    set_permissions: bool | None = None,
     dir_mode: int | None = None,
     file_mode: int | None = None,
+    permission_overrides: Mapping[str, object] | None = None,
 ) -> list[Path]:
     r"""Deploy default configuration to specified target layers.
 
@@ -45,13 +46,21 @@ def deploy_configuration(
         profile: Optional profile name for environment isolation. When specified,
             configuration is deployed to profile-specific subdirectories
             (e.g., ~/.config/slug/profile/<name>/config.toml).
-        set_permissions: If True (default), set Unix file permissions on created
-            files and directories. Uses 755/644 for app/host layers (world-readable)
-            and 700/600 for user layer (private). If False, use system umask.
-        dir_mode: Override directory permission mode (octal integer, e.g., 0o750).
-            When specified, overrides default directory permissions for all targets.
-        file_mode: Override file permission mode (octal integer, e.g., 0o640).
-            When specified, overrides default file permissions for all targets.
+        set_permissions: True sets Unix modes on the files and directories written, False
+            leaves them to the umask, None (default) lets lib_layered_config follow the
+            configured ``[lib_layered_config.default_permissions].enabled`` (on when unset).
+            Each mode not given explicitly comes from that section for the target's layer,
+            else the built-in one (755/644 for app/host, 700/600 for user). lib_layered_config
+            reads the section itself, from the bundled defaults, the app, host and user files
+            this call does not write, and the environment - never from ``.env``.
+        dir_mode: Directory mode for every target (octal integer, e.g., 0o750), overriding
+            the configured and built-in ones.
+        file_mode: File mode for every target (octal integer, e.g., 0o640), overriding
+            the configured and built-in ones.
+        permission_overrides: Runtime values for keys of
+            ``[lib_layered_config.default_permissions]`` by setting name
+            (``{"user_file": "0o640"}``), laid over lib_layered_config's own read of the
+            section and validated like configured values.
 
     Returns:
         List of paths where configuration files were created or would be created.
@@ -60,6 +69,9 @@ def deploy_configuration(
     Raises:
         PermissionError: When deploying to app/host without sufficient privileges.
         ValueError: When invalid target names are provided.
+        DeployModeError: A mode is unsafe, or one was given with ``set_permissions=False``.
+        DeployPermissionsError: The permission settings cannot be read or are invalid, or a
+            ``permission_overrides`` value is refused; nothing has been written.
 
     Side Effects:
         Creates configuration files in platform-specific directories:
@@ -102,6 +114,7 @@ def deploy_configuration(
         set_permissions=set_permissions,
         dir_mode=dir_mode,
         file_mode=file_mode,
+        permission_overrides=permission_overrides,
     )
 
     # Extract paths where files were actually created or overwritten

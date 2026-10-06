@@ -50,6 +50,40 @@ igittigitt --set performance.dir_cache_max=32768 filter -C repo
 IGITTIGITT___PERFORMANCE__MAX_TOKEN_BYTES=4096 igittigitt check -C repo --stdin < paths
 ```
 
+### `[lib_layered_config.default_permissions]`
+
+The Unix modes `config-deploy` gives the directories and files it writes (POSIX only), per layer:
+`app_directory`/`app_file`, `host_directory`/`host_file`, `user_directory`/`user_file`, and
+`enabled`. Built-in modes are 755/644 for app and host, 700/600 for user.
+
+`config-deploy` decides none of this itself: it passes its options and any `--set` of this
+section to lib_layered_config, which applies each target's own layer modes. The library reads the
+section from the bundled defaults, the configuration files this deploy does not overwrite and the
+environment, with the `--set` values laid over them. It never reads `.env` for it (neither one
+found from the working directory nor an explicit `--env-file`), so a `.env` can neither change a
+deployed mode nor block a deploy. `--dir-mode`/`--file-mode` override the configured modes for
+every target. Without `--permissions`/`--no-permissions`, `enabled` decides; `enabled = false`
+behaves like `--no-permissions`, and `--permissions` sets the modes anyway. `--no-permissions`
+cannot be combined with a mode option (exit 2).
+
+A mode is a plain octal STRING (`"0o750"`, `"750"`) inside 0..0o7777, never setuid/setgid/sticky,
+group or world write, an execute bit on a file, or less than owner rwx (directory) / rw (file).
+A bare integer is refused because TOML, the environment and `--set` all read `400` as the DECIMAL
+number 400, which is `0o620`. Quote it in TOML (`user_file = "640"`); in an environment variable
+or `--set` use the `0o` prefix (`0o640`). `enabled` must be a real boolean; `"no"`, `"off"`, `0`
+or `1` are refused. An unknown key is refused rather than ignored. `--dir-mode`/`--file-mode`
+follow the same rules and are refused as a usage error (exit 2). Any refused setting stops
+`config-deploy` before it writes anything, with exit 78, one line per problem naming the key and
+where it was set, and a hint, for example:
+
+```text
+Error: lib_layered_config.default_permissions.user_file: a bare integer is read as decimal (400 = 0o620); write the mode as an octal string: "0o640" (quoted) in a file, 0o640 in the environment or a runtime override (such as an application's --set) (source: env)
+Hint: to deploy anyway, pass both --dir-mode and --file-mode (the built-in modes are 700 and 600 for user, 755 and 644 for app and host); --no-permissions also deploys, but leaves every mode to the umask, which can make a user file that holds secrets readable by other accounts.
+```
+
+A refused `--set` of the section names `(source: override)` and has no hint, since no option gets
+past it: fix or drop the `--set`.
+
 ### `[lib_log_rich]`
 
 Logging configuration (console level/theme, journald/eventlog/Graylog backends, queueing,

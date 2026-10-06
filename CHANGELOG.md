@@ -26,6 +26,18 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   that one gives a value and another puts a key under is refused, naming both (exit code change:
   exit 2 for every command, where the second order used to exit 0). The same key given twice still
   takes the last value; `a.b` and `a.bc` stay siblings.
+- **`config-deploy` leaves every permission decision to lib_layered_config.** The command read
+  `[lib_layered_config.default_permissions]` from its own merged configuration, so a `.env` found
+  upward from the working directory decided or blocked a system deploy, and of the whole section
+  only `enabled` was ever used: the configured per-layer modes never reached a deploy, and a
+  section that was not a table crashed with `AttributeError`. It now passes its options and any
+  `--set` of that section to `deploy_config` unchanged; the library reads the section from the
+  bundled defaults, the files the deploy does not overwrite and the environment, never from
+  `.env`, and applies each target's own layer modes. A refused setting exits 78 with one `Error:`
+  line per problem naming the key and its source, plus a hint in the CLI's spelling when both mode
+  options would get past it (exit code change: 78 where an invalid section used to exit 1 or
+  deploy). "Deployed configuration" is logged after the deploy, and the report says
+  "(permissions not set)" only for an explicit `--no-permissions`.
 - **Tests no longer depend on test order, colour or terminal width.** An autouse fixture shuts the
   logging runtime down and restores the root logger's handlers, level and propagate flag after
   every test (production `init_logging` attaches a stdlib handler and raises the root level, which
@@ -35,9 +47,31 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ### Changed
 
+- **Requires lib_layered_config 7.0.1**, whose `deploy_config` reads and validates the permission
+  section itself. An unquoted `.env` value now converts like the environment layer, so
+  `ENABLED=false` arrives as the boolean `false`.
+- **`--no-permissions` together with `--dir-mode` or `--file-mode` is a usage error** (exit 2):
+  a mode cannot be applied while permission setting is off.
 - **`click` is a declared dependency.** The package imports it directly (`adapters/cli/main.py`)
   but only had it through rich-click. A new test fails when a module imported at run time is
   missing from `[project].dependencies`.
+
+### Removed
+
+- `adapters.config.permissions` (`PermissionDefaults`, `parse_mode`, `get_permission_defaults`,
+  `get_modes_for_target`): lib_layered_config reads and validates the section now. `parse_mode`
+  silently fell back to the default on a malformed value, and `get_modes_for_target` had no
+  production caller, which is why the configured modes never took effect.
+
+### Security
+
+- **`config-deploy` refuses unsafe and malformed modes.** `--dir-mode -1` passed the unbounded
+  octal parser and reached the deploy as mode -1, and `--dir-mode 777` or `--file-mode 666` were
+  applied as given. `--dir-mode`/`--file-mode` and the configured modes are now parsed by
+  lib_layered_config's `DeployMode`: only a plain octal literal inside 0..0o7777 is accepted, and
+  setuid/setgid/sticky, group or world write, an execute bit on a file and a mode that takes away
+  the owner's access are refused (exit 2 for an option, 78 for a configured value). A bare integer
+  in the configuration is refused because it is read as decimal (`400` is `0o620`).
 
 ## [2.2.3] 2026-07-30 18:08:55
 
