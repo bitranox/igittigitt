@@ -8,6 +8,21 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+### Fixed
+
+- **`build_testing()` can run a command.** Every CLI command except `check` and `filter` binds job
+  context onto the process-global lib_log_rich runtime, but the testing composition's
+  `init_logging` was a no-op, so `info`, `config` and the deploy commands raised
+  `RuntimeError('lib_log_rich.init() must be called before using the logging API')` under
+  `build_testing()`. The in-memory initializer now starts a quiet runtime: journald, event log,
+  Graylog and the queue off, console at ERROR, and no `.env` loading.
+- **Tests no longer depend on test order, colour or terminal width.** An autouse fixture shuts the
+  logging runtime down and restores the root logger's handlers, level and propagate flag after
+  every test (production `init_logging` attaches a stdlib handler and raises the root level, which
+  `runtime.shutdown()` does not undo). A second one pins rich-click's colour and width globals,
+  which it reads from the terminal and from GITHUB_ACTIONS once at import, so a usage-error box
+  no longer wraps a message the test looks for on a narrow terminal.
+
 ## [2.2.3] 2026-07-30 18:08:55
 
 ### Changed
