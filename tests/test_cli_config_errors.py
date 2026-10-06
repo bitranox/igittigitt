@@ -59,8 +59,8 @@ RUNS_WITHOUT_CONFIG: dict[str, list[str]] = {
     "config-deploy": ["config-deploy", "--target", "user"],
     "info": ["info"],
 }
-#: Covered by their own tests below: one writes into a directory, one replaces the logging
-#: runtime.
+#: Covered by their own tests below (``test_config_generate_examples_still_runs`` and
+#: ``test_logdemo_still_runs``): one writes into a directory, one replaces the logging runtime.
 OTHER = ("config-generate-examples", "logdemo")
 
 
@@ -202,6 +202,16 @@ def test_config_generate_examples_still_runs(cli_runner: CliRunner, tmp_path: Pa
     result = cli_runner.invoke(cli, args, obj=_failing_config(ConfigError(BROKEN_TOML)))
 
     assert result.exit_code == 0, result.output
+
+
+@pytest.mark.os_agnostic
+def test_logdemo_still_runs(cli_runner: CliRunner) -> None:
+    """``logdemo`` previews lib_log_rich's own output; it never reads the configuration."""
+    result = cli_runner.invoke(cli, ["logdemo"], obj=_failing_config(ConfigError(BROKEN_TOML)))
+
+    assert result.exit_code == 0, result.output
+    assert "Log demo completed" in result.stdout
+    assert "Error:" not in result.stderr
 
 
 @pytest.mark.os_agnostic
