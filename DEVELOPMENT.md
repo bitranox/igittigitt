@@ -95,7 +95,7 @@ make menu
 
 ## Running Integration Tests
 
-Some tests require external resources (SMTP servers, databases) and are excluded from the default test run. These are marked with `@pytest.mark.local_only`.
+Some tests require external resources and are excluded from the default test run. These are marked with `@pytest.mark.local_only`.
 
 ### Quick Reference
 
@@ -104,39 +104,6 @@ Some tests require external resources (SMTP servers, databases) and are excluded
 | `make test` | All tests EXCEPT `local_only` (default for CI) |
 | `make test-slow` | ONLY `local_only` integration tests |
 | `pytest tests/` | ALL tests (no marker filter) |
-
-### Email Integration Tests
-
-To run email tests that actually send messages:
-
-1. **Create a `.env` file** in the project root with your SMTP settings:
-
-```bash
-# .env (copy from .env.example)
-EMAIL__SMTP_HOSTS=smtp.example.com:587
-EMAIL__FROM_ADDRESS=sender@example.com
-EMAIL__RECIPIENTS=recipient@example.com
-EMAIL__SMTP_USER=your_username
-EMAIL__SMTP_PASSWORD=your_password
-```
-
-   Alternatively, use `--env-file` to point at an existing `.env` file:
-
-```bash
-igittigitt --env-file /path/to/my/.env send-notification --subject "Test" --message "Hello"
-```
-
-2. **Run the integration tests**:
-
-```bash
-make test-slow
-```
-
-3. **Or run specific email tests**:
-
-```bash
-pytest tests/test_cli_email_smtp.py -v
-```
 
 ### Adding New Integration Tests
 
