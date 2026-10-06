@@ -109,3 +109,13 @@ scrubbing, payload limits). Each key is documented inline in `90-logging.toml`. 
 igittigitt --set lib_log_rich.console_level=DEBUG info
 IGITTIGITT___LIB_LOG_RICH__CONSOLE_LEVEL=DEBUG igittigitt info
 ```
+
+lib_log_rich also reads its own `LOG_*` variables. Logging takes those, and only those, from a
+`.env`: from `--env-file` when given, otherwise from the nearest `.env` from the working directory
+up to the project root, never replacing a variable that is already set. No other `.env` line
+reaches the process environment.
+
+A `[lib_log_rich]` value lib_log_rich refuses (a wrong type, or its own range checks such as
+`queue_maxsize = 0`) is a configuration failure like a broken file: logging starts with its
+defaults, `config`, `check` and `filter` exit 78 with one `Error:` line per refused key (never
+its value), and the other commands run.

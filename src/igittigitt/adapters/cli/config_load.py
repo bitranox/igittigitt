@@ -14,6 +14,7 @@ configuration.
 
 Contents:
     * :func:`load_config` - load with profile, ``.env`` and ``--set``, or say why not.
+    * :func:`start_logging` - start logging; an invalid ``[lib_log_rich]`` is a load failure.
     * :func:`require_config` - the configuration, or exit 78 naming the failure.
     * :func:`report_load_failure` - the one-line report, after the traceback on request.
     * :func:`echo_load_traceback` - the loader's traceback alone, for a caller with its own line.
@@ -29,6 +30,7 @@ from lib_layered_config import Config, ConfigError
 
 from igittigitt.adapters.config.loader import validate_profile
 from igittigitt.adapters.config.overrides import apply_overrides, nest_overrides
+from igittigitt.adapters.logging.setup import InvalidLoggingConfigError
 
 from .exit_codes import ExitCode
 
@@ -88,6 +90,33 @@ def load_config(
     return apply_overrides(config, set_overrides), None
 
 
+def start_logging(
+    services: AppServices, config: Config, config_error: Exception | None, *, env_file: str | None
+) -> tuple[Config, Exception | None]:
+    """Start logging with ``config``; a logging section it refuses is recorded like a load failure.
+
+    An invalid ``[lib_log_rich]`` value would otherwise stop every command, ``config-deploy``
+    (which replaces the file holding it) included. Logging then starts with its defaults, and
+    the commands that read the configuration refuse with exit 78 naming the key.
+
+    Args:
+        services: The composition's services; only ``init_logging`` is used.
+        config: The configuration :func:`load_config` returned.
+        config_error: The failure :func:`load_config` returned, or None.
+        env_file: The ``--env-file`` path, or None; logging reads its ``LOG_*`` lines from it.
+
+    Returns:
+        ``config`` and ``config_error`` unchanged, or an empty configuration and the logging
+        failure when no earlier failure was recorded.
+    """
+    try:
+        services.init_logging(config, dotenv_path=env_file)
+    except InvalidLoggingConfigError as exc:
+        services.init_logging(Config({}, {}), dotenv_path=env_file)
+        return Config({}, {}), config_error or exc
+    return config, config_error
+
+
 def echo_load_traceback(error: Exception, *, show_traceback: bool) -> None:
     """Write the loader's chained traceback to stderr when ``--traceback`` was given.
 
@@ -103,14 +132,16 @@ def echo_load_traceback(error: Exception, *, show_traceback: bool) -> None:
 
 
 def report_load_failure(error: Exception, *, show_traceback: bool) -> None:
-    """Write why the configuration did not load: one line, after the traceback on request.
+    """Write why the configuration did not load: one line per problem, after the traceback on request.
 
     Args:
         error: The exception :func:`load_config` returned.
         show_traceback: Whether ``--traceback`` was given.
     """
     echo_load_traceback(error, show_traceback=show_traceback)
-    click.echo(f"Error: {error}", err=True)
+    problems = error.problems if isinstance(error, InvalidLoggingConfigError) else [str(error)]
+    for problem in problems:
+        click.echo(f"Error: {problem}", err=True)
 
 
 def require_config(ctx: click.Context, cli_ctx: CLIContext) -> Config:
@@ -133,4 +164,4 @@ def require_config(ctx: click.Context, cli_ctx: CLIContext) -> Config:
     return cli_ctx.config
 
 
-__all__ = ["echo_load_traceback", "load_config", "report_load_failure", "require_config"]
+__all__ = ["echo_load_traceback", "load_config", "report_load_failure", "require_config", "start_logging"]

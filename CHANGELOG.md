@@ -40,6 +40,22 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   deploy with exit 1. Any other exception from the loader is a bug and propagates as one.
   `config --profile X` reloads with the root's `--env-file` instead of searching for another
   `.env`.
+- **Logging takes only `LOG_*` lines from a `.env`.** `init_logging` called lib_log_rich's
+  `enable_dotenv()`, which copied every line of the nearest `.env` into the process environment,
+  so a later configuration load (`config --profile`, the deploy's permission read) took an
+  app-prefixed `.env` line for the environment layer: a prefixed `default_permissions` line in the
+  working directory's `.env` refused `config-deploy`, and a prefixed `[performance]` value showed
+  up in `config --profile`. Logging now copies only `LOG_*` lines, never over a variable that is
+  already set, from `--env-file` when given, otherwise from the nearest `.env` up to the project
+  root, without `chdir` and passing over unreadable directories; a `.env` that is not UTF-8 no
+  longer stops logging.
+- **An invalid `[lib_log_rich]` value is a configuration failure, not a crash of every command.**
+  A value lib_log_rich refuses (a wrong type, or its own range checks such as `queue_maxsize = 0`)
+  stopped every command with exit 22 and pydantic's multi-line report. It is now recorded like a load
+  failure: logging starts with its defaults, `config`, `check` and `filter` exit 78 with one
+  `Error:` line per problem naming the key, never the value, and `info`, `config-deploy` and help
+  run (exit code change). The `InitLogging` port takes `dotenv_path`, and the root types the
+  services factory instead of ignoring the type.
 - **`config-deploy` leaves every permission decision to lib_layered_config.** The command read
   `[lib_layered_config.default_permissions]` from its own merged configuration, so a `.env` found
   upward from the working directory decided or blocked a system deploy, and of the whole section
@@ -66,6 +82,8 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   `ENABLED=false` arrives as the boolean `false`.
 - **`--no-permissions` together with `--dir-mode` or `--file-mode` is a usage error** (exit 2):
   a mode cannot be applied while permission setting is off.
+- **`python-dotenv` is a declared dependency** (logging reads the `LOG_*` lines of a `.env` with
+  it), and lib_log_rich is required at 6.3.9, the version the logging refusal is tested against.
 - **`click` is a declared dependency.** The package imports it directly (`adapters/cli/main.py`)
   but only had it through rich-click. A new test fails when a module imported at run time is
   missing from `[project].dependencies`.

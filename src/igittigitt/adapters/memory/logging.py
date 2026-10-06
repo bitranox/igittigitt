@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from lib_layered_config import Config
 
 
-def init_logging_in_memory(config: Config) -> None:
+def init_logging_in_memory(config: Config, *, dotenv_path: str | None = None) -> None:
     """Start a quiet lib_log_rich runtime for tests, unless one is already running.
 
     Every CLI command binds job context onto the process-global runtime
@@ -34,6 +34,7 @@ def init_logging_in_memory(config: Config) -> None:
     Args:
         config: Layered configuration object. Unused: the test runtime is fixed, and the
             parameter exists to satisfy the ``InitLogging`` protocol.
+        dotenv_path: Unused for the same reason: no ``.env`` is read.
 
     Example:
         >>> from lib_layered_config import Config
