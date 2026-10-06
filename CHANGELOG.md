@@ -68,6 +68,12 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   options would get past it (exit code change: 78 where an invalid section used to exit 1 or
   deploy). "Deployed configuration" is logged after the deploy, and the report says
   "(permissions not set)" only for an explicit `--no-permissions`.
+- **The documented `.env` and environment syntax for lists and tables works.** `.env.example`,
+  `90-logging.toml` and `CONFIG.md` showed comma-separated `LEVEL=style` and `field=regex` pairs
+  for `console_styles` and `scrub_patterns` and `host:port` / `100:60` strings for
+  `graylog_endpoint` and `rate_limit`; each arrives as ONE string and is refused. They now show
+  a JSON array or object (unquoted in `.env`, shell-quoted in the environment) or one key per entry
+  (`LIB_LOG_RICH__SCRUB_PATTERNS__API_KEY=.+`), and say how an unquoted value is converted.
 - **Tests no longer depend on test order, colour or terminal width.** An autouse fixture shuts the
   logging runtime down and restores the root logger's handlers, level and propagate flag after
   every test (production `init_logging` attaches a stdlib handler and raises the root level, which

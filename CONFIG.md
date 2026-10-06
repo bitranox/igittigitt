@@ -22,7 +22,12 @@ bundled defaults -> app -> host -> user -> .env file -> environment variables ->
 and environment variables (`IGITTIGITT___SECTION__KEY=value`) override the files. A single
 value can be overridden per run with `--set SECTION.KEY=VALUE`.
 
-Value coercion: `"true"`/`"false"` -> bool, `"null"`/`"none"` -> None, numeric strings -> int/float.
+Value coercion (in `.env` and the environment alike): an unquoted `true`/`false` -> bool,
+`null`/`none` -> None, a number -> int/float only when it converts back to the same text (`007`
+stays text), and a JSON array or object is parsed. Quote a `.env` value to keep it as text. A
+list or table is that JSON written unquoted in `.env` (quoted for the shell in the environment),
+or one key per entry (`LIB_LOG_RICH__SCRUB_PATTERNS__API_KEY=.+`); a comma-separated value is ONE
+string, not a list.
 
 A configuration file that cannot be loaded (invalid TOML, not UTF-8, unreadable) does not stop
 every command. `config`, `check` and `filter`, which read the configuration, refuse with exit 78
@@ -98,12 +103,12 @@ without further options.
 Logging configuration (console level/theme, journald/eventlog/Graylog backends, queueing,
 scrubbing, payload limits). Each key is documented inline in `90-logging.toml`. Common ones:
 
-| Key                                   | Example               | Meaning                                |
-|---------------------------------------|-----------------------|----------------------------------------|
-| `console_level`                       | `DEBUG`               | Minimum level shown on the console.    |
-| `console_theme`                       | `dark`                | Console colour theme.                  |
-| `enable_journald`                     | `true`                | Also emit to systemd-journald (Linux). |
-| `enable_graylog` / `graylog_endpoint` | `true` / `host:12201` | Ship logs to Graylog (GELF).           |
+| Key                                   | Example                    | Meaning                                |
+|---------------------------------------|----------------------------|----------------------------------------|
+| `console_level`                       | `DEBUG`                    | Minimum level shown on the console.    |
+| `console_theme`                       | `dark`                     | Console colour theme.                  |
+| `enable_journald`                     | `true`                     | Also emit to systemd-journald (Linux). |
+| `enable_graylog` / `graylog_endpoint` | `true` / `["host", 12201]` | Ship logs to Graylog (GELF).           |
 
 ```bash
 igittigitt --set lib_log_rich.console_level=DEBUG info
