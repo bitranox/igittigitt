@@ -1,4 +1,4 @@
-# BMK MAKEFILE 3.14.0
+# BMK MAKEFILE 3.18.0
 # do not alter this file - it might be overwritten on new versions of BMK
 # if You want to alter it, remove the first line # BMK MAKEFILE 1.0 - then it is a custom makefile and will not be overwritten
 # bmk Makefile - thin wrapper using `uv tool upgrade` for persistent bmk
@@ -186,16 +186,50 @@ endif
 # BMK_MIN floors the FALLBACK install. The upgrade path does not consult it: uv re-resolves
 # the requirement recorded at install time, which is itself a `bmk>=...`, so it always lands
 # on the newest release and clears the floor anyway.
-BMK_MIN := 3.14.0
+BMK_MIN := 3.18.0
 
 # Absent env, missing check, or damaged env - all three mean "do not upgrade, rebuild".
 # `test -x` keeps a fresh machine quiet: there is no interpreter to run yet.
 BMK_INTACT := $(if $(BMK_PY),test -x "$(BMK_PY)" && "$(BMK_PY)" -m bmk_selfcheck,false)
 
+# The env this recipe mutates is shared by EVERY repo on the machine, so the mutation has to
+# wait for the bmk processes running out of it. Every bmk started from that env holds a
+# SHARED lock on <uv tool dir>/.bmk-tool.lock for its whole lifetime; these wrappers take
+# the same lock EXCLUSIVE for the length of the upgrade. Without it, a make here deleted the
+# site-packages out from under a bmk minutes into a test suite in an UNRELATED repo, and it
+# surfaced as an ImportError inside bmk's OWN dependencies that cleared on a re-run - so it
+# read as a flake rather than as the environment vanishing mid-gate.
+#
+# `bmk_toollock` is a second stdlib-only TOP-LEVEL module bmk ships, run on the tool env's
+# own interpreter. That is not circular: a uv tool env's bin/python is a SYMLINK to a base
+# interpreter OUTSIDE the tool dir, so the stdlib the guard runs on is not part of the tree
+# uv is about to replace, and the guard is read and compiled before uv is ever spawned.
+#
+# NOT uv's own <uv tool dir>/.lock, which uv does honour: `uv tool upgrade` and `uv tool
+# list` block on it too (measured), and the upgrade runs before every target - so a
+# gate-lifetime shared lock there would make every make on the machine, and every unrelated
+# `uv tool install`, wait for the longest-running gate.
+#
+# $(wildcard) rather than a shell test: on a machine with no tool env yet these expand to
+# NOTHING and the install runs bare, which is exactly what a first install needs.
+#
+# The bounded wait is load-bearing in both directions. An unbounded one would serialise
+# every repo's make behind the longest gate on the machine. A SKIPPED upgrade costs nothing
+# (the next make picks it up), so the upgrade skips. The REPAIR may not skip: proceeding
+# would leave a damaged env in place, so it fails and drops through to the retry.
+#
+# The LAST attempt is deliberately NEVER guarded, and a test pins that. The guard lives
+# inside the env being repaired, so on the path where that env is absent or broken the guard
+# may be broken too; an unguarded last resort is what stops a defective guard from making
+# `make` unrunnable in every repo at once. If bmk_toollock ever falls out of the wheel, every
+# make everywhere drops to a full reinstall - there is a packaging test for exactly that.
+BMK_LOCK := $(if $(wildcard $(BMK_PY)),"$(BMK_PY)" -m bmk_toollock --exclusive --timeout 10 --on-timeout skip --,)
+BMK_LOCK_REPAIR := $(if $(wildcard $(BMK_PY)),"$(BMK_PY)" -m bmk_toollock --exclusive --timeout 60 --on-timeout fail --,)
+
 .PHONY: _ensure_bmk
 _ensure_bmk:
-	@$(BMK_INTACT) && uv tool upgrade bmk \
-	  || uv tool install --reinstall --force "bmk>=$(BMK_MIN)" \
+	@$(BMK_INTACT) && $(BMK_LOCK) uv tool upgrade bmk \
+	  || $(BMK_LOCK_REPAIR) uv tool install --reinstall --force "bmk>=$(BMK_MIN)" \
 	  || uv tool install --reinstall --force "bmk>=$(BMK_MIN)"
 
 # ──────────────────────────────────────────────────────────────

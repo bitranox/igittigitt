@@ -8,6 +8,8 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+## [2.2.4] 2026-10-08 10:19:56
+
 ### Fixed
 
 - **`build_testing()` can run a command.** Every CLI command except `check` and `filter` binds job
