@@ -21,6 +21,7 @@ from igittigitt.adapters.config.performance import (
 )
 from igittigitt.igittigitt import IgnoreParser, IncludeParser
 
+from ..config_load import require_config
 from ..context import get_cli_context
 
 if TYPE_CHECKING:
@@ -138,8 +139,11 @@ def emit(value: str, *, zero: bool, out: TextIO) -> None:
 
 def resolve_performance(ctx: click.Context) -> PerformanceSettings:
     """Load the ``[performance]`` knobs from the CLI context and apply the
-    process-wide ones (the compiled-pattern cache size)."""
-    settings = load_performance_settings(get_cli_context(ctx).config)
+    process-wide ones (the compiled-pattern cache size).
+
+    Exits 78 naming the failure when the configuration could not be loaded, rather than
+    running with knobs nobody configured."""
+    settings = load_performance_settings(require_config(ctx, get_cli_context(ctx)))
     apply_process_wide(settings)
     return settings
 

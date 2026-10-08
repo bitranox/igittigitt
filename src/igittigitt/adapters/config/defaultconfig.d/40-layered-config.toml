@@ -36,9 +36,18 @@
 #
 # POSIX only: Permissions are set on Linux/macOS. No-op on Windows (uses ACLs).
 #
-# Format: Use octal strings (recommended) or decimal integers:
-#   - Octal string: "0o755", "0o644", "755", "640" (quoted)
-#   - Decimal integer: 493 (= 0o755), 420 (= 0o644)
+# Format: an octal STRING, quoted: "0o755", "0o644", "755", "640".
+# A bare integer is refused, never reinterpreted: TOML reads 400 as the DECIMAL
+# number 400, which is 0o620, not the mode the digits suggest. In an environment
+# variable use the 0o prefix (..._USER_FILE=0o640); a plain 640 there is a number.
+#
+# Each value must lie in 0..0o7777 and must not set setuid/setgid/sticky, grant
+# group or world write, put an execute bit on a file, or take away the owner's
+# rwx (directory) / rw (file). A malformed, unsafe or unknown setting stops
+# config-deploy with exit 78 before anything is written; it never falls back to
+# the default silently. lib_layered_config reads this section itself, from the
+# bundled defaults, the files a deploy does not overwrite and the environment,
+# never from .env.
 #
 # CLI overrides:
 #   --permissions / --no-permissions  Enable/disable permission setting

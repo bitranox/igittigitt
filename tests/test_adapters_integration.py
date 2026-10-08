@@ -71,7 +71,7 @@ def test_in_memory_services_are_usable() -> None:
     """The in-memory test adapters (build_testing) wire and run without I/O."""
     services = build_testing()
     config = services.get_config()
-    services.init_logging(config)  # no-op logging adapter
+    services.init_logging(config)  # the quiet test runtime
     services.display_config(config)  # in-memory display
     assert services.get_default_config_path() is not None
 

@@ -39,6 +39,11 @@ kept in sync with `pyproject.toml`.
 A rich-click application (adapter layer) that depends only on the core engine.
 
 - `root.py` - the root group with `--version` / `--traceback`.
+- `config_load.py` - loads the layered configuration for the root group and records a load
+  failure instead of raising it; `require_config` refuses a command that reads a configuration
+  that did not load with exit 78 (`config`, `check`, `filter`), while `info`, `config-deploy`,
+  `config-generate-examples` and help still run. A malformed or conflicting `--set` and an
+  invalid `--profile` name are usage errors (exit 2), checked before loading.
 - `main.py` / `entry.py` / `__main__.py` - entry points with a `lib_cli_exit_tools` error
   boundary.
 - `exit_codes.py` - the POSIX `ExitCode` enum (including `BROKEN_PIPE = 141`).

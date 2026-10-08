@@ -183,6 +183,9 @@ bundled defaults -> app -> host -> user -> .env file -> environment variables ->
 Inspect the effective configuration with `igittigitt config`, and deploy editable copies
 with `igittigitt config-deploy`. Override a single value per run with `--set`, in a `.env`
 file as `SECTION__KEY=value`, or via an environment variable as `IGITTIGITT___SECTION__KEY=value`.
+When a configuration file cannot be loaded, `config`, `check` and `filter` exit `78` with one line
+naming it, while `info`, `config-deploy` (which replaces the file) and `--help` still run; a
+malformed `--set` or an invalid `--profile` name exits `2`. See [CONFIG.md](CONFIG.md).
 
 ### `[performance]` - engine and CLI tuning
 

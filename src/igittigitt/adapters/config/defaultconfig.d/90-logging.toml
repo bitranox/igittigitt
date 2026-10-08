@@ -26,6 +26,12 @@
 #   LIB_LOG_RICH__ENABLE_GRAYLOG=false
 #   LIB_LOG_RICH__CONSOLE_FORMAT_PRESET=short
 #
+# An unquoted value (in .env and in the environment alike) is converted: true/false become
+# booleans, null/none become None, a JSON array or object is parsed, and a number becomes a
+# number only when it converts back to the same text. Quote a .env value to keep it as text.
+# A table is a JSON object written unquoted, or one key per entry
+# (LIB_LOG_RICH__SCRUB_PATTERNS__API_KEY=.+); comma-separated pairs are one string.
+#
 # Precedence (lowest to highest):
 #   defaults -> app config -> host config -> user config -> .env file -> env vars
 #
@@ -138,8 +144,9 @@ console_theme = "dark"
 # Purpose: Override Rich styles per severity level
 # Type: table with level keys
 # Default: None (uses theme defaults); empty table is coerced to None
-# Environment Variable: IGITTIGITT___LIB_LOG_RICH__CONSOLE_STYLES=DEBUG=dim,ERROR=bold red
-# .env: LIB_LOG_RICH__CONSOLE_STYLES=DEBUG=dim,ERROR=bold red
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__CONSOLE_STYLES='{"DEBUG":"dim","ERROR":"bold red"}'
+# .env: LIB_LOG_RICH__CONSOLE_STYLES={"DEBUG":"dim","ERROR":"bold red"} (unquoted)
+# Comma-separated LEVEL=style pairs are NOT a table: they arrive as one string and are refused.
 # Keys: DEBUG, INFO, WARNING, ERROR, CRITICAL
 # Values: Rich style strings (color, bold, italic, etc.)
 console_styles = {}
@@ -200,10 +207,10 @@ enable_eventlog = false
 enable_graylog = false
 
 # Purpose: Graylog server host and port for GELF protocol
-# Type: array [host, port] or string "host:port"
+# Type: array [host, port]; a "host:port" string is refused
 # Default: None (no endpoint); empty list is coerced to None
-# Environment Variable: IGITTIGITT___LIB_LOG_RICH__GRAYLOG_ENDPOINT=graylog.example.com:12201
-# .env: LIB_LOG_RICH__GRAYLOG_ENDPOINT=graylog.example.com:12201
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__GRAYLOG_ENDPOINT='["graylog.example.com",12201]'
+# .env: LIB_LOG_RICH__GRAYLOG_ENDPOINT=["graylog.example.com",12201]
 graylog_endpoint = []
 
 # Purpose: Transport protocol for Graylog connection
@@ -319,8 +326,9 @@ dump_format_template = ""
 # Purpose: Regex patterns to redact sensitive data from logs
 # Type: table with field=regex pairs
 # Default: { password = ".+", secret = ".+", token = ".+" }
-# Environment Variable: IGITTIGITT___LIB_LOG_RICH__SCRUB_PATTERNS=password=.+,secret=.+,token=.+,api_key=.+
-# .env: LIB_LOG_RICH__SCRUB_PATTERNS=password=.+,secret=.+,token=.+,api_key=.+
+# Environment Variable, one key per field: IGITTIGITT___LIB_LOG_RICH__SCRUB_PATTERNS__API_KEY=.+
+# .env, one key per field: LIB_LOG_RICH__SCRUB_PATTERNS__API_KEY=.+
+# Comma-separated field=regex pairs are NOT a table: they arrive as one string and are refused.
 # Note: Patterns are merged with built-in defaults
 scrub_patterns = { password = ".+", secret = ".+", token = ".+" }
 
@@ -331,8 +339,9 @@ scrub_patterns = { password = ".+", secret = ".+", token = ".+" }
 # Purpose: Throttle log emissions (max_events per window_seconds)
 # Type: array [max_events, window_seconds]
 # Default: None (no rate limiting); empty list is coerced to None
-# Environment Variable: IGITTIGITT___LIB_LOG_RICH__RATE_LIMIT=100:60
-# .env: LIB_LOG_RICH__RATE_LIMIT=100:60
+# Environment Variable: IGITTIGITT___LIB_LOG_RICH__RATE_LIMIT='[100,60]'
+# .env: LIB_LOG_RICH__RATE_LIMIT=[100,60]
+# A "100:60" string is refused.
 rate_limit = []
 
 # ------------------------------------------------------------------------------

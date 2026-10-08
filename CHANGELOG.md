@@ -8,6 +8,118 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+### Fixed
+
+- **`build_testing()` can run a command.** Every CLI command except `check` and `filter` binds job
+  context onto the process-global lib_log_rich runtime, but the testing composition's
+  `init_logging` was a no-op, so `info`, `config` and the deploy commands raised
+  `RuntimeError('lib_log_rich.init() must be called before using the logging API')` under
+  `build_testing()`. The in-memory initializer now starts a quiet runtime: journald, event log,
+  Graylog and the queue off, console at ERROR, and no `.env` loading.
+- **`main()` keeps the exit code of a command that exits through click's context.** rich_click's
+  `main()` returns the code of a `ctx.exit(N)` under `standalone_mode=False`; `main()` discarded
+  that return value and reported 0, and its `except click.exceptions.Exit` branch could never
+  fire. It now returns the code (exit code change: such a command exits N instead of 0).
+- **Conflicting `--set` overrides are a usage error.** `--set a.b=1 --set a.b.c=2` escaped as a
+  `TypeError` from the override nesting, and the other order, `--set a.b.c=2 --set a.b=1`,
+  silently dropped the earlier override. All `--set` values are now checked together and a key
+  that one gives a value and another puts a key under is refused, naming both (exit code change:
+  exit 2 for every command, where the second order used to exit 0). The same key given twice still
+  takes the last value; `a.b` and `a.bc` stay siblings.
+- **A broken configuration file no longer disables every command.** The root group loaded the
+  configuration before any subcommand option was parsed and let a load error escape, so a
+  malformed `config.toml`, a `.env` that is not UTF-8 or an unreadable file made every command,
+  `--help` and `config-deploy` (the command that replaces the file) exit 1. The root now records
+  the failure (`adapters/cli/config_load.py`): `config`, `check` and `filter`, which read the
+  configuration, refuse with exit 78 and one line naming the file, after the loader's traceback
+  with `--traceback`; `info`, `config-deploy`, `config-generate-examples` and help still run
+  (exit code change: 78 or 0 where every command exited 1). What the command line gets wrong is
+  checked before loading, so a broken file cannot hide it: a malformed or conflicting `--set` or
+  an invalid `--profile` name is a usage error (exit 2) for every command, where an invalid
+  root `--profile` used to exit 22 and an invalid `config-deploy --profile` failed inside the
+  deploy with exit 1. Any other exception from the loader is a bug and propagates as one.
+  `config --profile X` reloads with the root's `--env-file` instead of searching for another
+  `.env`.
+- **Logging takes only `LOG_*` lines from a `.env`.** `init_logging` called lib_log_rich's
+  `enable_dotenv()`, which copied every line of the nearest `.env` into the process environment,
+  so a later configuration load (`config --profile`, the deploy's permission read) took an
+  app-prefixed `.env` line for the environment layer: a prefixed `default_permissions` line in the
+  working directory's `.env` refused `config-deploy`, and a prefixed `[performance]` value showed
+  up in `config --profile`. Logging now copies only `LOG_*` lines, never over a variable that is
+  already set, from `--env-file` when given, otherwise from the nearest `.env` up to the project
+  root, without `chdir` and passing over unreadable directories; a `.env` that is not UTF-8 no
+  longer stops logging.
+- **An invalid `[lib_log_rich]` value is a configuration failure, not a crash of every command.**
+  A value lib_log_rich refuses (a wrong type, or its own range checks such as `queue_maxsize = 0`)
+  stopped every command with exit 22 and pydantic's multi-line report. It is now recorded like a load
+  failure: logging starts with its defaults, `config`, `check` and `filter` exit 78 with one
+  `Error:` line per problem naming the key, never the value, and `info`, `config-deploy` and help
+  run (exit code change). The `InitLogging` port takes `dotenv_path`, and the root types the
+  services factory instead of ignoring the type.
+- **A refused `LOG_*` variable no longer disables every command (exit code change).** A value
+  lib_log_rich refuses in a `LOG_*` variable, set in the environment or in the `.env` logging reads
+  (`LOG_CONSOLE_LEVEL=bogus`), made every command but a bare `--help` exit 22 with lib_log_rich's
+  `ValueError`. Logging now falls back to its defaults with every `LOG_*` variable hidden for that
+  start (and put back afterwards), so only `config`, `check` and `filter` exit 78, and `info`,
+  `config-deploy` and the help of every command run with exit 0. The 78 carries lib_log_rich's own
+  message, `Error: lib_log_rich: Unknown log level: 'bogus'`, which may name neither the variable
+  nor where it was set. A refused `[lib_log_rich]` value still leaves every valid `LOG_*` variable
+  in force for the fallback: only a refused variable hides them.
+- **`config-deploy` leaves every permission decision to lib_layered_config.** The command read
+  `[lib_layered_config.default_permissions]` from its own merged configuration, so a `.env` found
+  upward from the working directory decided or blocked a system deploy, and of the whole section
+  only `enabled` was ever used: the configured per-layer modes never reached a deploy, and a
+  section that was not a table crashed with `AttributeError`. It now passes its options and any
+  `--set` of that section to `deploy_config` unchanged; the library reads the section from the
+  bundled defaults, the files the deploy does not overwrite and the environment, never from
+  `.env`, and applies each target's own layer modes. A refused setting exits 78 with one `Error:`
+  line per problem naming the key and its source, plus a hint in the CLI's spelling when both mode
+  options would get past it (exit code change: 78 where an invalid section used to exit 1 or
+  deploy). "Deployed configuration" is logged after the deploy, and the report says
+  "(permissions not set)" only for an explicit `--no-permissions`.
+- **The documented `.env` and environment syntax for lists and tables works.** `.env.example`,
+  `90-logging.toml` and `CONFIG.md` showed comma-separated `LEVEL=style` and `field=regex` pairs
+  for `console_styles` and `scrub_patterns` and `host:port` / `100:60` strings for
+  `graylog_endpoint` and `rate_limit`; each arrives as ONE string and is refused. They now show
+  a JSON array or object (unquoted in `.env`, shell-quoted in the environment) or one key per entry
+  (`LIB_LOG_RICH__SCRUB_PATTERNS__API_KEY=.+`), and say how an unquoted value is converted.
+- **Tests no longer depend on test order, colour or terminal width.** An autouse fixture shuts the
+  logging runtime down and restores the root logger's handlers, level and propagate flag after
+  every test (production `init_logging` attaches a stdlib handler and raises the root level, which
+  `runtime.shutdown()` does not undo). A second one pins rich-click's colour and width globals,
+  which it reads from the terminal and from GITHUB_ACTIONS once at import, so a usage-error box
+  no longer wraps a message the test looks for on a narrow terminal.
+
+### Changed
+
+- **Requires lib_layered_config 7.0.1**, whose `deploy_config` reads and validates the permission
+  section itself. An unquoted `.env` value now converts like the environment layer, so
+  `ENABLED=false` arrives as the boolean `false`.
+- **`--no-permissions` together with `--dir-mode` or `--file-mode` is a usage error** (exit 2):
+  a mode cannot be applied while permission setting is off.
+- **`python-dotenv` is a declared dependency** (logging reads the `LOG_*` lines of a `.env` with
+  it), and lib_log_rich is required at 6.3.9, the version the logging refusal is tested against.
+- **`click` is a declared dependency.** The package imports it directly (`adapters/cli/main.py`)
+  but only had it through rich-click. A new test fails when a module imported at run time is
+  missing from `[project].dependencies`.
+
+### Removed
+
+- `adapters.config.permissions` (`PermissionDefaults`, `parse_mode`, `get_permission_defaults`,
+  `get_modes_for_target`): lib_layered_config reads and validates the section now. `parse_mode`
+  silently fell back to the default on a malformed value, and `get_modes_for_target` had no
+  production caller, which is why the configured modes never took effect.
+
+### Security
+
+- **`config-deploy` refuses unsafe and malformed modes.** `--dir-mode -1` passed the unbounded
+  octal parser and reached the deploy as mode -1, and `--dir-mode 777` or `--file-mode 666` were
+  applied as given. `--dir-mode`/`--file-mode` and the configured modes are now parsed by
+  lib_layered_config's `DeployMode`: only a plain octal literal inside 0..0o7777 is accepted, and
+  setuid/setgid/sticky, group or world write, an execute bit on a file and a mode that takes away
+  the owner's access are refused (exit 2 for an option, 78 for a configured value). A bare integer
+  in the configuration is refused because it is read as decimal (`400` is `0o620`).
+
 ## [2.2.3] 2026-07-30 18:08:55
 
 ### Changed
