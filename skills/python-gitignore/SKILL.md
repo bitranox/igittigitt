@@ -192,8 +192,12 @@ set ad hoc with `igittigitt --set performance.dir_cache_max=32768 ...`, in a `.e
 Defaults below are igittigitt 2.2.3 (checked 2026-08-28). Confirm them against your own install
 rather than this table: `igittigitt config --section performance` prints all four keys as they are
 in effect (defaults plus any `config.d`/`.env`/env override; add `--format json` for a script).
-It shows `max_token_bytes` as `"***REDACTED***"`, because the log scrubber masks any key
-containing "token"; read that one default with
+It shows `max_token_bytes` as `"***REDACTED***"`: the config display masks every key whose NAME
+looks secret (it contains `token`, `password`, `secret`, `credential` and similar), whatever its
+value, through lib_layered_config's `is_sensitive()`. The log scrubber is not involved, so no
+scrub-pattern setting changes it, `--format json` masks it too, and `igittigitt config` has no
+switch that shows the value.
+Read that one default with
 `python -c "from igittigitt.adapters.config.performance import PerformanceSettings as P; print(P.model_fields['max_token_bytes'].default)"`.
 
 | Key                 | Default   | Meaning                                                                                                               |
