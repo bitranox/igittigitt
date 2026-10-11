@@ -5,8 +5,8 @@ description = "A spec-compliant .gitignore parser and path filter, 100% git-comp
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "wcmatch>=11.0.1",
-    "pydantic>=2.14.0",
+    "wcmatch>=11.1",
+    "pydantic>=2.14.1",
     "rich-click>=1.9.9",
     # Imported directly (adapters/cli/main.py), not only through rich-click.
     "click>=8.5.0",
@@ -15,7 +15,7 @@ dependencies = [
     "lib_log_rich>=6.5.1",
     # Imported directly (adapters/logging/setup.py) to read the LOG_* lines of a .env.
     "python-dotenv>=1.2.4",
-    "lib_layered_config>=7.0.1",
+    "lib_layered_config>=7.1.0",
     "orjson>=3.13.0",
 ]
 license = { text = "MIT" }
@@ -54,7 +54,7 @@ dev = [
   "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
   "hypothesis>=6.168.5",
-  "ruff>=0.16.10",
+  "ruff>=0.17.0",
   "pyright[nodejs]>=1.1.414",
   "bandit>=1.9.4",
   # 1.5.1 was yanked upstream (unintended breaking changes), so 1.5.0 is the newest usable

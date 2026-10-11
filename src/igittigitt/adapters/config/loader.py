@@ -20,6 +20,10 @@ except ImportError:  # pragma: no cover - older lib_layered_config without the d
 
 from igittigitt import __init__conf__
 
+# Keys whose NAME looks secret to lib_layered_config's redaction (it matches "token") but whose
+# value is a plain size limit; declaring them keeps `igittigitt config` from masking them.
+_NOT_SENSITIVE_KEYS: tuple[str, ...] = ("performance.max_token_bytes",)
+
 
 class ConfigLoaderProtocol(Protocol):
     """Protocol for config loader with cache_clear method."""
@@ -112,6 +116,7 @@ def _get_config_impl(
         default_file=get_default_config_path(),
         start_dir=start_dir,
         dotenv_path=dotenv_path,
+        not_sensitive=_NOT_SENSITIVE_KEYS,
     )
 
 

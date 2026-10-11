@@ -8,6 +8,18 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+### Fixed
+
+- **`igittigitt config` shows `performance.max_token_bytes`.** lib_layered_config masks any key
+  whose name contains `token`, so this size limit printed as `***REDACTED***` in the human and
+  JSON views. igittigitt now declares it not sensitive (lib_layered_config 7.1.0 `not_sensitive`),
+  and the view prints its value, including one set with `--set`.
+
+### Changed
+
+- Dependency floors raised: `lib_layered_config>=7.1.0`, `pydantic>=2.14.0`, `lib_log_rich>=6.5.1`;
+  dev `virtualenv>=21.14.6`.
+
 ## [2.2.4] 2026-10-08 10:19:56
 
 ### Fixed

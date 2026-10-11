@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -67,3 +68,33 @@ def test_set_max_token_bytes_tightens_the_guard(
     )
     assert result.exit_code != 0
     assert "exceeds 8 bytes" in result.output
+
+
+@pytest.mark.os_agnostic
+def test_config_json_shows_max_token_bytes_although_its_name_contains_token(
+    cli_runner: CliRunner, production_factory: Factory
+) -> None:
+    """max_token_bytes is a size limit, not a secret, so the config view prints its value."""
+    result = cli_runner.invoke(cli, ["config", "--section", "performance", "--format", "json"], obj=production_factory)
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout)["performance"]["max_token_bytes"] == 1 << 20
+
+
+@pytest.mark.os_agnostic
+def test_config_json_shows_an_overridden_max_token_bytes(cli_runner: CliRunner, production_factory: Factory) -> None:
+    """A --set override keeps the declaration, so the overridden value is printed too."""
+    result = cli_runner.invoke(
+        cli,
+        ["--set", "performance.max_token_bytes=2048", "config", "--section", "performance", "--format", "json"],
+        obj=production_factory,
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout)["performance"]["max_token_bytes"] == 2048
+
+
+@pytest.mark.os_agnostic
+def test_config_human_view_shows_max_token_bytes(cli_runner: CliRunner, production_factory: Factory) -> None:
+    result = cli_runner.invoke(cli, ["config", "--section", "performance"], obj=production_factory)
+    assert result.exit_code == 0, result.output
+    assert "max_token_bytes = 1048576" in result.stdout
+    assert "REDACTED" not in result.stdout
