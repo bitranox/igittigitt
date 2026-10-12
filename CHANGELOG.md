@@ -8,6 +8,8 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+## [2.2.6] 2026-10-12 18:59:35
+
 ### Fixed
 - **A digit-only `.env` value no longer stops logging setup.** lib_layered_config 7.1 reads an
   unquoted `.env` or environment value that spells a number losslessly as an int, so
