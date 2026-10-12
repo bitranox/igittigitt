@@ -15,7 +15,7 @@ dependencies = [
     "lib_log_rich>=6.5.1",
     # Imported directly (adapters/logging/setup.py) to read the LOG_* lines of a .env.
     "python-dotenv>=1.2.4",
-    "lib_layered_config>=7.1.3",
+    "lib_layered_config>=7.1.6",
     "orjson>=3.13.0",
 ]
 license = { text = "MIT" }

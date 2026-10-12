@@ -56,7 +56,9 @@ class LoggingConfigModel(BaseModel):
     service: str | None = None
     environment: str = "prod"
 
-    model_config = ConfigDict(extra="allow")
+    # lib_layered_config reads an unquoted all-digit value as an int, and a str field refuses an int.
+    # The conversion is lossless, so turning it back into text restores what the operator wrote.
+    model_config = ConfigDict(extra="allow", coerce_numbers_to_str=True)
 
 
 def _build_runtime_config(config: Config) -> lib_log_rich.runtime.RuntimeConfig:

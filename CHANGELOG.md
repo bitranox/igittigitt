@@ -8,6 +8,13 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+### Fixed
+- **A digit-only `.env` value no longer stops logging setup.** lib_layered_config 7.1 reads an
+  unquoted `.env` or environment value that spells a number losslessly as an int, so
+  `LIB_LOG_RICH__SERVICE=4711` reached `LoggingConfigModel` as `4711` and was refused with
+  `Input should be a valid string`. The model now turns such a number back into the text the
+  operator wrote; a value that is not a scalar is still refused.
+
 ## [2.2.5] 2026-10-12 10:04:00
 
 ### Fixed
