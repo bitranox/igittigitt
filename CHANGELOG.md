@@ -8,6 +8,8 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+## [2.2.5] 2026-10-12 10:04:00
+
 ### Fixed
 
 - **`igittigitt config` shows `performance.max_token_bytes`.** lib_layered_config masks any key
@@ -17,8 +19,8 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ### Changed
 
-- Dependency floors raised: `lib_layered_config>=7.1.0`, `pydantic>=2.14.0`, `lib_log_rich>=6.5.1`;
-  dev `virtualenv>=21.14.6`.
+- Dependency floors raised: `lib_layered_config>=7.1.3`, `pydantic>=2.14.0`, `lib_log_rich>=6.5.1`;
+  dev `virtualenv>=21.14.6`, `rtoml>=0.14.0`.
 
 ## [2.2.4] 2026-10-08 10:19:56
 
