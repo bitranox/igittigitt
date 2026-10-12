@@ -10,12 +10,12 @@ dependencies = [
     "rich-click>=1.9.9",
     # Imported directly (adapters/cli/main.py), not only through rich-click.
     "click>=8.5.0",
-    "lib_cli_exit_tools>=2.4.0",
+    "lib_cli_exit_tools>=2.4.1",
     # 6.3.9: the version the [lib_log_rich] refusal (InvalidLoggingConfigError) is tested against.
-    "lib_log_rich>=6.5.1",
+    "lib_log_rich>=6.5.2",
     # Imported directly (adapters/logging/setup.py) to read the LOG_* lines of a .env.
     "python-dotenv>=1.2.4",
-    "lib_layered_config>=7.1.6",
+    "lib_layered_config>=7.1.9",
     "orjson>=3.13.0",
 ]
 license = { text = "MIT" }
@@ -29,6 +29,7 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
   "License :: OSI Approved :: MIT License",
   "Environment :: Console",
   "Operating System :: OS Independent",
@@ -57,8 +58,6 @@ dev = [
   "ruff>=0.17.0",
   "pyright[nodejs]>=1.1.414",
   "bandit>=1.9.4",
-  # 1.5.1 was yanked upstream (unintended breaking changes), so 1.5.0 is the newest usable
-  # release; a >=1.5.1 floor has ZERO candidates and makes this extra unresolvable.
   "build>=1.6.1",
   "twine>=7.0.0",
   # codecov-cli is disabled, not dropped: it requires click<8.3.0, which drags click back to
@@ -304,4 +303,4 @@ ignores = ["E003"]
 
 [tool.uv]
 exclude-newer = "1 day"
-exclude-newer-package = {lib-cli-exit-tools = false, lib-layered-config = false, lib-log-rich = false, pydantic = "2026-10-11T18:37:56Z", pydantic-core = "2026-10-11T18:35:45Z", rtoml = "2026-10-12T00:17:16Z", virtualenv = "2026-10-12T01:27:32Z"}
+exclude-newer-package = {lib-cli-exit-tools = false, lib-layered-config = false, lib-log-rich = false, rtoml = "2026-10-12T00:17:16Z", virtualenv = "2026-10-12T01:27:32Z"}

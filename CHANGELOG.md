@@ -8,6 +8,16 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+### Added
+- Python 3.15 is a supported version: declared in the classifiers, so CI and `make test-all` run it.
+- `uv.lock` is committed, and `[tool.uv] exclude-newer` sets a cooldown that keeps releases younger
+  than it out of the lock. CI installs exactly the locked tree on push and pull request; the nightly
+  scheduled run still resolves afresh to catch upstream breakage early.
+
+### Changed
+- The install section explains why installing with uv protects against supply-chain attacks and why
+  a plain `pip install` from PyPI does not.
+
 ## [2.2.6] 2026-10-12 18:59:35
 
 ### Fixed

@@ -182,7 +182,6 @@ result
 # Optional lockfiles (for alternative managers)
 poetry.lock
 pdm.lock
-uv.lock
 
 # div
 # .devcontainer/ # needed for github codespaces

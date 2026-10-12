@@ -124,9 +124,36 @@ jobs:
               print("No CI system dependencies configured for macOS.")
 
       - name: Install dev deps
-        shell: bash
+        shell: python
         run: |
-          uv pip install -e .[dev] --system
+          import os, subprocess, tempfile
+          from pathlib import Path
+          try:
+              import tomllib
+          except ModuleNotFoundError:
+              import pip._vendor.tomli as tomllib
+
+          # Push and pull_request runs install exactly the tree uv.lock pins - versions
+          # plus file hashes, which uv verifies - so CI tests what the lock ships and no
+          # release published upstream since the last lock refresh can enter the build.
+          # The nightly schedule run resolves afresh instead (still inside the project's
+          # [tool.uv] exclude-newer cooldown, which uv honours here): it is the canary
+          # that reports upstream breakage before a lock refresh adopts it. A project
+          # without a uv.lock keeps the unlocked install.
+          with open("pyproject.toml", "rb") as f:
+              data = tomllib.load(f)
+          # Asking uv for an extra the project does not declare is a hard error.
+          extra = ["--extra", "dev"] if "dev" in data.get("project", {}).get("optional-dependencies", {}) else []
+          target = ["--system"]  # setup-python's interpreter; the job runs no venv
+          locked = Path("uv.lock").is_file() and os.environ["GITHUB_EVENT_NAME"] != "schedule"
+          if locked:
+              req = Path(tempfile.mkdtemp()) / "locked-requirements.txt"
+              # --locked fails when pyproject.toml changed without a lock refresh.
+              subprocess.check_call(["uv", "export", "--locked", "--no-emit-project", *extra, "-o", str(req), "--quiet"])
+              subprocess.check_call(["uv", "pip", "install", *target, "-r", str(req)])
+              subprocess.check_call(["uv", "pip", "install", *target, "--no-deps", "-e", "."])
+          else:
+              subprocess.check_call(["uv", "pip", "install", *target, "-e", ".[dev]" if extra else "."])
 
       - name: Install CI system dependencies (Windows/choco)
         if: runner.os == 'Windows'
@@ -236,7 +263,7 @@ jobs:
         continue-on-error: true
         shell: python
         run: |
-          import subprocess, sys, tempfile
+          import os, subprocess, sys, tempfile
           import rtoml
           from pathlib import Path
 
@@ -263,9 +290,18 @@ jobs:
 
           tmp = Path(tempfile.mkdtemp())
           req = tmp / "compiled-requirements.txt"
-          subprocess.check_call(
-              ["uv", "pip", "compile", *selector, "pyproject.toml", "-o", str(req), "--quiet"]
-          )
+          # With a uv.lock the install step put exactly the locked tree on the
+          # runner, so audit that tree; the schedule canary and lock-less
+          # projects resolve pyproject.toml afresh, as their install did.
+          if Path("uv.lock").is_file() and os.environ["GITHUB_EVENT_NAME"] != "schedule":
+              subprocess.check_call(
+                  ["uv", "export", "--locked", "--no-emit-project", "--no-hashes", *selector,
+                   "-o", str(req), "--quiet"]
+              )
+          else:
+              subprocess.check_call(
+                  ["uv", "pip", "compile", *selector, "pyproject.toml", "-o", str(req), "--quiet"]
+              )
 
           # Drop direct URL references ("pkg @ git+https://...") before auditing.
           # pip-audit cannot audit those (they are not on PyPI) but, given a
