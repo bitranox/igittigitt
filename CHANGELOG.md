@@ -8,6 +8,8 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+## [2.2.7] 2026-10-12 22:54:46
+
 ### Added
 - Python 3.15 is a supported version: declared in the classifiers, so CI and `make test-all` run it.
 - `uv.lock` is committed, and `[tool.uv] exclude-newer` sets a cooldown that keeps releases younger
