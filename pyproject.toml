@@ -320,4 +320,4 @@ ignores = ["E003"]
 
 [tool.uv]
 exclude-newer = "1 day"
-exclude-newer-package = {lib-cli-exit-tools = false, lib-layered-config = false, lib-log-rich = false, rtoml = "2026-10-12T00:17:16Z", virtualenv = "2026-10-12T01:27:32Z"}
+exclude-newer-package = {lib-cli-exit-tools = false, lib-layered-config = false, lib-log-rich = false}

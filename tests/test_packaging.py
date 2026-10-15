@@ -122,7 +122,7 @@ def test_the_sdist_ships_only_the_package_under_src(sdist_members: list[str]) ->
 
 @pytest.mark.os_agnostic
 def test_the_sdist_carries_no_compiled_bytecode(sdist_members: list[str]) -> None:
-    compiled = [member for member in sdist_members if "__pycache__" in member or member.endswith(".pyc")]
+    compiled = [member for member in sdist_members if "__pycache__" in member.split("/") or member.endswith(".pyc")]
 
     assert not compiled, f"the sdist ships bytecode: {compiled[:5]}"
 
