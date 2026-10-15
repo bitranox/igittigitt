@@ -8,6 +8,25 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+### Fixed
+
+- The source distribution ships only the package, its tests, its docs, `README.md`, `LICENSE`,
+  `CHANGELOG.md` and `pyproject.toml` (an include list). Earlier sdists also carried every other
+  root file and, in a local build, anything hidden only through `.git/info/exclude` or a nested
+  `.gitignore`. `tests/test_packaging.py` builds the sdist and wheel and checks both; `hatchling`
+  joins the dev extra for it.
+
+### Changed
+
+- Ruff selects `C90` (mccabe), so a function over cyclomatic complexity 10, the house hard limit,
+  now fails `make test`; before, nothing enforced it.
+
+### Tests
+
+- The `os_windows`, `os_macos`, `os_linux` and `os_posix` markers now skip a test off its platform
+  (`pytest_runtest_setup` in `tests/conftest.py`); registered in `pyproject.toml` alone they skipped
+  nothing, so a test trusting its marker ran everywhere. `tests/test_platform_markers.py` pins it.
+
 ## [2.2.7] 2026-10-12 22:54:46
 
 ### Added
