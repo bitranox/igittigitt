@@ -1131,7 +1131,7 @@ requires-dist = [
     { name = "jaraco-context", marker = "extra == 'dev'", specifier = ">=6.1.2" },
     { name = "lib-cli-exit-tools", specifier = ">=2.4.1" },
     { name = "lib-layered-config", specifier = ">=7.1.9" },
-    { name = "lib-log-rich", specifier = ">=6.5.2" },
+    { name = "lib-log-rich", specifier = ">=6.5.3" },
     { name = "orjson", specifier = ">=3.13.0" },
     { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.10.1" },
     { name = "pydantic", specifier = ">=2.14.1" },
@@ -1284,7 +1284,7 @@ wheels = [
 
 [[package]]
 name = "lib-log-rich"
-version = "6.5.2"
+version = "6.5.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "lib-cli-exit-tools" },
@@ -1294,9 +1294,9 @@ dependencies = [
     { name = "rich" },
     { name = "rich-click" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/64/59/0c29aa834c022a3149d0ae6739c5cd6b72d390a0ed6e25e148097c1b51e6/lib_log_rich-6.5.2.tar.gz", hash = "sha256:a6e95861a0e887ab7330aa9da32341bdeb5f8c040b1760575eaf79c780400aee", size = 548433, upload-time = "2026-10-12T20:43:18.498Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/83/e4/1c6b9dcc2aa417c5b62843b78b9a36eb33fc5dc338e7cbc916f1ca92a5ee/lib_log_rich-6.5.3.tar.gz", hash = "sha256:df9ba936bf94dc019a2ea864dcfb4836dbb5083a4f9fb3ab65dc85e6e3118be5", size = 321321, upload-time = "2026-10-15T15:09:18.418Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ba/6c/83108261c91e804437782b207efffdf737ab0edac5165da6fd486ff0a0f8/lib_log_rich-6.5.2-py3-none-any.whl", hash = "sha256:a902a271794b78982f58a2d2bfd7b0f2a882af9b822b33bb8ad34ce307072752", size = 205540, upload-time = "2026-10-12T20:43:17.279Z" },
+    { url = "https://files.pythonhosted.org/packages/0d/fc/dfc5714e91a0fa881fd5bc9fb31d782df20f914be0eb666c2dcefa012486/lib_log_rich-6.5.3-py3-none-any.whl", hash = "sha256:a7360101a61299356ce990b838b6b14a1f5d3f1dfee0e4646f07510836051d65", size = 206573, upload-time = "2026-10-15T15:09:16.879Z" },
 ]
 
 [[package]]

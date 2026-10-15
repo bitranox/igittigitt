@@ -12,7 +12,7 @@ dependencies = [
     "click>=8.5.0",
     "lib_cli_exit_tools>=2.4.1",
     # 6.3.9: the version the [lib_log_rich] refusal (InvalidLoggingConfigError) is tested against.
-    "lib_log_rich>=6.5.2",
+    "lib_log_rich>=6.5.3",
     # Imported directly (adapters/logging/setup.py) to read the LOG_* lines of a .env.
     "python-dotenv>=1.2.4",
     "lib_layered_config>=7.1.9",
