@@ -23,7 +23,8 @@ whether a path is ignored, or use it directly as the `ignore=` callback of
   exactly - a single ordered pass with *last-matching-pattern-wins*, correct
   **negations** (`!pattern`), the rule that a file cannot be re-included when a parent
   directory is excluded, per-directory `.gitignore` precedence, anchors, trailing-slash
-  (directory-only), `**`, `*`, `?` and `[...]` character classes. Compatibility is
+  (directory-only), `**` (a segment of three or more asterisks such as `***/build` counts
+  as `**` too, as in git), `*`, `?` and `[...]` character classes. Compatibility is
   proven by a differential test suite that compares igittigitt against real `git
   check-ignore` on hundreds of generated cases. *(This fixes the negation and
   nested-precedence limitations of older releases.)*

@@ -12,6 +12,17 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 - A path segment made only of three or more asterisks (e.g. `***/foo`, `a/****/b`) is read as `**`,
   as git does. It was treated as a single `*`, so `***/foo` missed `foo` and `x/y/foo`.
+  Contributed by @manoj-1407 (#48). The README, the module reference and the `python-gitignore`
+  skill now describe the rule, including that a run inside a segment (`a***b`) stays a single `*`.
+
+### Changed
+
+- The development cooldown `[tool.uv] exclude-newer` is 7 days (was 1 day): the lock admits no
+  release file younger than a week, and bmk raises third-party floors only to releases at least
+  that old. It is not part of the published package and changes nothing for installers.
+- The dev extra pins `certifi>=2026.10.19` (PYSEC-2026-4320) and `virtualenv>=21.14.9`
+  (CVE-2026-113722). Both fixes are younger than the cooldown, so `exclude-newer-package` admits
+  exactly those releases until the window catches up.
 
 ## [2.2.8] 2026-10-15 16:34:55
 

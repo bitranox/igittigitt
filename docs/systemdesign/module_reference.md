@@ -10,8 +10,17 @@ The whole matching engine lives here (pure Python, no dependency on the `git` bi
 - `IncludeParser` - the inverse include / whitelist mode (directory-aware). Use
   `shutil_include` as the `copytree` filter.
 - `IgnoreRule` - a slotted `@dataclass` holding one compiled rule.
-- Pattern-translation helpers: `get_rules_from_git_pattern`, `git_pattern_handle_blanks`,
-  `get_match_anchored`, `get_match_files`, `create_rule_variations`.
+- Pattern-translation helpers: `get_rules_from_git_pattern`, `collapse_asterisk_runs`,
+  `git_pattern_handle_blanks`, `get_match_anchored`, `get_match_files`,
+  `create_rule_variations`.
+
+### Runs of asterisks
+
+git's wildmatch treats any run of two or more asterisks that fills a whole path segment
+as `**`. `collapse_asterisk_runs` rewrites such a segment (`***`, `****`, ...) to `**`
+before the leading `**/` and trailing `/**` forms are handled, so `***/build`,
+`a/****/b` and `logs/***` take the same path as their `**` spellings. A run inside a
+longer segment is left alone: `a***b` behaves like `a*b` and never crosses a `/`.
 
 ### Matching algorithm (git-faithful)
 

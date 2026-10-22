@@ -22,6 +22,13 @@ directory cannot be re-included, per-directory precedence, anchoring, `**`, trai
 directory-only patterns, character classes. A quick `fnmatch`/`glob`/`re` solution will be
 subtly wrong on real repositories.
 
+One example: git reads a path segment made only of three or more asterisks as `**`. So
+`***/build` matches `build`, `x/build` and `x/y/build` (but not `xbuild`), exactly like
+`**/build`, and `a/****/b` and `logs/***` behave like `a/**/b` and `logs/**`. A run inside
+a longer segment is not a globstar: `a***b` behaves like `a*b` and never crosses a `/`.
+igittigitt follows git here from 2.2.9. Earlier releases read such a segment as a single
+`*`, so `***/build` matched only `x/build` and `a/***/b` only `a/x/b`.
+
 | Need                                 | Use                                                    | Avoid                                                                                  |
 |--------------------------------------|--------------------------------------------------------|----------------------------------------------------------------------------------------|
 | Is this path ignored (git-exact)?    | `igittigitt.IgnoreParser`                              | hand-rolled `fnmatch`/`glob`/`re`; `gitignore_parser` (incomplete negation/precedence) |
