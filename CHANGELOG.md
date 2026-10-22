@@ -8,6 +8,8 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+## [2.2.9] 2026-10-22 12:53:21
+
 ### Fixed
 
 - A path segment made only of three or more asterisks (e.g. `***/foo`, `a/****/b`) is read as `**`,
