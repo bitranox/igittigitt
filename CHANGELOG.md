@@ -8,6 +8,11 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+### Fixed
+
+- A path segment made only of three or more asterisks (e.g. `***/foo`, `a/****/b`) is read as `**`,
+  as git does. It was treated as a single `*`, so `***/foo` missed `foo` and `x/y/foo`.
+
 ## [2.2.8] 2026-10-15 16:34:55
 
 ### Fixed

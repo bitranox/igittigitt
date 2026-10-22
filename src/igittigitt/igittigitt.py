@@ -790,7 +790,7 @@ def get_rules_from_git_pattern(
 
     git_pattern = git_pattern.rstrip("/")
     match_anchored = get_match_anchored(git_pattern)
-    git_pattern = git_pattern.lstrip("/")
+    git_pattern = collapse_asterisk_runs(git_pattern.lstrip("/"))
 
     if git_pattern.startswith("**/"):
         match_anchored = False
@@ -818,6 +818,21 @@ def get_rules_from_git_pattern(
     )
 
     return l_ignore_rules
+
+
+def collapse_asterisk_runs(git_pattern: str) -> str:
+    """
+    Git reads a path segment made only of three or more asterisks as ``**``.
+
+    >>> collapse_asterisk_runs('***/foo')
+    '**/foo'
+    >>> collapse_asterisk_runs('a/****/b')
+    'a/**/b'
+    >>> collapse_asterisk_runs('a***b/c')
+    'a***b/c'
+    """
+    segments = git_pattern.split("/")
+    return "/".join("**" if seg.startswith("***") and not seg.strip("*") else seg for seg in segments)
 
 
 def git_pattern_handle_blanks(git_pattern: str) -> str:
