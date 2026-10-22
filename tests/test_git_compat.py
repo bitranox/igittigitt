@@ -156,6 +156,23 @@ SCENARIOS: dict[str, tuple[dict[str, str], list[str]]] = {
         },
         ["a.txt", "sub/a.txt", "sub/important.txt", "sub/deep/important.txt"],
     ),
+    "asterisk_runs": (
+        {".gitignore": "***/ab\na/***/b\nq/****\n"},
+        [
+            "ab",
+            "x/ab",
+            "x/y/ab",
+            "xab",
+            "x/xab",
+            "a/b",
+            "a/x/b",
+            "a/x/y/b",
+            "a/c",
+            "q/r",
+            "q/s/t",
+            "r/q",
+        ],
+    ),
     "comments_and_blanks": (
         {".gitignore": "# a comment\n\n*.bak\n  \n!special.bak\n"},
         ["x.bak", "special.bak", "dir/special.bak"],
