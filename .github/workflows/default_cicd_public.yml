@@ -68,6 +68,7 @@ jobs:
     name: Tests (Python ${{ matrix.python }}, ${{ matrix.os }})
     needs: setup
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -85,7 +86,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Install uv
-        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           enable-cache: true
           prune-cache: false
@@ -94,7 +95,9 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew install bash
-          echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
+          # Only bash's own bin dir: all of $(brew --prefix)/bin would also put Homebrew's
+          # python3 ahead of setup-python's, and every later `python`/`pytest` would run it.
+          echo "$(brew --prefix bash)/bin" >> "$GITHUB_PATH"
 
       - name: Extract project metadata
         id: metadata
@@ -140,7 +143,7 @@ jobs:
       - name: Install dev deps
         shell: python
         run: |
-          import os, subprocess, tempfile
+          import os, subprocess, sys, tempfile
           from pathlib import Path
           try:
               import tomllib
@@ -158,7 +161,9 @@ jobs:
               data = tomllib.load(f)
           # Asking uv for an extra the project does not declare is a hard error.
           extra = ["--extra", "dev"] if "dev" in data.get("project", {}).get("optional-dependencies", {}) else []
-          target = ["--system"]  # setup-python's interpreter; the job runs no venv
+          # The job runs no venv: install into the interpreter running this step, which is
+          # setup-python's. --system would take the first python on PATH instead.
+          target = ["--python", sys.executable]
           locked = Path("uv.lock").is_file() and os.environ["GITHUB_EVENT_NAME"] != "schedule"
           if locked:
               req = Path(tempfile.mkdtemp()) / "locked-requirements.txt"
@@ -168,6 +173,62 @@ jobs:
               subprocess.check_call(["uv", "pip", "install", *target, "--no-deps", "-e", "."])
           else:
               subprocess.check_call(["uv", "pip", "install", *target, "-e", ".[dev]" if extra else "."])
+
+      - name: Assert the matrix interpreter
+        shell: python
+        run: |
+          import os, re, shutil, sys
+          from pathlib import Path
+
+          # Every later step runs python, pytest, ruff ... from PATH. If anything puts another
+          # installation's bin dir ahead of setup-python's (Homebrew's did, on macOS), the job
+          # tests that Python while its name still says the matrix version, and stays green.
+          location = Path(os.environ["pythonLocation"])
+          root = location.resolve()
+          # On macOS the toolcache dir's bin is a SYMLINK into the python.org framework install
+          # (actions/python-versions installers/macos-pkg-setup-template.sh), so a resolved
+          # interpreter path lies there, outside $pythonLocation. Accept the install it points at.
+          roots = {root} | {(location / d).resolve().parent for d in ("bin", "Scripts") if (location / d).is_dir()}
+
+
+          def under_root(path):
+              real = path.resolve()
+              for candidate in roots:
+                  try:
+                      real.relative_to(candidate)
+                      return True
+                  except ValueError:
+                      pass
+              return False
+
+
+          def script_interpreter(script):
+              head = script.read_text(encoding="utf-8", errors="replace").splitlines()[:3]
+              if not head or not head[0].startswith("#!"):
+                  return None
+              # A long interpreter path is written as #!/bin/sh plus an exec line.
+              exec_line = re.search(r"exec' \"([^\"]+)\"", "\n".join(head))
+              return Path(exec_line.group(1) if exec_line else head[0][2:].split()[0])
+
+
+          problems = []
+          if not under_root(Path(sys.executable)):
+              problems.append(f"python on PATH is {Path(sys.executable).resolve()}, not under {root}")
+          pytest_path = shutil.which("pytest")
+          if pytest_path is None:
+              problems.append("pytest is not on PATH")
+          elif os.name == "nt":
+              if not under_root(Path(pytest_path)):
+                  problems.append(f"pytest on PATH is {pytest_path}, not under {root}")
+          else:
+              interpreter = script_interpreter(Path(pytest_path))
+              if interpreter is None or not under_root(interpreter):
+                  problems.append(f"pytest on PATH ({pytest_path}) runs {interpreter}, not an interpreter under {root}")
+          for problem in problems:
+              print(f"::error::{problem}")
+          if problems:
+              sys.exit(1)
+          print(f"python and pytest both run from {root}")
 
       - name: Install CI system dependencies (Windows/choco)
         if: runner.os == 'Windows'
@@ -191,7 +252,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: python
         run: |
-          import subprocess
+          import subprocess, sys
           try:
               import tomllib
           except ModuleNotFoundError:
@@ -201,7 +262,7 @@ jobs:
           deps = data.get("tool", {}).get("ci", {}).get("system-dependencies-windows-pip", [])
           if deps:
               print(f"Installing pip packages: {' '.join(deps)}")
-              subprocess.check_call(["uv", "pip", "install", *deps, "--system"])
+              subprocess.check_call(["uv", "pip", "install", *deps, "--python", sys.executable])
           else:
               print("No CI pip dependencies configured for Windows.")
 
@@ -282,8 +343,8 @@ jobs:
           from pathlib import Path
 
           # Audit the project's OWN resolved dependency tree, not the ambient
-          # environment. "Install dev deps" uses --system, so the interpreter
-          # being audited is the runner image's, and that image ships packages
+          # environment. "Install dev deps" installs into setup-python's interpreter,
+          # which belongs to the runner image, and that image ships packages
           # this project neither declares nor distributes (setuptools, pip,
           # wheel). Auditing those reported CVEs no consumer of this project is
           # exposed to, and a scan that is permanently yellow is a scan everyone
@@ -401,6 +462,7 @@ jobs:
   pipx-uv:
     name: pipx/uv verification (ubuntu)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -408,7 +470,7 @@ jobs:
           python-version: "3.14"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           enable-cache: true
           prune-cache: false
@@ -440,6 +502,7 @@ jobs:
   notebooks:
     name: Execute notebooks (ubuntu, Python 3.14)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -447,7 +510,7 @@ jobs:
           python-version: "3.14"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           enable-cache: true
           prune-cache: false
