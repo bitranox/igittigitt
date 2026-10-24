@@ -16,7 +16,6 @@ certifi = "2026-10-20T02:24:17Z"
 lib-cli-exit-tools = false
 lib-layered-config = false
 lib-log-rich = false
-virtualenv = "2026-10-17T17:31:56Z"
 
 [[package]]
 name = "annotated-types"
