@@ -1,4 +1,4 @@
-# BMK MAKEFILE 3.22.3
+# BMK MAKEFILE 3.25.1
 # do not alter this file - it might be overwritten on new versions of BMK
 # if You want to alter it, remove the first line # BMK MAKEFILE 1.0 - then it is a custom makefile and will not be overwritten
 # bmk Makefile - thin wrapper using `uv tool upgrade` for persistent bmk
@@ -28,7 +28,8 @@
 # one shared env serves every repo (it is identical for all of them).
 #
 # The env is disposable - delete it and the next make rebuilds it. It is re-resolved on
-# every invocation, so a new bmk release is picked up automatically.
+# every invocation, under bmk's own supply-chain cooldown when .bmk-cooldown.mk sits beside
+# this file, so a new bmk release is picked up automatically.
 #
 # Arguments after the target name are forwarded automatically.
 # You can also use ARGS="..." explicitly if preferred.
@@ -183,10 +184,11 @@ endif
 #     which is now correct: with no project dependencies in it, the env is identical for
 #     all of them and there is nothing left to collide.
 #
-# BMK_MIN floors the FALLBACK install. The upgrade path does not consult it: uv re-resolves
-# the requirement recorded at install time, which is itself a `bmk>=...`, so it always lands
-# on the newest release and clears the floor anyway.
-BMK_MIN := 3.22.3
+# BMK_MIN floors every install: the fallback ones and the receipt refresh that applies the
+# cooldown (below). The upgrade itself does not consult it: uv re-resolves the requirement
+# recorded in the receipt, which is itself a `bmk>=...`, so it always lands on the newest
+# release the cooldown admits and clears the floor anyway.
+BMK_MIN := 3.25.1
 
 # Absent env, missing check, or damaged env - all three mean "do not upgrade, rebuild".
 # `test -x` keeps a fresh machine quiet: there is no interpreter to run yet.
@@ -226,11 +228,48 @@ BMK_INTACT := $(if $(BMK_PY),test -x "$(BMK_PY)" && "$(BMK_PY)" -m bmk_selfcheck
 BMK_LOCK := $(if $(wildcard $(BMK_PY)),"$(BMK_PY)" -m bmk_toollock --exclusive --timeout 10 --on-timeout skip --,)
 BMK_LOCK_REPAIR := $(if $(wildcard $(BMK_PY)),"$(BMK_PY)" -m bmk_toollock --exclusive --timeout 60 --on-timeout fail --,)
 
+# bmk's tool env gets bmk's OWN supply-chain cooldown: the window plus the packages bmk exempts
+# (itself and its own libraries), as uv flags in BMK_COOLDOWN, set by .bmk-cooldown.mk. `bmk install`
+# deploys that file beside this Makefile and every release regenerates it from bmk's [tool.uv]; the
+# options never live here. Without it, or with it empty, the recipe below behaves exactly as it did
+# before the cooldown existed.
+#
+# Flags, not a uv.toml given to --config-file: that option makes uv IGNORE the user's and the
+# system's own uv config (measured, uv 0.13.0), so a machine that sets a private index or a proxy
+# there would lose it. Included by a RELATIVE name: `$(wildcard $(CURDIR)/...)` splits a path that
+# contains a space and silently drops the file.
+#
+# Dated per-package pins are left OUT of the file on purpose. A pin is a fixed instant: once the
+# rolling window passes it, it is TIGHTER than the window, and uv answers a floor it cannot meet by
+# silently resolving an OLDER bmk (measured: certifi pinned before bmk's floor gave bmk 3.22.0, exit
+# 0). Without pins, a fresh install whose bmk floor is still inside the window fails instead
+# (measured: exit 1, naming the package), which the fallback below can see.
+#
+# Why an install before the upgrade (measured, uv 0.13.0): `uv tool upgrade` stores no option given
+# on its command line and ignores --config-file once the tool has a receipt. `uv tool install
+# "bmk>=MIN" <flags>` over an existing install changes no package and REPLACES the receipt's options
+# (0.01s when nothing differs); the plain upgrade then resolves under them. Neither step downgrades
+# an installed env. The refresh is best-effort: if the cooldown cannot be met it retries without one
+# and says so, and if even that fails the upgrade still runs on the receipt as it was - a refresh
+# must never reach the destructive reinstall below.
+#
+# The refresh takes the tool lock WITHOUT waiting. While a gate elsewhere holds it, the refresh is
+# skipped at once and only the upgrade waits its bounded 10s; a waiting refresh would double the
+# delay every make pays during another repo's gate. A skipped refresh costs nothing: the next make
+# does it. (Not one lock around both steps via `bash -c`: on Windows a bare `bash` started from
+# Python can resolve to WSL's.)
+-include .bmk-cooldown.mk
+BMK_COOLDOWN ?=
+BMK_LOCK_NOWAIT := $(if $(wildcard $(BMK_PY)),"$(BMK_PY)" -m bmk_toollock --exclusive --timeout 0 --on-timeout skip --,)
+BMK_COOLDOWN_DROPPED := echo "[bmk] installing bmk under the cooldown from .bmk-cooldown.mk did not succeed (the reason is printed above); continuing without it" >&2
+BMK_RECEIPT_SYNC := $(if $(strip $(BMK_COOLDOWN)),{ $(BMK_LOCK_NOWAIT) uv tool install "bmk>=$(BMK_MIN)" $(BMK_COOLDOWN) || { $(BMK_COOLDOWN_DROPPED); $(BMK_LOCK_NOWAIT) uv tool install "bmk>=$(BMK_MIN)"; }; };,)
+BMK_LAST_RESORT_NOTE := $(if $(strip $(BMK_COOLDOWN)),$(BMK_COOLDOWN_DROPPED);,)
+
 .PHONY: _ensure_bmk
 _ensure_bmk:
-	@$(BMK_INTACT) && $(BMK_LOCK) uv tool upgrade bmk \
-	  || $(BMK_LOCK_REPAIR) uv tool install --reinstall --force "bmk>=$(BMK_MIN)" \
-	  || uv tool install --reinstall --force "bmk>=$(BMK_MIN)"
+	@$(BMK_INTACT) && { $(BMK_RECEIPT_SYNC) $(BMK_LOCK) uv tool upgrade bmk; } \
+	  || $(BMK_LOCK_REPAIR) uv tool install --reinstall --force "bmk>=$(BMK_MIN)" $(BMK_COOLDOWN) \
+	  || { $(BMK_LAST_RESORT_NOTE) uv tool install --reinstall --force "bmk>=$(BMK_MIN)"; }
 
 # ──────────────────────────────────────────────────────────────
 # Argument forwarding via MAKECMDGOALS

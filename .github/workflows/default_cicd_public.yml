@@ -17,6 +17,7 @@ jobs:
       python-versions: ${{ steps.metadata.outputs.python-versions }}
       python-latest: ${{ steps.metadata.outputs.python-latest }}
       os-matrix: ${{ steps.metadata.outputs.os-matrix }}
+      matrix-include: ${{ steps.metadata.outputs.matrix-include }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -46,10 +47,22 @@ jobs:
           ci_config = data.get("tool", {}).get("ci", {})
           os_list = ci_config.get("os", ["ubuntu-latest"])
 
+          # macOS runners are slow, so macOS tests only the newest declared Python;
+          # every other OS tests them all. Newest by version number, never by
+          # classifier order.
+          latest = max(versions, key=lambda v: tuple(int(p) for p in v.split(".")))
+          include = [
+              {"os": os_name, "python": version}
+              for os_name in os_list
+              for version in versions
+              if not os_name.startswith("macos") or version == latest
+          ]
+
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"python-versions={json.dumps(versions)}\n")
-              fh.write(f"python-latest={versions[-1]}\n")
+              fh.write(f"python-latest={latest}\n")
               fh.write(f"os-matrix={json.dumps(os_list)}\n")
+              fh.write(f"matrix-include={json.dumps(include)}\n")
 
   test:
     name: Tests (Python ${{ matrix.python }}, ${{ matrix.os }})
@@ -58,8 +71,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(needs.setup.outputs.os-matrix) }}
-        python: ${{ fromJSON(needs.setup.outputs.python-versions) }}
+        # One entry per (os, python) pair from the setup job's matrix-include,
+        # which keeps macOS to the newest Python.
+        include: ${{ fromJSON(needs.setup.outputs.matrix-include) }}
     env:
       PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
       PYTHONIOENCODING: "utf-8"

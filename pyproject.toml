@@ -12,7 +12,7 @@ dependencies = [
     "click>=8.5.0",
     "lib_cli_exit_tools>=2.4.1",
     # 6.3.9: the version the [lib_log_rich] refusal (InvalidLoggingConfigError) is tested against.
-    "lib_log_rich>=6.5.6",
+    "lib_log_rich>=6.5.7",
     # Imported directly (adapters/logging/setup.py) to read the LOG_* lines of a .env.
     "python-dotenv>=1.2.4",
     "lib_layered_config>=7.3.0",
@@ -55,7 +55,7 @@ dev = [
   "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
   "hypothesis>=6.168.5",
-  "ruff>=0.17.0",
+  "ruff>=0.17.1",
   "pyright[nodejs]>=1.1.414",
   "bandit>=1.9.4",
   "build>=1.6.1",
@@ -80,7 +80,7 @@ dev = [
   "wheel>=0.48.0",               # CVE-2025-24049
   "pynacl>=1.6.2",               # CVE-2025-69277
   "urllib3>=2.8.0",              # CVE-2025-66471, CVE-2025-66418
-  "virtualenv>=21.14.9",         # CVE-2025-22702, CVE-2026-113722
+  "virtualenv>=21.14.10",        # CVE-2025-22702, CVE-2026-113722, CVE-2026-113713
   "certifi>=2026.10.19",         # PYSEC-2026-4320
 ]
 
@@ -321,4 +321,4 @@ ignores = ["E003"]
 
 [tool.uv]
 exclude-newer = "7 days"
-exclude-newer-package = {lib-cli-exit-tools = false, lib-layered-config = false, lib-log-rich = false, certifi = "2026-10-20T02:24:17Z", virtualenv = "2026-10-17T16:09:43Z"}
+exclude-newer-package = {lib-cli-exit-tools = false, lib-layered-config = false, lib-log-rich = false, certifi = "2026-10-20T02:24:17Z", virtualenv = "2026-10-17T17:31:56Z"}
