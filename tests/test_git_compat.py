@@ -173,6 +173,15 @@ SCENARIOS: dict[str, tuple[dict[str, str], list[str]]] = {
             "r/q",
         ],
     ),
+    "hidden_directories": (
+        {
+            ".config/.gitignore": "*.log\n",
+            ".config/tool/.gitignore": "!keep.log\n",
+            # git never reads ignore files inside .git
+            ".git/.gitignore": "*\n",
+        },
+        [".config/a.log", ".config/a.txt", ".config/tool/keep.log", ".config/tool/b.log", "a.log", ".hidden"],
+    ),
     "comments_and_blanks": (
         {".gitignore": "# a comment\n\n*.bak\n  \n!special.bak\n"},
         ["x.bak", "special.bak", "dir/special.bak"],

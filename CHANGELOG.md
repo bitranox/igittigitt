@@ -8,6 +8,12 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+### Fixed
+
+- `.gitignore` files inside hidden directories (e.g. `.config/`) are read, as git does.
+  `parse_rule_files` found rule files with `glob`, which skips hidden directories, so their
+  rules were missing. The `.git` directory is still not searched.
+
 ## [2.2.9] 2026-10-22 12:53:21
 
 ### Fixed
