@@ -8,6 +8,8 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+## [2.3.0] 2026-10-25 23:51:07
+
 ### Removed
 
 - `IgnoreParser.last_matching_rule` (and the same attribute on `IncludeParser`, where it was
