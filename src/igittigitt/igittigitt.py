@@ -1,6 +1,5 @@
 # STDLIB
 import functools
-import glob
 import os
 import pathlib
 import platform
@@ -37,6 +36,22 @@ _CACHE_MISS: Any = object()
 _DEFAULT_ADD_DEFAULT_PATTERNS: bool = conf_igittigitt.add_default_patterns  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
 
 _WCMATCH_FLAGS = wcmatch.glob.DOTGLOB | wcmatch.glob.GLOBSTAR
+
+
+def _find_rule_files(path_base_dir: pathlib.Path, filename: str) -> list[str]:
+    """
+    Every *filename* below *path_base_dir*, hidden directories included.
+
+    Like git, this does not look inside ``.git`` and does not follow symlinks
+    to directories. (``glob`` skipped hidden directories such as ``.config``
+    and read glob characters in *path_base_dir* as a pattern.)
+    """
+    rule_files: list[str] = []
+    for dirpath, dirnames, filenames in os.walk(path_base_dir):
+        dirnames[:] = [dirname for dirname in dirnames if dirname != ".git"]
+        if filename in filenames:
+            rule_files.append(str(pathlib.Path(dirpath) / filename))
+    return rule_files
 
 
 @functools.lru_cache(maxsize=4096)
@@ -248,7 +263,7 @@ class _BaseParser:
         if add_default_patterns:
             self._add_default_patterns(path_base_dir=path_base_dir)
 
-        rule_files = glob.glob(f"{path_base_dir}/**/{filename.strip()}", recursive=True)
+        rule_files = _find_rule_files(path_base_dir, filename.strip())
         # shallow first so deeper .gitignore rules are appended last (win),
         # tie-break by path for deterministic ordering.
         rule_files.sort(key=lambda p: (p.count(os.sep) + p.count("/"), p))
