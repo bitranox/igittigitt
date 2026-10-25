@@ -575,10 +575,16 @@ class IgnoreParser(_BaseParser):
         never builds a structure that grows with the total number of files.
         """
         # shutil_ignore}}}
+        # copytree passes bare names from os.listdir (never '..' or a leading '~'), so joining
+        # them onto the expanded base is already the absolute path; going through the public
+        # match() would re-normalise every entry, a large share of the per-entry cost when the
+        # .gitignore has few rules.
         path_base_dir = self._expand_base_path(base_path=base_dir)
         ignore_files: set[str] = set()
         for file in file_names:
-            if self.match(path_base_dir / file):
+            full = path_base_dir / file
+            ignored, _rule = self._ignore_decision(full, is_file=full.is_file())
+            if ignored:
                 ignore_files.add(file)
         return ignore_files
 

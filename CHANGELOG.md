@@ -8,6 +8,12 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+### Changed
+
+- `IgnoreParser.shutil_ignore` decides each entry without re-normalising its path through the
+  public `match()`, which makes a `copytree` with a small `.gitignore` noticeably faster. The
+  decisions are unchanged.
+
 ## [2.2.10] 2026-10-25 22:41:45
 
 ### Fixed
