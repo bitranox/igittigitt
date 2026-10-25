@@ -2,7 +2,8 @@
 
 One override can give a key a value while another puts a key under it. Nesting them one
 after the other went wrong in either order: a ``TypeError`` that escaped the CLI, or the
-earlier override silently dropped. They are refused as a contradiction instead.
+earlier override silently dropped. They are refused as a contradiction instead, when the
+command line's ``--set`` values are parsed into :class:`ConfigOverrides`.
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ import pytest
 from lib_layered_config import Config
 
 from igittigitt.adapters.cli import cli
-from igittigitt.adapters.config.overrides import apply_overrides, nest_overrides
+from igittigitt.adapters.config.overrides import ConfigOverrides, apply_overrides, parse_override, parse_overrides
 from igittigitt.composition import build_testing
 
 if TYPE_CHECKING:
@@ -30,15 +31,30 @@ def _empty_config() -> Config:
     [("a.b=1", "a.b.c=2"), ("a.b.c=2", "a.b=1"), ('a.b={"c": 1}', "a.b.d=2"), ("a.b.c=1", "a.x=0", "a.b=2")],
     ids=["value-then-key-under-it", "key-under-it-then-value", "json-table-then-key-under-it", "not-adjacent"],
 )
-def test_apply_overrides_refuses_a_key_given_both_a_value_and_keys_under_it(overrides: tuple[str, ...]) -> None:
+def test_parse_overrides_refuses_a_key_given_both_a_value_and_keys_under_it(overrides: tuple[str, ...]) -> None:
     """Either order used to go wrong: a TypeError, or the earlier override silently dropped."""
     with pytest.raises(ValueError, match=r"conflicting --set overrides: a\.b is given a value and a\.b\."):
-        apply_overrides(_empty_config(), overrides)
+        parse_overrides(overrides)
+
+
+@pytest.mark.os_agnostic
+def test_config_overrides_built_from_parsed_entries_refuses_the_same_conflict() -> None:
+    """The check lives in the value itself, so no way of building one skips it."""
+    entries = (parse_override("a.b=1"), parse_override("a.b.c=2"))
+
+    with pytest.raises(ValueError, match=r"conflicting --set overrides: a\.b is given a value and a\.b\.c"):
+        ConfigOverrides(entries=entries)
+
+
+@pytest.mark.os_agnostic
+def test_parse_overrides_reports_the_first_malformed_value_before_any_conflict() -> None:
+    with pytest.raises(ValueError, match=r"Invalid override 'nodot=1'"):
+        parse_overrides(("a.b=1", "a.b.c=2", "nodot=1"))
 
 
 @pytest.mark.os_agnostic
 def test_apply_overrides_lets_the_last_of_two_values_for_one_key_win() -> None:
-    result = apply_overrides(_empty_config(), ("a.b=1", "a.b=2"))
+    result = apply_overrides(_empty_config(), parse_overrides(("a.b=1", "a.b=2")))
 
     assert result["a"]["b"] == 2
 
@@ -46,17 +62,37 @@ def test_apply_overrides_lets_the_last_of_two_values_for_one_key_win() -> None:
 @pytest.mark.os_agnostic
 def test_apply_overrides_keeps_sibling_keys_that_share_a_prefix_of_letters() -> None:
     """``a.b`` and ``a.bc`` are siblings, not a value and a key under it."""
-    result = apply_overrides(_empty_config(), ("a.b=1", "a.bc.d=2"))
+    result = apply_overrides(_empty_config(), parse_overrides(("a.b=1", "a.bc.d=2")))
 
     assert result["a"] == {"b": 1, "bc": {"d": 2}}
 
 
 @pytest.mark.os_agnostic
-def test_nest_overrides_returns_the_tree_and_the_dotted_keys_it_sets() -> None:
-    tree, keys = nest_overrides(("a.b=1", "a.c.d=x"))
+def test_parse_overrides_holds_the_tree_and_the_dotted_keys_it_sets() -> None:
+    overrides = parse_overrides(("a.b=1", "a.c.d=x"))
 
-    assert tree == {"a": {"b": 1, "c": {"d": "x"}}}
-    assert keys == frozenset({"a.b", "a.c.d"})
+    assert overrides.tree() == {"a": {"b": 1, "c": {"d": "x"}}}
+    assert overrides.keys == frozenset({"a.b", "a.c.d"})
+
+
+@pytest.mark.os_agnostic
+def test_changing_a_returned_tree_leaves_the_overrides_unchanged() -> None:
+    """The root's overrides are read again by a reload and by config-deploy; neither may see an edit."""
+    overrides = parse_overrides(('a.b={"c": [1]}',))
+    tree = overrides.tree()
+    table = tree["a"]["b"]
+    assert isinstance(table, dict)
+    table["c"] = "changed"
+    tree["a"]["x"] = 2
+
+    assert overrides.tree() == {"a": {"b": {"c": [1]}}}
+
+
+@pytest.mark.os_agnostic
+def test_apply_overrides_returns_the_config_itself_when_nothing_is_set() -> None:
+    config = _empty_config()
+
+    assert apply_overrides(config, parse_overrides(())) is config
 
 
 @pytest.mark.os_agnostic

@@ -1,9 +1,16 @@
-"""Parse and apply ``--set SECTION.KEY=VALUE`` CLI overrides to Config."""
+"""Parse and apply ``--set SECTION.KEY=VALUE`` CLI overrides to Config.
+
+Contents:
+    * :func:`parse_overrides` - parse a command line's ``--set`` values once, into
+      :class:`ConfigOverrides`.
+    * :func:`apply_overrides` - lay parsed overrides over a loaded Config.
+"""
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Final, cast
 
 import orjson
 
@@ -21,6 +28,16 @@ class ConfigOverride:
     section: str
     key_path: tuple[str, ...]
     value: CoercedValue
+
+    @property
+    def dotted_key(self) -> str:
+        """The full key this override sets, ``section.key[.subkey...]``.
+
+        Example:
+            >>> ConfigOverride(section="s", key_path=("a", "b"), value=1).dotted_key
+            's.a.b'
+        """
+        return ".".join((self.section, *self.key_path))
 
 
 def parse_override(raw: str) -> ConfigOverride:
@@ -116,13 +133,13 @@ def coerce_value(raw: str) -> CoercedValue:
 
 
 def _nest_override(target: dict[str, dict[str, object]], override: ConfigOverride) -> None:
-    """Build a nested override dict from a parsed ConfigOverride.
+    """Lay one parsed override into the nested override mapping being built.
 
-    Creates intermediate dicts as needed. The resulting dict structure
-    is passed to ``Config.with_overrides()`` for merge.
+    Creates intermediate tables as needed. The value is copied, so a caller that changes the
+    returned mapping cannot change the :class:`ConfigOverrides` it came from.
 
     Args:
-        target: Mutable override dictionary being built.
+        target: Mutable override mapping being built.
         override: Parsed override containing section, key_path, and value.
 
     Examples:
@@ -137,10 +154,10 @@ def _nest_override(target: dict[str, dict[str, object]], override: ConfigOverrid
     """
     node: dict[str, object] = target.setdefault(override.section, {})
     for part in override.key_path[:-1]:
-        # Always a table: nest_overrides refuses a key given both a value and keys under it
-        # before nesting, so no override's value ever sits where another needs a table.
+        # Always a table: ConfigOverrides refuses a key given both a value and keys under it
+        # when it is built, so no override's value ever sits where another needs a table.
         node = cast("dict[str, object]", node.setdefault(part, {}))
-    node[override.key_path[-1]] = override.value
+    node[override.key_path[-1]] = deepcopy(override.value)
 
 
 def _refuse_conflicts(dotted_keys: list[str]) -> None:
@@ -165,72 +182,118 @@ def _refuse_conflicts(dotted_keys: list[str]) -> None:
             raise ValueError(f"conflicting --set overrides: {key} is given a value and {nested} puts a key under it")
 
 
-def nest_overrides(raw_overrides: tuple[str, ...]) -> tuple[dict[str, dict[str, object]], frozenset[str]]:
-    """Parse ``--set`` values into the nested mapping they override, checking them together.
+@dataclass(frozen=True, slots=True)
+class ConfigOverrides:
+    """The ``--set`` values of one command line, parsed and checked together.
+
+    Built once, where the command line is read (:func:`parse_overrides`), and handed on as is:
+    every consumer reads the nested tree or the dotted keys from here and none parses the raw
+    strings again. Construction refuses a key that one entry gives a value and another puts a
+    key under, so an instance never holds that contradiction.
+
+    Attributes:
+        entries: The parsed overrides in command-line order; for one key given twice the
+            last entry wins.
+
+    Raises:
+        ValueError: Two entries conflict (one gives a key a value, another puts a key under it).
+
+    Examples:
+        >>> overrides = parse_overrides(("a.b=1", "a.c.d=x"))
+        >>> overrides.tree(), sorted(overrides.keys)
+        ({'a': {'b': 1, 'c': {'d': 'x'}}}, ['a.b', 'a.c.d'])
+        >>> NO_OVERRIDES.is_empty
+        True
+    """
+
+    entries: tuple[ConfigOverride, ...] = ()
+
+    def __post_init__(self) -> None:
+        """Refuse entries that give one key both a value and keys under it."""
+        _refuse_conflicts([entry.dotted_key for entry in self.entries])
+
+    @property
+    def is_empty(self) -> bool:
+        """Whether no ``--set`` was given."""
+        return not self.entries
+
+    @property
+    def keys(self) -> frozenset[str]:
+        """The dotted keys the overrides set (``section.key[.subkey...]``)."""
+        return frozenset(entry.dotted_key for entry in self.entries)
+
+    def tree(self) -> dict[str, dict[str, object]]:
+        """Return a fresh nested override mapping, the form ``Config.with_overrides`` merges.
+
+        Each call builds a new mapping with copied values, so changing it leaves this
+        instance as it was.
+        """
+        tree: dict[str, dict[str, object]] = {}
+        for entry in self.entries:
+            _nest_override(tree, entry)
+        return tree
+
+
+NO_OVERRIDES: Final[ConfigOverrides] = ConfigOverrides()
+"""The value of a command line without ``--set``."""
+
+
+def parse_overrides(raw_overrides: tuple[str, ...]) -> ConfigOverrides:
+    """Parse the ``--set`` values of one command line into :class:`ConfigOverrides`.
+
+    Each value is parsed in command-line order, so the first malformed one is reported; only
+    then are they checked against each other.
 
     Args:
         raw_overrides: Tuple of ``SECTION.KEY=VALUE`` strings from ``--set``.
 
     Returns:
-        The nested override mapping and the dotted keys it sets. For one key given twice,
-        the last value wins.
+        The parsed, checked overrides.
 
     Raises:
         ValueError: An override is malformed, or two of them conflict (one gives a key a
             value, another puts a key under it).
 
     Example:
-        >>> tree, keys = nest_overrides(("a.b=1", "a.c.d=x"))
-        >>> tree, sorted(keys)
-        ({'a': {'b': 1, 'c': {'d': 'x'}}}, ['a.b', 'a.c.d'])
+        >>> sorted(parse_overrides(("a.b=1", "a.b=2")).keys)
+        ['a.b']
+        >>> parse_overrides(("a.b=1", "a.b=2")).tree()
+        {'a': {'b': 2}}
     """
-    parsed = [parse_override(raw) for raw in raw_overrides]
-    dotted_keys = [".".join((override.section, *override.key_path)) for override in parsed]
-    _refuse_conflicts(dotted_keys)
-    overrides: dict[str, dict[str, object]] = {}
-    for override in parsed:
-        _nest_override(overrides, override)
-    return overrides, frozenset(dotted_keys)
+    return ConfigOverrides(entries=tuple(parse_override(raw) for raw in raw_overrides))
 
 
-def apply_overrides(config: Config, raw_overrides: tuple[str, ...]) -> Config:
-    """Deep-merge CLI overrides into a Config instance.
-
-    Parses each raw override string, builds a nested override dict,
-    and delegates to ``Config.with_overrides()`` for the merge.
+def apply_overrides(config: Config, overrides: ConfigOverrides) -> Config:
+    """Deep-merge parsed ``--set`` overrides into a Config instance.
 
     Args:
         config: Original immutable Config from file/env layers.
-        raw_overrides: Tuple of ``SECTION.KEY=VALUE`` strings from ``--set``.
+        overrides: The parsed ``--set`` values.
 
     Returns:
-        New Config instance with overrides applied, or the original if
-        ``raw_overrides`` is empty.
-
-    Raises:
-        ValueError: If any override string is malformed, or two of them conflict.
+        New Config instance with overrides applied, or the original if ``overrides`` is empty.
 
     Examples:
         >>> from lib_layered_config import Config
         >>> cfg = Config({"s": {"k": 1}}, {"s.k": {"layer": "default", "path": None, "key": "s.k"}})
-        >>> result = apply_overrides(cfg, ("s.k=2",))
+        >>> result = apply_overrides(cfg, parse_overrides(("s.k=2",)))
         >>> result["s"]["k"]
         2
-        >>> apply_overrides(cfg, ()) is cfg
+        >>> apply_overrides(cfg, NO_OVERRIDES) is cfg
         True
     """
-    if not raw_overrides:
+    if overrides.is_empty:
         return config
-
-    overrides, _ = nest_overrides(raw_overrides)
-    return config.with_overrides(overrides)
+    return config.with_overrides(overrides.tree())
 
 
 __all__ = [
+    "NO_OVERRIDES",
     "CoercedValue",
     "ConfigOverride",
+    "ConfigOverrides",
     "apply_overrides",
     "coerce_value",
-    "nest_overrides",
     "parse_override",
+    "parse_overrides",
 ]

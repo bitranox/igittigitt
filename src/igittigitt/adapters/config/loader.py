@@ -4,19 +4,15 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Protocol, cast
+from typing import NewType, Protocol, cast
 
 from lib_layered_config import (
     DEFAULT_MAX_PROFILE_LENGTH,
     Config,
+    ValidationError,
     read_config,
     validate_profile_name,
 )
-
-try:  # newer lib_layered_config raises its own ValidationError (not a ValueError); older raised ValueError
-    from lib_layered_config import ValidationError as _LibValidationError
-except ImportError:  # pragma: no cover - older lib_layered_config without the dedicated exception type
-    _LibValidationError = ValueError
 
 from igittigitt import __init__conf__
 
@@ -34,7 +30,7 @@ class ConfigLoaderProtocol(Protocol):
     def cache_clear(self) -> None: ...
 
 
-def validate_profile(profile: str, max_length: int | None = None) -> None:
+def validate_profile(profile: str) -> None:
     """Validate profile name using lib_layered_config.
 
     Delegates to lib_layered_config.validate_profile_name() which provides
@@ -43,7 +39,6 @@ def validate_profile(profile: str, max_length: int | None = None) -> None:
 
     Args:
         profile: The profile name to validate.
-        max_length: Optional maximum length. Defaults to DEFAULT_MAX_PROFILE_LENGTH (64).
 
     Raises:
         ValueError: If profile name is invalid (empty, too long, invalid chars,
@@ -64,13 +59,43 @@ def validate_profile(profile: str, max_length: int | None = None) -> None:
         ...
         ValueError: profile exceeds maximum length...
     """
-    length = max_length if max_length is not None else DEFAULT_MAX_PROFILE_LENGTH
     try:
-        validate_profile_name(profile, max_length=length)
-    except _LibValidationError as exc:
+        validate_profile_name(profile, max_length=DEFAULT_MAX_PROFILE_LENGTH)
+    except ValidationError as exc:
         # Normalise the dependency's exception to the documented ValueError contract so callers'
         # `except ValueError` guards catch every invalid profile uniformly.
         raise ValueError(str(exc)) from exc
+
+
+#: A profile name :func:`validate_profile` accepted. Only :func:`parse_profile_name` makes one,
+#: so a parameter typed ``ProfileName`` cannot receive a name nobody checked; the type checker
+#: refuses a plain ``str`` there.
+ProfileName = NewType("ProfileName", str)
+
+
+def parse_profile_name(raw: str) -> ProfileName:
+    """Check a profile name once and return it as a :data:`ProfileName`.
+
+    Args:
+        raw: The name as the caller received it, for example from the command line.
+
+    Returns:
+        The same text, typed as checked.
+
+    Raises:
+        ValueError: The name is invalid; the message is :func:`validate_profile`'s.
+
+    Examples:
+        >>> parse_profile_name("production")
+        'production'
+
+        >>> parse_profile_name("../x")
+        Traceback (most recent call last):
+        ...
+        ValueError: profile contains invalid characters: ../x
+    """
+    validate_profile(raw)
+    return ProfileName(raw)
 
 
 @lru_cache(maxsize=1)
@@ -197,7 +222,9 @@ get_config: ConfigLoaderProtocol = cast("ConfigLoaderProtocol", _get_config)
 
 
 __all__ = [
+    "ProfileName",
     "get_config",
     "get_default_config_path",
+    "parse_profile_name",
     "validate_profile",
 ]

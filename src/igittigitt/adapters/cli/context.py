@@ -7,14 +7,27 @@ from typing import TYPE_CHECKING
 
 import lib_cli_exit_tools
 
+from igittigitt.adapters.config.overrides import NO_OVERRIDES, ConfigOverrides
+
 if TYPE_CHECKING:
     import rich_click as click
     from lib_layered_config import Config
 
+    from igittigitt.adapters.config.loader import ProfileName
     from igittigitt.composition import AppServices
 
-TracebackState = tuple[bool, bool]
-"""Captured traceback configuration: (traceback_enabled, force_color)."""
+
+@dataclass(frozen=True, slots=True)
+class TracebackState:
+    """Captured traceback configuration of ``lib_cli_exit_tools.config``.
+
+    Attributes:
+        traceback: Whether full tracebacks are printed.
+        force_color: Whether tracebacks are coloured even off a terminal.
+    """
+
+    traceback: bool
+    force_color: bool
 
 
 @dataclass(slots=True)
@@ -26,9 +39,9 @@ class CLIContext:
         config: The loaded layered configuration; empty when ``config_error`` is set, so a
             command that reads it asks through ``config_load.require_config``.
         services: All application services from the composition layer.
-        profile: Optional configuration profile name.
-        set_overrides: Raw ``--set`` strings, reapplied when a subcommand reloads the
-            configuration with another profile.
+        profile: The root's checked ``--profile`` name, or None.
+        set_overrides: The root's parsed ``--set`` values, reapplied when a subcommand
+            reloads the configuration with another profile.
         env_file: The root's ``--env-file``, for the same reload.
         config_error: Why the configuration could not be loaded, None when it loaded. The
             root records the exception; each command that reads the configuration reports it.
@@ -37,8 +50,8 @@ class CLIContext:
     traceback: bool
     config: Config
     services: AppServices
-    profile: str | None = None
-    set_overrides: tuple[str, ...] = ()
+    profile: ProfileName | None = None
+    set_overrides: ConfigOverrides = NO_OVERRIDES
     env_file: str | None = None
     config_error: Exception | None = None
 
@@ -49,8 +62,8 @@ def store_cli_context(
     traceback: bool,
     config: Config,
     services: AppServices,
-    profile: str | None = None,
-    set_overrides: tuple[str, ...] = (),
+    profile: ProfileName | None = None,
+    set_overrides: ConfigOverrides = NO_OVERRIDES,
     env_file: str | None = None,
     config_error: Exception | None = None,
 ) -> None:
@@ -61,21 +74,23 @@ def store_cli_context(
         traceback: Whether verbose tracebacks were requested.
         config: Loaded layered configuration object for all subcommands.
         services: All application services from composition layer.
-        profile: Optional configuration profile name.
-        set_overrides: Raw ``--set`` override strings for reapplication when
-            subcommands reload config with a different profile.
+        profile: The root's checked ``--profile`` name, or None.
+        set_overrides: The root's parsed ``--set`` values, for reapplication when a
+            subcommand reloads config with a different profile.
         env_file: The root's ``--env-file``, for the same reload.
         config_error: Why the configuration could not be loaded, None when it loaded.
 
     Example:
         >>> from click.testing import CliRunner
         >>> from unittest.mock import MagicMock
+        >>> from igittigitt.adapters.config.loader import parse_profile_name
         >>> from igittigitt.composition import build_production
         >>> ctx = MagicMock()
         >>> ctx.obj = None
         >>> mock_config = MagicMock()
         >>> services = build_production()
-        >>> store_cli_context(ctx, traceback=True, config=mock_config, services=services, profile="test")
+        >>> profile = parse_profile_name("test")
+        >>> store_cli_context(ctx, traceback=True, config=mock_config, services=services, profile=profile)
         >>> ctx.obj.traceback
         True
     """
@@ -136,16 +151,16 @@ def snapshot_traceback_state() -> TracebackState:
     """Capture the current traceback configuration for later restoration.
 
     Returns:
-        Tuple of (traceback_enabled, force_color) booleans.
+        The current traceback and force-colour flags.
 
     Example:
-        >>> state = snapshot_traceback_state()
-        >>> isinstance(state, tuple) and len(state) == 2
-        True
+        >>> apply_traceback_preferences(False)
+        >>> snapshot_traceback_state()
+        TracebackState(traceback=False, force_color=False)
     """
-    return (
-        bool(getattr(lib_cli_exit_tools.config, "traceback", False)),
-        bool(getattr(lib_cli_exit_tools.config, "traceback_force_color", False)),
+    return TracebackState(
+        traceback=bool(getattr(lib_cli_exit_tools.config, "traceback", False)),
+        force_color=bool(getattr(lib_cli_exit_tools.config, "traceback_force_color", False)),
     )
 
 
@@ -153,17 +168,17 @@ def restore_traceback_state(state: TracebackState) -> None:
     """Reapply a previously captured traceback configuration.
 
     Args:
-        state: Tuple from :func:`snapshot_traceback_state`.
+        state: A state from :func:`snapshot_traceback_state`.
 
     Example:
         >>> original = snapshot_traceback_state()
         >>> apply_traceback_preferences(True)
         >>> restore_traceback_state(original)
-        >>> lib_cli_exit_tools.config.traceback == original[0]
+        >>> snapshot_traceback_state() == original
         True
     """
-    lib_cli_exit_tools.config.traceback = state[0]
-    lib_cli_exit_tools.config.traceback_force_color = state[1]
+    lib_cli_exit_tools.config.traceback = state.traceback
+    lib_cli_exit_tools.config.traceback_force_color = state.force_color
 
 
 __all__ = [

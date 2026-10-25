@@ -13,6 +13,9 @@ loading so that a broken file cannot hide it from a command that does not read t
 configuration.
 
 Contents:
+    * :class:`RootCommandLine` - the root's ``--profile`` and ``--set``, checked.
+    * :func:`parse_profile_option` - a ``--profile`` value as a checked name (exit 2).
+    * :func:`parse_command_line` - check the root's ``--profile`` and parse ``--set`` once (exit 2).
     * :func:`load_config` - load with profile, ``.env`` and ``--set``, or say why not.
     * :func:`start_logging` - start logging; an invalid ``[lib_log_rich]`` value or ``LOG_*``
       variable is a load failure.
@@ -23,14 +26,15 @@ Contents:
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from traceback import format_exception
 from typing import TYPE_CHECKING
 
 import rich_click as click
 from lib_layered_config import Config, ConfigError
 
-from igittigitt.adapters.config.loader import validate_profile
-from igittigitt.adapters.config.overrides import apply_overrides, nest_overrides
+from igittigitt.adapters.config.loader import ProfileName, parse_profile_name
+from igittigitt.adapters.config.overrides import ConfigOverrides, apply_overrides, parse_overrides
 from igittigitt.adapters.logging.setup import InvalidLoggingConfigError
 
 from .exit_codes import ExitCode
@@ -47,48 +51,110 @@ if TYPE_CHECKING:
 _LOAD_ERRORS = (ConfigError, OSError)
 
 
-def _check_command_line(profile: str | None, set_overrides: tuple[str, ...]) -> None:
-    """Refuse a malformed or conflicting ``--set`` or an invalid ``--profile`` name (exit 2)."""
+@dataclass(frozen=True, slots=True)
+class RootCommandLine:
+    """What the root group's ``--profile`` and ``--set`` said, checked.
+
+    Attributes:
+        profile: The checked ``--profile`` name, or None when it was not given.
+        overrides: The parsed ``--set`` values.
+    """
+
+    profile: ProfileName | None
+    overrides: ConfigOverrides
+
+
+def parse_profile_option(raw: str | None) -> ProfileName | None:
+    """Turn a ``--profile`` value into a checked name; an invalid one is a usage error (exit 2).
+
+    Args:
+        raw: The option's value, or None when it was not given.
+
+    Returns:
+        The checked name, or None.
+
+    Raises:
+        click.UsageError: The name is empty, too long, a reserved name, or holds a path
+            separator or a character outside the allowed set.
+
+    Examples:
+        >>> parse_profile_option("production")
+        'production'
+        >>> parse_profile_option(None) is None
+        True
+        >>> parse_profile_option("../x")
+        Traceback (most recent call last):
+        ...
+        click.exceptions.UsageError: profile contains invalid characters: ../x
+    """
+    if raw is None:
+        return None
     try:
-        if profile is not None:
-            validate_profile(profile)
-        nest_overrides(set_overrides)
+        return parse_profile_name(raw)
     except ValueError as exc:
         raise click.UsageError(str(exc)) from exc
 
 
+def parse_command_line(profile: str | None, raw_overrides: tuple[str, ...]) -> RootCommandLine:
+    """Check the root's ``--profile`` name, then parse its ``--set`` values, once.
+
+    The profile comes first, so with both wrong the profile is the one reported. This is the
+    only place the root's raw ``--profile`` and ``--set`` strings are read; everything after it
+    takes the result.
+
+    Args:
+        profile: The root's ``--profile``, or None.
+        raw_overrides: The root's ``--set`` strings, in command-line order.
+
+    Returns:
+        The checked profile name and the parsed, checked overrides.
+
+    Raises:
+        click.UsageError: The profile name is invalid, a ``--set`` value is malformed, or two
+            of them conflict; a command-line error (exit 2), raised before anything is loaded.
+
+    Example:
+        >>> command_line = parse_command_line("production", ("a.b=1",))
+        >>> command_line.profile, command_line.overrides.tree()
+        ('production', {'a': {'b': 1}})
+    """
+    checked_profile = parse_profile_option(profile)
+    try:
+        overrides = parse_overrides(raw_overrides)
+    except ValueError as exc:
+        raise click.UsageError(str(exc)) from exc
+    return RootCommandLine(profile=checked_profile, overrides=overrides)
+
+
 def load_config(
-    services: AppServices, *, profile: str | None, env_file: str | None, set_overrides: tuple[str, ...]
+    services: AppServices, *, profile: ProfileName | None, env_file: str | None, overrides: ConfigOverrides
 ) -> tuple[Config, Exception | None]:
     """Load the layered configuration, or say why it could not be loaded.
 
     Args:
         services: The composition's services; only ``get_config`` is used.
-        profile: The profile to load, or None for none.
+        profile: The checked profile to load (see :func:`parse_profile_option`), or None for none.
         env_file: An explicit ``.env`` file, or None to search for one.
-        set_overrides: The ``--set`` values, applied only to a configuration that loaded.
+        overrides: The parsed ``--set`` values, applied only to a configuration that loaded.
 
     Returns:
         The configuration and None, or an empty configuration and the exception that says
         why loading failed.
 
-    Raises:
-        click.UsageError: A ``--set`` value is malformed, two of them conflict, or the
-            profile name is invalid; that is a command-line error (exit 2), not a
-            configuration one, and it is raised whether or not the configuration would load.
-
     Example:
         >>> from igittigitt.composition import build_testing
-        >>> config, error = load_config(build_testing(), profile=None, env_file=None, set_overrides=("a.b=1",))
+        >>> command_line = parse_command_line(None, ("a.b=1",))
+        >>> config, error = load_config(
+        ...     build_testing(), profile=command_line.profile, env_file=None, overrides=command_line.overrides
+        ... )
         >>> config.get("a"), error
         ({'b': 1}, None)
     """
-    _check_command_line(profile, set_overrides)
     try:
         config = services.get_config(profile=profile, dotenv_path=env_file)
     except _LOAD_ERRORS as exc:
         return Config({}, {}), exc
-    return apply_overrides(config, set_overrides), None
+    return apply_overrides(config, overrides), None
 
 
 def start_logging(
@@ -168,4 +234,13 @@ def require_config(ctx: click.Context, cli_ctx: CLIContext) -> Config:
     return cli_ctx.config
 
 
-__all__ = ["echo_load_traceback", "load_config", "report_load_failure", "require_config", "start_logging"]
+__all__ = [
+    "RootCommandLine",
+    "echo_load_traceback",
+    "load_config",
+    "parse_command_line",
+    "parse_profile_option",
+    "report_load_failure",
+    "require_config",
+    "start_logging",
+]

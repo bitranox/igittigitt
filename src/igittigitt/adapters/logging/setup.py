@@ -22,78 +22,87 @@ from __future__ import annotations
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import lib_log_rich.runtime
 from dotenv import dotenv_values
-from lib_layered_config import Config
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import Field, ValidationError, ValidationInfo, field_validator
 
 from igittigitt import __init__conf__
 
 if TYPE_CHECKING:
     from collections.abc import Generator
 
+    from lib_layered_config import Config
 
-class LoggingConfigModel(BaseModel):
-    """Pydantic model for [lib_log_rich] config section validation.
+#: Every setting a None value leaves at its default. ``environment`` is not among them: a
+#: ``null`` there is refused, so a deployment that meant to name its environment learns it did not.
+_DEFAULT_WHEN_NONE = tuple(name for name in lib_log_rich.runtime.RuntimeConfig.model_fields if name != "environment")
 
-    Used at the boundary to parse configuration dictionaries into typed fields.
-    Extra fields are allowed to pass through to lib_log_rich.RuntimeConfig.
+
+class LoggingConfigModel(lib_log_rich.runtime.RuntimeConfig):
+    """lib_log_rich's ``RuntimeConfig`` with this package's defaults: the ``[lib_log_rich]`` section's model.
+
+    The section is validated once, by lib_log_rich's own field types; a key it does not know is
+    ignored, as ``RuntimeConfig`` ignores it. On top of that:
+
+    * ``service`` defaults to the package name, also when it is empty or None.
+    * ``environment`` defaults to ``prod``.
+    * An all-digit ``service`` or ``environment`` is taken as its text: lib_layered_config reads
+      an unquoted all-digit value as an int, and turning it back is lossless.
+    * A None value (``null``/``none`` in an environment or ``.env`` value) leaves the setting at
+      its default, except for ``environment``, which refuses it.
 
     Example:
         >>> model = LoggingConfigModel(service="myapp", environment="staging")
-        >>> model.service
-        'myapp'
-        >>> model.environment
-        'staging'
+        >>> model.service, model.environment
+        ('myapp', 'staging')
 
         >>> default = LoggingConfigModel()
-        >>> default.environment
-        'prod'
+        >>> default.service, default.environment, default.console_theme
+        ('igittigitt', 'prod', 'dark')
+
+        >>> LoggingConfigModel.model_validate({"service": 4711, "console_theme": None, "unknown": 1}).service
+        '4711'
     """
 
-    service: str | None = None
-    environment: str = "prod"
+    service: str = Field(default=__init__conf__.name, coerce_numbers_to_str=True)
+    environment: str = Field(default="prod", coerce_numbers_to_str=True)
 
-    # lib_layered_config reads an unquoted all-digit value as an int, and a str field refuses an int.
-    # The conversion is lossless, so turning it back into text restores what the operator wrote.
-    model_config = ConfigDict(extra="allow", coerce_numbers_to_str=True)
+    @field_validator(*_DEFAULT_WHEN_NONE, mode="before")
+    @classmethod
+    def _none_as_default(cls, value: object, info: ValidationInfo) -> object:
+        """Replace a None value with the setting's default."""
+        if value is not None or info.field_name is None:
+            return value
+        return cls.model_fields[info.field_name].get_default(call_default_factory=True)
+
+    @field_validator("service", mode="before")
+    @classmethod
+    def _empty_service_as_package_name(cls, value: object) -> object:
+        """An empty ``service`` names the package, as an absent one does."""
+        return __init__conf__.name if value == "" else value
 
 
 def _build_runtime_config(config: Config) -> lib_log_rich.runtime.RuntimeConfig:
-    """Build RuntimeConfig from a Config object.
-
-    Centralizes the mapping from lib_layered_config to lib_log_rich
-    RuntimeConfig. Uses Pydantic for single-parse validation at the boundary.
+    """Validate the ``[lib_log_rich]`` section into lib_log_rich's runtime configuration.
 
     Args:
         config: Already-loaded layered configuration object.
 
     Returns:
-        Fully configured runtime settings ready for lib_log_rich.init().
+        A :class:`LoggingConfigModel`, ready for ``lib_log_rich.runtime.init()``.
+
+    Raises:
+        ValidationError: The section, or one of its settings, has the wrong type.
 
     Note:
-        Configuration is read from the [lib_log_rich] section. All parameters
-        documented in defaultconfig.toml can be specified. Unspecified values
-        use lib_log_rich's built-in defaults. The service and environment
-        parameters default to package metadata when not configured.
+        Every parameter documented in defaultconfig.toml can be set in the section; an absent
+        one keeps lib_log_rich's default, and ``service``/``environment`` keep the package's
+        (see :class:`LoggingConfigModel`). An absent or empty section yields the defaults.
     """
-    log_raw: object = config.get("lib_log_rich", default={})
-    parsed = LoggingConfigModel.model_validate(cast("dict[str, object]", log_raw) if log_raw else {})
-
-    # Apply defaults for required fields
-    service = parsed.service or __init__conf__.name
-    environment = parsed.environment
-
-    # Get extra fields passed through by Pydantic
-    extra_config = parsed.model_dump(exclude={"service", "environment"}, exclude_none=True)
-
-    return lib_log_rich.runtime.RuntimeConfig(
-        service=service,
-        environment=environment,
-        **extra_config,
-    )
+    section: object = config.get("lib_log_rich", default={})
+    return LoggingConfigModel.model_validate(section or {})
 
 
 class InvalidLoggingConfigError(Exception):
@@ -109,6 +118,7 @@ class InvalidLoggingConfigError(Exception):
         problems: One line per refused setting.
 
     Example:
+        >>> from lib_layered_config import Config
         >>> try:
         ...     _build_runtime_config(Config({"lib_log_rich": {"rate_limit": "100:60"}}, {}))
         ... except ValidationError as exc:
@@ -217,11 +227,12 @@ def _start_default_logging() -> None:
     a valid ``LOG_CONSOLE_LEVEL`` still applies. When one of them is the refused setting, that
     start is refused again, and only then do the defaults start with every ``LOG_*`` hidden.
     """
+    defaults = LoggingConfigModel()
     try:
-        lib_log_rich.runtime.init(_build_runtime_config(Config({}, {})))
+        lib_log_rich.runtime.init(defaults)
     except ValueError:  # pydantic's ValidationError is a ValueError
         with _log_variables_hidden():
-            lib_log_rich.runtime.init(_build_runtime_config(Config({}, {})))
+            lib_log_rich.runtime.init(defaults)
 
 
 def init_logging(config: Config, *, dotenv_path: str | None = None) -> None:

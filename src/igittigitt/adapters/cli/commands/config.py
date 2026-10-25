@@ -26,11 +26,10 @@ from lib_layered_config import (
 )
 
 from igittigitt import __init__conf__
-from igittigitt.adapters.config.loader import validate_profile
-from igittigitt.adapters.config.overrides import nest_overrides
+from igittigitt.adapters.config.loader import ProfileName, parse_profile_name
 from igittigitt.domain.enums import DeployTarget, OutputFormat
 
-from ..config_load import load_config, report_load_failure, require_config
+from ..config_load import load_config, parse_profile_option, report_load_failure, require_config
 from ..constants import CLICK_CONTEXT_SETTINGS
 from ..context import CLIContext, get_cli_context
 from ..exit_codes import ExitCode
@@ -77,8 +76,10 @@ def cli_config(ctx: click.Context, output_format: str, section: str | None, prof
         >>> runner = CliRunner()
         >>> # Real invocation tested in test_cli_config.py
     """
+    # Parsed here rather than in an option callback, so a bad --format is still reported first.
+    profile_override = parse_profile_option(profile)
     cli_ctx = get_cli_context(ctx)
-    effective_config, effective_profile = _resolve_config(ctx, cli_ctx, profile)
+    effective_config, effective_profile = _resolve_config(ctx, cli_ctx, profile_override)
     fmt = OutputFormat(output_format.lower())
 
     extra = {"command": "config", "format": fmt.value, "profile": effective_profile}
@@ -97,12 +98,14 @@ def cli_config(ctx: click.Context, output_format: str, section: str | None, prof
             raise SystemExit(ExitCode.INVALID_ARGUMENT) from exc
 
 
-def _get_effective_profile(cli_ctx: CLIContext, profile_override: str | None) -> str | None:
+def _get_effective_profile(cli_ctx: CLIContext, profile_override: ProfileName | None) -> ProfileName | None:
     """Get effective profile: override takes precedence over context."""
-    return profile_override if profile_override else cli_ctx.profile
+    return profile_override if profile_override is not None else cli_ctx.profile
 
 
-def _resolve_config(ctx: click.Context, cli_ctx: CLIContext, profile: str | None) -> tuple[Config, str | None]:
+def _resolve_config(
+    ctx: click.Context, cli_ctx: CLIContext, profile: ProfileName | None
+) -> tuple[Config, ProfileName | None]:
     """Resolve configuration from context or reload with profile override.
 
     When a subcommand-level profile override is specified, reloads config
@@ -112,16 +115,16 @@ def _resolve_config(ctx: click.Context, cli_ctx: CLIContext, profile: str | None
     Args:
         ctx: The running command's click context, exited with 78 when loading failed.
         cli_ctx: CLI context containing stored config and services.
-        profile: Optional profile override.
+        profile: The command's checked ``--profile`` override, or None.
 
     Returns:
         Tuple of (config, effective_profile).
     """
     effective_profile = _get_effective_profile(cli_ctx, profile)
-    if not profile:
+    if profile is None:
         return require_config(ctx, cli_ctx), effective_profile
     config, error = load_config(
-        cli_ctx.services, profile=profile, env_file=cli_ctx.env_file, set_overrides=cli_ctx.set_overrides
+        cli_ctx.services, profile=profile, env_file=cli_ctx.env_file, overrides=cli_ctx.set_overrides
     )
     if error is not None:
         report_load_failure(error, show_traceback=cli_ctx.traceback)
@@ -165,24 +168,23 @@ def _parse_file_mode(_ctx: click.Context, _param: click.Parameter, value: str | 
     return _parse_deploy_mode(value, kind=ModeKind.FILE)
 
 
-def _check_profile_name(_ctx: click.Context, _param: click.Parameter, value: str | None) -> str | None:
+def _parse_deploy_profile(_ctx: click.Context, _param: click.Parameter, value: str | None) -> ProfileName | None:
     """The ``config-deploy --profile`` callback: an invalid name is a usage error (exit 2).
 
-    The root's ``--profile`` and ``config --profile`` are checked when the configuration is
-    loaded; this one only names the deploy directory, so without the check the name failed
+    Checked while the option is parsed, so the message names the option (``Invalid value for
+    '--profile'``); the name only picks the deploy directory, and unchecked it would fail
     inside the deploy as "Failed to deploy configuration" (exit 1).
 
     Raises:
-        click.BadParameter: The name is empty, too long or holds a path separator or a
-            character outside the allowed set.
+        click.BadParameter: The name is empty, too long, a reserved name, or holds a path
+            separator or a character outside the allowed set.
     """
     if value is None:
         return None
     try:
-        validate_profile(value)
+        return parse_profile_name(value)
     except ValueError as exc:
         raise click.BadParameter(str(exc)) from exc
-    return value
 
 
 @click.command("config-deploy", context_settings=CLICK_CONTEXT_SETTINGS)
@@ -204,7 +206,7 @@ def _check_profile_name(_ctx: click.Context, _param: click.Parameter, value: str
     "--profile",
     type=str,
     default=None,
-    callback=_check_profile_name,
+    callback=_parse_deploy_profile,
     help="Override profile from root command (e.g., 'production', 'test')",
 )
 @option(
@@ -236,7 +238,7 @@ def cli_config_deploy(
     *,
     targets: tuple[str, ...],
     force: bool,
-    profile: str | None,
+    profile: ProfileName | None,
     set_permissions: bool | None,
     dir_mode: int | None,
     file_mode: int | None,
@@ -296,7 +298,7 @@ def _execute_deploy(
     *,
     targets: tuple[DeployTarget, ...],
     force: bool,
-    profile: str | None,
+    profile: ProfileName | None,
     set_permissions: bool | None,
     dir_mode: int | None,
     file_mode: int | None,
@@ -312,7 +314,7 @@ def _execute_deploy(
         cli_ctx: CLI context containing services.
         targets: Deployment target layers.
         force: Whether to overwrite existing files.
-        profile: Optional profile name.
+        profile: The checked profile name, or None.
         set_permissions: ``--permissions`` (True), ``--no-permissions`` (False), or neither
             (None: the configured ``enabled`` decides).
         dir_mode: Directory mode for every target; None leaves it to the configured setting.
@@ -368,13 +370,13 @@ _DEPLOY_ANYWAY_HINT: Final[str] = (
 def _permission_overrides(cli_ctx: CLIContext) -> Mapping[str, object] | None:
     """Return the ``--set lib_layered_config.default_permissions...`` values, keyed by setting name.
 
-    Read from the same nested ``--set`` tree the ``config`` command lays over its output, so
+    Read from the same parsed ``--set`` tree the ``config`` command lays over its output, so
     both commands see one value for one key (the last ``--set`` of a key wins in both), and a
     key such as ``default_permissions_x`` is never taken for the section. A deeper key
     (``...user_file.x=1``) arrives as a table value, which the library refuses by name.
 
     Args:
-        cli_ctx: The state the root group stored; only its ``--set`` strings are read.
+        cli_ctx: The state the root group stored; only its parsed ``--set`` values are read.
 
     Returns:
         The section's overrides, or None when no ``--set`` names the section.
@@ -384,8 +386,7 @@ def _permission_overrides(cli_ctx: CLIContext) -> Mapping[str, object] | None:
             (``--set lib_layered_config.default_permissions=5`` or ``=null``); one stderr
             line names it, exit 78, nothing is deployed.
     """
-    tree, _ = nest_overrides(cli_ctx.set_overrides)
-    section = tree.get(_LAYERED_CONFIG_SECTION, {})
+    section = cli_ctx.set_overrides.tree().get(_LAYERED_CONFIG_SECTION, {})
     if _PERMISSIONS_KEY not in section:
         return None
     value = section[_PERMISSIONS_KEY]
@@ -418,7 +419,9 @@ def _refuse_permission_settings(exc: DeployPermissionsError) -> None:
     raise SystemExit(ExitCode.CONFIG_ERROR) from exc
 
 
-def _report_deployment_result(deployed_paths: list[Path], profile: str | None, set_permissions: bool | None) -> None:
+def _report_deployment_result(
+    deployed_paths: list[Path], profile: ProfileName | None, set_permissions: bool | None
+) -> None:
     """Report deployment results to the user.
 
     Args:

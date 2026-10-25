@@ -14,12 +14,15 @@ from __future__ import annotations
 from .deploy import deploy_configuration
 from .display import display_config
 from .loader import get_config, get_default_config_path
-from .overrides import apply_overrides
+from .overrides import NO_OVERRIDES, ConfigOverrides, apply_overrides, parse_overrides
 
 __all__ = [
+    "NO_OVERRIDES",
+    "ConfigOverrides",
     "apply_overrides",
     "deploy_configuration",
     "display_config",
     "get_config",
     "get_default_config_path",
+    "parse_overrides",
 ]

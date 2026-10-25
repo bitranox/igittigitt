@@ -15,7 +15,7 @@ import rich_click as click
 
 from igittigitt import __init__conf__
 
-from .config_load import load_config, start_logging
+from .config_load import load_config, parse_command_line, start_logging
 from .constants import CLICK_CONTEXT_SETTINGS
 from .context import apply_traceback_preferences, store_cli_context
 from .typed_click import option, version_option
@@ -73,12 +73,12 @@ def cli(
 ) -> None:
     """Root command storing global flags and syncing shared traceback state.
 
-    Loads configuration once with the profile, applies any ``--set`` overrides,
-    and stores it in the Click context for all subcommands to access. A load
-    failure is stored rather than raised, so a command that does not read the
-    configuration still runs. Mirrors
-    the traceback flag into ``lib_cli_exit_tools.config`` so downstream helpers
-    observe the preference.
+    Checks ``--profile`` and parses ``--set`` once, before anything is loaded (a mistake in
+    either is a usage error, exit 2), then loads configuration once with the profile, applies
+    the parsed overrides, and stores both in the Click context for all subcommands to access.
+    A load failure is stored rather than raised, so a command that does not read the
+    configuration still runs. Mirrors the traceback flag into ``lib_cli_exit_tools.config``
+    so downstream helpers observe the preference.
 
     Example:
         >>> from click.testing import CliRunner
@@ -94,16 +94,19 @@ def cli(
     if not callable(factory):
         raise RuntimeError("Services factory not provided. This is a bug.")
     services = factory()
+    command_line = parse_command_line(profile, set_overrides)
     # A load failure is recorded, not reported here: see config_load for who reports it.
-    config, config_error = load_config(services, profile=profile, env_file=env_file, set_overrides=set_overrides)
+    config, config_error = load_config(
+        services, profile=command_line.profile, env_file=env_file, overrides=command_line.overrides
+    )
     config, config_error = start_logging(services, config, config_error, env_file=env_file)
     store_cli_context(
         ctx,
         traceback=traceback,
         config=config,
         services=services,
-        profile=profile,
-        set_overrides=set_overrides,
+        profile=command_line.profile,
+        set_overrides=command_line.overrides,
         env_file=env_file,
         config_error=config_error,
     )

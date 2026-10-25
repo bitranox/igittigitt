@@ -273,6 +273,23 @@ def test_an_invalid_profile_name_is_a_usage_error_for_every_command(cli_runner: 
 
 
 @pytest.mark.os_agnostic
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["--profile", "", "info"],
+        ["config", "--profile", ""],
+        ["config-deploy", "--target", "user", "--no-permissions", "--profile", ""],
+    ],
+    ids=["root-info", "config-option", "config-deploy-option"],
+)
+def test_an_empty_profile_name_is_a_usage_error_for_every_command(cli_runner: CliRunner, args: list[str]) -> None:
+    result = cli_runner.invoke(cli, args, obj=build_testing)
+
+    assert result.exit_code == 2, result.output
+    assert "profile cannot be empty" in result.output
+
+
+@pytest.mark.os_agnostic
 def test_a_bug_in_the_loader_is_not_reported_as_a_configuration_error(cli_runner: CliRunner) -> None:
     result = cli_runner.invoke(cli, ["config"], obj=_failing_config(ValueError("a bug, not a config file")))
 

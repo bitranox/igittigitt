@@ -17,6 +17,17 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   as git does. The directory was put into the rule's glob unescaped, so `a[1]/.gitignore` applied
   to `a1/` instead of `a[1]/`.
 
+### Changed
+
+- A `[lib_log_rich]` section with several settings of the wrong type now reports each of them,
+  one `lib_log_rich.<key>: <reason>` line per setting. Before, only `service` and `environment`
+  were checked first, so a wrong `service` or `environment` hid every other wrong setting. The section is now
+  validated once, by lib_log_rich's own `RuntimeConfig`. A single wrong setting reports the same
+  line as before.
+- `igittigitt config --profile ""` is a usage error (exit 2, `profile cannot be empty`), as an
+  empty `--profile` already was on the root command and on `config-deploy`. It used to fall back
+  to the root's profile.
+
 ## [2.2.9] 2026-10-22 12:53:21
 
 ### Fixed
