@@ -13,6 +13,9 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 - `.gitignore` files inside hidden directories (e.g. `.config/`) are read, as git does.
   `parse_rule_files` found rule files with `glob`, which skips hidden directories, so their
   rules were missing. The `.git` directory is still not searched.
+- Rules from a `.gitignore` whose directory name contains glob characters (e.g. `a[1]/`) match
+  as git does. The directory was put into the rule's glob unescaped, so `a[1]/.gitignore` applied
+  to `a1/` instead of `a[1]/`.
 
 ## [2.2.9] 2026-10-22 12:53:21
 

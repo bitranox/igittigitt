@@ -918,7 +918,8 @@ def create_rule_variations(
     >>> path_base = pathlib.Path(__file__).parent.resolve()
 
     """
-    str_path_base_dir = str(path_base_dir).replace("\\", "/")
+    # the directory is matched literally: "a[1]" must not act as a character class
+    str_path_base_dir = wcmatch.glob.escape(str(path_base_dir).replace("\\", "/"))
     l_rules: list[IgnoreRule] = list()
 
     if match_anchored:

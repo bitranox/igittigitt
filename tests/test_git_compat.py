@@ -145,6 +145,10 @@ SCENARIOS: dict[str, tuple[dict[str, str], list[str]]] = {
         {".gitignore": "*.py[cod]\nfile[0-9].txt\n"},
         ["m.pyc", "m.pyo", "m.pyd", "m.py", "file1.txt", "fileA.txt"],
     ),
+    "glob_characters_in_directory_names": (
+        {"a[1]/.gitignore": "*.log\n", "b?c/.gitignore": "x\n"},
+        ["a[1]/a.log", "a[1]/b.txt", "a1/a.log", "b?c/x", "bzc/x"],
+    ),
     "trailing_slash_dir_only": (
         {".gitignore": "cache/\n"},
         ["cache/x", "cache/sub/y", "sub/cache/z"],
