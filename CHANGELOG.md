@@ -16,6 +16,14 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 - Rules from a `.gitignore` whose directory name contains glob characters (e.g. `a[1]/`) match
   as git does. The directory was put into the rule's glob unescaped, so `a[1]/.gitignore` applied
   to `a1/` instead of `a[1]/`.
+- On Windows, git's user-level ignore file is found where git looks for it. Without `HOME` (the
+  usual case for a Windows process), git uses `%HOMEDRIVE%%HOMEPATH%\.config\git\ignore` when that
+  directory exists, otherwise `%USERPROFILE%\.config\git\ignore`. igittigitt read
+  `%USERDATA%\git\ignore` instead, a file git never reads, so the user's ignore rules were missing
+  and a `USERDATA` file was applied. `XDG_CONFIG_HOME` and `HOME` keep precedence, as in git.
+- Setting `igittigitt.conf_igittigitt.add_default_patterns` takes effect. `parse_rule_files` read
+  it once at import, so a later change was ignored; its `add_default_patterns` now defaults to
+  `None`, which reads the setting when the call runs. Passing `True` or `False` works as before.
 
 ### Changed
 

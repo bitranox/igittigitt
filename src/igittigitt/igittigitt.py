@@ -12,12 +12,10 @@ from typing import Any, Union
 
 # EXT
 import wcmatch.glob  # type: ignore
+from pydantic import BaseModel, ConfigDict, field_validator
 
 # CONF
-try:
-    from .conf_igittigitt import conf_igittigitt
-except ImportError:  # pragma: no cover
-    from conf_igittigitt import conf_igittigitt  # type: ignore  # pragma: no cover
+from .conf_igittigitt import conf_igittigitt
 
 PathLikeOrString = Union[str, "os.PathLike[Any]"]
 __all__ = ("IgnoreParser", "IncludeParser")
@@ -30,15 +28,80 @@ _DIR_CACHE_MAX = 8192
 #: Sentinel for "key absent" - the cache legitimately stores ``None`` (not pruned).
 _CACHE_MISS: Any = object()
 
-#: Default for ``parse_rule_files(add_default_patterns=...)``, taken from config.
-#: pydantic's ``BaseModel.__getattr__`` makes pyright(strict) see the field as
-#: ``bool | Unknown``; the single ignore is confined to this one boundary line.
-_DEFAULT_ADD_DEFAULT_PATTERNS: bool = conf_igittigitt.add_default_patterns  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
-
 _WCMATCH_FLAGS = wcmatch.glob.DOTGLOB | wcmatch.glob.GLOBSTAR
 
 
-def _find_rule_files(path_base_dir: pathlib.Path, filename: str) -> list[str]:
+class _UserIgnoreDirs(BaseModel):
+    """The environment variables that locate git's user-level ignore file, read once.
+
+    An empty variable counts as unset, as git treats an empty ``XDG_CONFIG_HOME``. ``HOMEDRIVE``
+    and ``HOMEPATH`` stay text: git joins them as plain strings before they name a directory.
+
+    >>> _UserIgnoreDirs(xdg_config_home="", home="/home/u").git_home(is_windows=False).as_posix()
+    '/home/u'
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    xdg_config_home: pathlib.Path | None = None
+    home: pathlib.Path | None = None
+    homedrive: str | None = None
+    homepath: str | None = None
+    userprofile: pathlib.Path | None = None
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def _empty_is_unset(cls, value: str | None) -> str | None:
+        return value or None
+
+    @classmethod
+    def from_environ(cls) -> "_UserIgnoreDirs":
+        return cls.model_validate(
+            {
+                "xdg_config_home": os.environ.get("XDG_CONFIG_HOME"),
+                "home": os.environ.get("HOME"),
+                "homedrive": os.environ.get("HOMEDRIVE"),
+                "homepath": os.environ.get("HOMEPATH"),
+                "userprofile": os.environ.get("USERPROFILE"),
+            }
+        )
+
+    def git_home(self, *, is_windows: bool) -> pathlib.Path | None:
+        """The directory git treats as home, or None when it has none.
+
+        ``HOME`` everywhere. On Windows, when ``HOME`` is unset, git for Windows sets it at
+        startup (``compat/mingw.c``): to ``HOMEDRIVE`` + ``HOMEPATH`` (plain concatenation) if
+        that is an existing directory, otherwise to ``USERPROFILE``. Measured against git
+        2.56.0.windows.3; tests/test_default_patterns.py pins each branch.
+
+        >>> _UserIgnoreDirs(userprofile="C:/Users/me").git_home(is_windows=True).as_posix()
+        'C:/Users/me'
+        >>> _UserIgnoreDirs(userprofile="C:/Users/me").git_home(is_windows=False) is None
+        True
+        """
+        if self.home is not None:
+            return self.home
+        if not is_windows:
+            return None
+        if self.homedrive is not None and self.homepath is not None:
+            drive_home = pathlib.Path(self.homedrive + self.homepath)
+            if _is_directory(drive_home):
+                return drive_home
+        return self.userprofile
+
+
+def _is_directory(path: pathlib.Path) -> bool:
+    """Whether *path* is a directory; one that cannot be examined is not, as for git's stat check.
+
+    ``Path.is_dir`` re-raises a permission error before Python 3.14, so it is caught here.
+    """
+    try:
+        return path.is_dir()
+    except OSError:
+        return False
+
+
+def _find_rule_files(path_base_dir: pathlib.Path, filename: str) -> list[pathlib.Path]:
     """
     Every *filename* below *path_base_dir*, hidden directories included.
 
@@ -47,11 +110,11 @@ def _find_rule_files(path_base_dir: pathlib.Path, filename: str) -> list[str]:
     such as ``.config``, and it reads glob characters in *path_base_dir* as a
     pattern.
     """
-    rule_files: list[str] = []
+    rule_files: list[pathlib.Path] = []
     for dirpath, dirnames, filenames in os.walk(path_base_dir):
         dirnames[:] = [dirname for dirname in dirnames if dirname != ".git"]
         if filename in filenames:
-            rule_files.append(str(pathlib.Path(dirpath) / filename))
+            rule_files.append(pathlib.Path(dirpath) / filename)
     return rule_files
 
 
@@ -219,7 +282,7 @@ class _BaseParser:
         self,
         base_dir: PathLikeOrString,
         filename: str = ".gitignore",
-        add_default_patterns: bool = _DEFAULT_ADD_DEFAULT_PATTERNS,
+        add_default_patterns: bool | None = None,
     ) -> None:
         """
         get all the rule files (default = '.gitignore') from the base_dir
@@ -238,7 +301,8 @@ class _BaseParser:
         filename
             the rule filename, default = '.gitignore'
         add_default_patterns
-            if to add the default ignore patterns from user home directory.
+            whether to also add git's user-level ignore file (see :meth:`_add_default_patterns`);
+            None reads ``conf_igittigitt.add_default_patterns`` when the call runs.
 
         Examples
         --------
@@ -261,19 +325,21 @@ class _BaseParser:
         """
         path_base_dir = self._expand_base_path(base_path=base_dir)
 
+        if add_default_patterns is None:
+            add_default_patterns = conf_igittigitt.add_default_patterns
         if add_default_patterns:
             self._add_default_patterns(path_base_dir=path_base_dir)
 
         rule_files = _find_rule_files(path_base_dir, filename.strip())
         # shallow first so deeper .gitignore rules are appended last (win),
         # tie-break by path for deterministic ordering.
-        rule_files.sort(key=lambda p: (p.count(os.sep) + p.count("/"), p))
+        rule_files.sort(key=lambda p: (len(p.parts), str(p)))
 
         for rule_file in rule_files:
             if not self._path_is_ignored_for_discovery(rule_file):
                 self.parse_rule_file(rule_file)
 
-    def _path_is_ignored_for_discovery(self, rule_file: str) -> bool:
+    def _path_is_ignored_for_discovery(self, rule_file: pathlib.Path) -> bool:
         """Whether a discovered rule file lives in an already-ignored directory."""
         # default: never skip (overridden by IgnoreParser to honour ignore state)
         return False
@@ -293,7 +359,7 @@ class _BaseParser:
             since gitignore patterns are relative to a base directory, that can
             be provided here. If not provided, the location of the ignore file
             is used (needed to import default ignore files from the user home
-            directory, see README, Section "Default Patterns").
+            directory, see :meth:`_add_default_patterns`).
         """
         path_rule_file = self._expand_base_path(base_path=rule_file)
 
@@ -365,71 +431,26 @@ class _BaseParser:
 
     def _add_default_patterns(self, path_base_dir: pathlib.Path, is_windows: bool | None = None) -> None:
         """
-        add the default ignore patterns from user home directory. Those default patterns may reside at :
+        Add the rules of git's user-level ignore file, the one git reads when ``core.excludesFile``
+        is not set:
 
-        LINUX : $XDG_CONFIG_HOME/git/ignore, if not set or empty
-                $HOME/.config/git/ignore
+        * ``$XDG_CONFIG_HOME/git/ignore`` when ``XDG_CONFIG_HOME`` is set and not empty;
+        * otherwise ``.config/git/ignore`` in git's home directory (:meth:`_UserIgnoreDirs.git_home`:
+          ``HOME``, and on Windows without ``HOME`` the ``HOMEDRIVE`` + ``HOMEPATH`` directory
+          or ``USERPROFILE``).
 
-        WINDOWS : %XDG_CONFIG_HOME%/git/ignore, if not set or empty
-                  %HOME%/.config/git/ignore,  if not set or empty
-                  %USERDATA%/git/ignore
-
-        >>> # setup
-        >>> path_test_dir = pathlib.Path(__file__).resolve().parents[2] / 'tests/default_pattern'
-        >>> backup_env_xdg_config_home = get_env_data('XDG_CONFIG_HOME')
-        >>> backup_env_home = get_env_data('HOME')
-        >>> backup_env_userdata = get_env_data('USERDATA')
-        >>> set_env_data('XDG_CONFIG_HOME', '')
-        >>> set_env_data('HOME', '')
-        >>> set_env_data('USERDATA', '')
-        >>> ignore_parser=IgnoreParser()
-
-        >>> # test XDG_CONFIG_HOME
-        >>> ignore_parser.rules = list()
-        >>> set_env_data('XDG_CONFIG_HOME', str(path_test_dir))
-        >>> ignore_parser._add_default_patterns(path_base_dir=path_test_dir)
-        >>> assert len(ignore_parser.rules) > 0
-        >>> set_env_data('XDG_CONFIG_HOME', '')
-
-        >>> # test HOME
-        >>> ignore_parser.rules = list()
-        >>> set_env_data('HOME', str(path_test_dir))
-        >>> ignore_parser._add_default_patterns(path_base_dir=path_test_dir)
-        >>> assert len(ignore_parser.rules) > 0
-        >>> set_env_data('HOME', '')
-
-        >>> # test USERDATA LINUX - this should NOT be found
-        >>> ignore_parser.rules = list()
-        >>> set_env_data('USERDATA', str(path_test_dir))
-        >>> ignore_parser._add_default_patterns(path_base_dir=path_test_dir, is_windows=False)
-        >>> assert len(ignore_parser.rules) == 0
-        >>> set_env_data('USERDATA', '')
-
-        >>> # test USERDATA WINDOWS
-        >>> ignore_parser.rules = list()
-        >>> set_env_data('USERDATA', str(path_test_dir))
-        >>> ignore_parser._add_default_patterns(path_base_dir=path_test_dir, is_windows=True)
-        >>> assert len(ignore_parser.rules) > 0
-        >>> set_env_data('USERDATA', '')
-
-        >>> # teardown
-        >>> set_env_data('XDG_CONFIG_HOME', backup_env_xdg_config_home)
-        >>> set_env_data('HOME', backup_env_home)
-        >>> set_env_data('USERDATA', backup_env_userdata)
-
+        The variables are read through :class:`_UserIgnoreDirs`; tests/test_default_patterns.py
+        covers each branch with the environment set per test.
         """
-        xdg_conf_home = get_env_data("XDG_CONFIG_HOME")
-        usr_home = get_env_data("HOME")
-        win_userdata = get_env_data("USERDATA")
+        user_dirs = _UserIgnoreDirs.from_environ()
         if is_windows is None:
             is_windows = platform.system() == "Windows"
 
-        if xdg_conf_home:
-            path_default_patterns = pathlib.Path(xdg_conf_home) / "git/ignore"
-        elif usr_home:
-            path_default_patterns = pathlib.Path(usr_home) / ".config/git/ignore"
-        elif is_windows and win_userdata:
-            path_default_patterns = pathlib.Path(win_userdata) / "git/ignore"
+        git_home = user_dirs.git_home(is_windows=is_windows)
+        if user_dirs.xdg_config_home is not None:
+            path_default_patterns = user_dirs.xdg_config_home / "git/ignore"
+        elif git_home is not None:
+            path_default_patterns = git_home / ".config/git/ignore"
         else:
             return
 
@@ -457,7 +478,7 @@ class IgnoreParser(_BaseParser):
     def __enter__(self) -> "IgnoreParser":
         return self
 
-    def _path_is_ignored_for_discovery(self, rule_file: str) -> bool:
+    def _path_is_ignored_for_discovery(self, rule_file: pathlib.Path) -> bool:
         return self.match(rule_file)
 
     # match{{{
@@ -950,30 +971,6 @@ def create_rule_variations(
         )
         l_rules.append(rule_match_subdirs)
     return l_rules
-
-
-def get_env_data(env_variable: str) -> str:
-    """
-    >>> # Setup
-    >>> save_mypy_path = get_env_data('MYPYPATH')
-
-    >>> # Test
-    >>> set_env_data('MYPYPATH', 'some_test')
-    >>> assert get_env_data('MYPYPATH') == 'some_test'
-
-    >>> # Teardown
-    >>> set_env_data('MYPYPATH', save_mypy_path)
-
-    """
-    if env_variable in os.environ:
-        env_data = os.environ[env_variable]
-    else:
-        env_data = ""
-    return env_data
-
-
-def set_env_data(env_variable: str, env_str: str) -> None:
-    os.environ[env_variable] = env_str
 
 
 if __name__ == "__main__":
