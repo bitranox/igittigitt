@@ -8,6 +8,8 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+## [2.2.10] 2026-10-25 22:41:45
+
 ### Fixed
 
 - `.gitignore` files inside hidden directories (e.g. `.config/`) are read, as git does.
