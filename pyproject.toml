@@ -73,14 +73,14 @@ dev = [
   "textual>=8.2.8",
   "import-linter>=2.15",
   "rtoml>=0.14.0",
-  "httpx2>=2.13.1",
+  "httpx2>=2.14.0",
   # Transitive CVE pins
   "jaraco-context>=6.1.2",       # CVE-2025-23949
   "python-multipart>=0.0.32",    # CVE-2025-24486
   "wheel>=0.48.0",               # CVE-2025-24049
   "pynacl>=1.6.2",               # CVE-2025-69277
   "urllib3>=2.8.0",              # CVE-2025-66471, CVE-2025-66418
-  "virtualenv>=21.14.10",        # CVE-2025-22702, CVE-2026-113722, CVE-2026-113713
+  "virtualenv>=21.14.11",        # CVE-2025-22702, CVE-2026-113722, CVE-2026-113713
   "certifi>=2026.10.19",         # PYSEC-2026-4320
 ]
 
