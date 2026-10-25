@@ -8,6 +8,8 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+## [2.2.11] 2026-10-25 22:59:31
+
 ### Changed
 
 - `IgnoreParser.shutil_ignore` decides each entry without re-normalising its path through the
