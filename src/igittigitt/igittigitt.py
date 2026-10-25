@@ -43,8 +43,9 @@ def _find_rule_files(path_base_dir: pathlib.Path, filename: str) -> list[str]:
     Every *filename* below *path_base_dir*, hidden directories included.
 
     Like git, this does not look inside ``.git`` and does not follow symlinks
-    to directories. (``glob`` skipped hidden directories such as ``.config``
-    and read glob characters in *path_base_dir* as a pattern.)
+    to directories. ``glob`` does not fit: its ``**`` skips hidden directories
+    such as ``.config``, and it reads glob characters in *path_base_dir* as a
+    pattern.
     """
     rule_files: list[str] = []
     for dirpath, dirnames, filenames in os.walk(path_base_dir):

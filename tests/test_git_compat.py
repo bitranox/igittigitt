@@ -245,3 +245,47 @@ def test_matches_git_fuzz(seed: int, tmp_path: Path) -> None:
     gitignore = "\n".join(_random_pattern(rng) for _ in range(n_rules)) + "\n"
     files = sorted({_random_relpath(rng) for _ in range(rng.randint(3, 12))})
     _assert_matches_git(tmp_path, {".gitignore": gitignore}, files)
+
+
+# --- nested .gitignore files in hidden and glob-named directories -------------
+
+# Directory names a single root .gitignore never exercises: hidden ones (rule-file
+# discovery must descend into them) and ones holding glob characters (the
+# directory of a .gitignore must match literally, never as a pattern).
+_NESTED_DIRS = ["a", "b", ".config", ".hid", "a[1]", "a1", "b?c", "bzc", "s*t", "st"]
+_NESTED_LEAVES = ["a.log", "b.txt", "keep.log", "x", ".dot"]
+_NESTED_LINES = ["*.log", "!keep.log", "x", "b.txt", "/x", "a1/", "!a.log", ".hid/", "**/x", "!x", ".dot", "b*"]
+
+
+def _random_nested_tree(rng: random.Random) -> tuple[dict[str, str], list[str]]:
+    dirs = sorted({"/".join(rng.choice(_NESTED_DIRS) for _ in range(rng.randint(0, 3))) for _ in range(6)} | {""})
+    files = sorted({f"{d}/{leaf}".lstrip("/") for d in dirs for leaf in rng.sample(_NESTED_LEAVES, 2)})
+    gitignores = {
+        f"{d}/.gitignore".lstrip("/"): "\n".join(rng.sample(_NESTED_LINES, rng.randint(1, 4))) + "\n"
+        for d in rng.sample(dirs, rng.randint(1, min(4, len(dirs))))
+    }
+    return gitignores, files
+
+
+@pytest.mark.os_posix
+@pytest.mark.parametrize("base_name", ["repo", "re[1]po"])
+@pytest.mark.parametrize("seed", range(20))
+def test_matches_git_fuzz_nested(seed: int, base_name: str, tmp_path: Path) -> None:
+    root = tmp_path / base_name
+    root.mkdir()
+    gitignores, files = _random_nested_tree(random.Random(seed))
+    _assert_matches_git(root, gitignores, files)
+
+
+@pytest.mark.os_posix
+def test_rule_files_inside_dot_git_are_not_read(tmp_path: Path) -> None:
+    # The scenarios never ask about paths inside .git, so only the rule sources
+    # show whether discovery stayed out of it.
+    _init_repo(tmp_path)
+    _materialise(tmp_path, ["a.log"], {".gitignore": "*.log\n", ".git/.gitignore": "*\n", ".git/sub/.gitignore": "*\n"})
+
+    parser = igittigitt.IgnoreParser()
+    parser.parse_rule_files(base_dir=tmp_path, add_default_patterns=False)
+
+    sources = {rule.source_file for rule in parser.rules}
+    assert sources == {tmp_path / ".gitignore"}
