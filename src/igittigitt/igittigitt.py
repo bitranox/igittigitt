@@ -246,9 +246,6 @@ class _BaseParser:
         #: ``performance.dir_cache_max``.
         self._dir_cache_max = dir_cache_max
         self.rules: list[IgnoreRule] = list()
-        # small optimisation - we have a good chance that the last decisive
-        # rule matches again on the next, similar query. single slot, bounded.
-        self.last_matching_rule: IgnoreRule | None = None
         # bounded LRU of directory -> pruning rule (or None). Lets the ancestor
         # walk reuse decisions for sibling paths that share a parent directory.
         self._dir_cache: OrderedDict[str, IgnoreRule | None] = OrderedDict()
@@ -256,7 +253,6 @@ class _BaseParser:
     def _invalidate_caches(self) -> None:
         """Drop cached decisions after the rule set changes."""
         self._dir_cache.clear()
-        self.last_matching_rule = None
 
     def __enter__(self) -> "_BaseParser":
         return self
@@ -418,15 +414,11 @@ class _BaseParser:
             the passed path is a file (and not a directory); rules that only
             match directories (``match_file == False``) are skipped for files.
         """
-        cached = self.last_matching_rule
         for rule in reversed(self.rules):
             if is_file and not rule.match_file:
                 continue
             if _globmatch(str_file_path, rule.pattern_glob):
-                self.last_matching_rule = rule
                 return rule
-        # keep the previous hint only if nothing matched
-        self.last_matching_rule = cached
         return None
 
     def _add_default_patterns(self, path_base_dir: pathlib.Path, is_windows: bool | None = None) -> None:

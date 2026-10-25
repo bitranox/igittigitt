@@ -8,6 +8,14 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+### Removed
+
+- `IgnoreParser.last_matching_rule` (and the same attribute on `IncludeParser`, where it was
+  always `None`). No match decision read it, and it often named a rule that had not decided the
+  last result: after a path no rule matched it still held the previous rule, and a cached
+  directory decision left it untouched. Use `match_with_rule(path)`, which returns the deciding
+  rule for that path.
+
 ## [2.2.11] 2026-10-25 22:59:31
 
 ### Changed
