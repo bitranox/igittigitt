@@ -186,6 +186,11 @@ SCENARIOS: dict[str, tuple[dict[str, str], list[str]]] = {
         },
         [".config/a.log", ".config/a.txt", ".config/tool/keep.log", ".config/tool/b.log", "a.log", ".hidden"],
     ),
+    "utf8_byte_order_mark": (
+        # git skips a UTF-8 BOM at the start of an ignore file (e.g. one saved by Windows Notepad)
+        {".gitignore": "\ufeff*.log\nbuild/\n", "sub/.gitignore": "\ufeffcafé\n"},
+        ["a.log", "build/x", "b.txt", "sub/café", "sub/cafe"],
+    ),
     "comments_and_blanks": (
         {".gitignore": "# a comment\n\n*.bak\n  \n!special.bak\n"},
         ["x.bak", "special.bak", "dir/special.bak"],

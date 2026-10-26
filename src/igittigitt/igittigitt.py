@@ -364,7 +364,9 @@ class _BaseParser:
         else:
             path_base_dir = self._expand_base_path(base_path=base_dir)
 
-        with open(path_rule_file) as ignore_file:
+        # Like git: skip a UTF-8 byte order mark at the start and read the patterns as UTF-8 whatever
+        # the locale's encoding is (other bytes are kept as surrogates, as os.fsdecode() does).
+        with open(path_rule_file, encoding="utf-8-sig", errors="surrogateescape") as ignore_file:
             counter = 0
             for line in ignore_file:
                 counter += 1
