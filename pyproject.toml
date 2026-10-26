@@ -1,6 +1,6 @@
 [project]
 name = "igittigitt"
-version = "2.3.0"
+version = "2.3.1"
 description = "A spec-compliant .gitignore parser and path filter, 100% git-compatible, with an include/whitelist mode and a streaming, memory-bounded CLI"
 readme = "README.md"
 requires-python = ">=3.10"

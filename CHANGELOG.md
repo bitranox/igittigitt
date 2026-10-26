@@ -8,12 +8,14 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+## [2.3.1] 2026-10-26 10:39:08
+
 ### Fixed
 
 - A UTF-8 byte order mark at the start of a `.gitignore` is skipped, as git does. The file was read
   with the locale's encoding and the BOM became part of the first pattern, so that pattern never
   matched (e.g. a `.gitignore` saved as "UTF-8 with BOM" by Windows Notepad). Rule files are now
-  read as UTF-8 on every platform.
+  read as UTF-8 on every platform. Contributed by @wleeaf (#51).
 - A rule file containing bytes that are not valid UTF-8 no longer raises `UnicodeDecodeError`; such
   a pattern matches a file name with the same bytes, as in git.
 
