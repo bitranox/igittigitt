@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 
 import lib_log_rich.runtime
 import pytest
+from conftest import SYSTEM_LAYER_ROOT_VARIABLES
 from lib_layered_config import Config
 
 from igittigitt import __init__conf__
@@ -35,8 +36,13 @@ PREFIX = __init__conf__.LAYEREDCONF_SLUG.upper().replace("-", "_")
 _HOMES = ("HOME", "USERPROFILE", "XDG_CONFIG_HOME", "APPDATA", "LOCALAPPDATA")
 
 
+def _inherited(name: str) -> bool:
+    """Keep the system-layer redirect the autouse fixture set; drop the developer's own config variables."""
+    return name in SYSTEM_LAYER_ROOT_VARIABLES or not name.startswith((PREFIX, "LOG_", "LIB_LAYERED_CONFIG"))
+
+
 def _run(cwd: Path, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
-    clean = {k: v for k, v in os.environ.items() if not k.startswith((PREFIX, "LOG_", "LIB_LAYERED_CONFIG"))}
+    clean = {k: v for k, v in os.environ.items() if _inherited(k)}
     clean.update(dict.fromkeys(_HOMES, str(cwd)))
     clean.update(env or {})
     return subprocess.run(
@@ -343,3 +349,16 @@ def test_a_refused_log_variable_is_hidden_and_the_fallback_still_logs(tmp_path: 
 
     assert result.returncode == 0, result.stderr
     assert _INFO_LINE in result.stderr, result.stderr
+
+
+@pytest.mark.os_agnostic
+def test_the_subprocess_reads_the_redirected_app_layer_not_the_host_s(
+    tmp_path: Path, app_layer_config_file: Path
+) -> None:
+    """``_run`` keeps the conftest's system-layer redirect while dropping the developer's variables."""
+    app_layer_config_file.write_text('[layer_isolation_probe]\nread_from = "redirected app layer"\n', encoding="utf-8")
+
+    result = _run(tmp_path, "config", "--section", "layer_isolation_probe")
+
+    assert result.returncode == 0, result.stderr
+    assert "redirected app layer" in result.stdout, result.stdout
