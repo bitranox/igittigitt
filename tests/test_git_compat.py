@@ -294,3 +294,32 @@ def test_rule_files_inside_dot_git_are_not_read(tmp_path: Path) -> None:
 
     sources = {rule.source_file for rule in parser.rules}
     assert sources == {tmp_path / ".gitignore"}
+
+
+@pytest.mark.os_posix
+def test_rule_file_bytes_that_are_not_utf8_match_like_git(tmp_path: Path) -> None:
+    # git compares raw bytes, so a pattern that is not valid UTF-8 still matches the file name
+    # with the same bytes. The paths are only asked about, never created: macOS refuses file
+    # names that are not valid UTF-8.
+    import os
+
+    _init_repo(tmp_path)
+    (tmp_path / ".gitignore").write_bytes(b"\xff\xfebad\ncaf\xe9\n")
+    names = [b"\xff\xfebad", b"caf\xe9", b"cafe", b"good"]
+
+    oracle = subprocess.run(
+        [_GIT, "-C", str(tmp_path), "check-ignore", "--stdin", "-z", "--no-index"],
+        input=b"\0".join(names),
+        capture_output=True,
+        env=_git_env(),
+        check=False,
+    )
+    assert oracle.returncode in (0, 1), oracle.stderr
+    git_ignored = {token for token in oracle.stdout.split(b"\0") if token}
+
+    parser = igittigitt.IgnoreParser()
+    parser.parse_rule_files(base_dir=tmp_path, add_default_patterns=False)
+    ours = {name for name in names if parser.match(tmp_path / os.fsdecode(name))}
+
+    assert git_ignored == {b"\xff\xfebad", b"caf\xe9"}
+    assert ours == git_ignored
