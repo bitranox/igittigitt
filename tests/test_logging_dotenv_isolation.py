@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 
 import lib_log_rich.runtime
 import pytest
-from conftest import SYSTEM_LAYER_ROOT_VARIABLES
+from layer_roots import SYSTEM_LAYER_ROOT_VARIABLES
 from lib_layered_config import Config
 
 from igittigitt import __init__conf__

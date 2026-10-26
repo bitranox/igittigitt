@@ -21,6 +21,16 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   (for example a `/etc/xdg/<slug>/config.d/99-*.toml`) can no longer fail tests locally while CI stays
   green. The subprocess tests in `test_logging_dotenv_isolation.py` dropped every
   `LIB_LAYERED_CONFIG*` variable and so read the real system layers; they now keep the redirect.
+- The test suite no longer reads the developer's own user configuration layer. A new autouse fixture,
+  `user_layer_in_tmp_path`, points the user layer (`XDG_CONFIG_HOME`, `LIB_LAYERED_CONFIG_MAC_HOME_ROOT`,
+  `_APPDATA`, `_LOCALAPPDATA`) at an empty directory under `tmp_path`; `HOME` is left alone, because
+  git and uv read it.
+- The doctests under `src/` no longer run against the machine's configuration layers: a fixture in
+  `tests/conftest.py` never reaches them. The two layer redirects now live in a rootdir `conftest.py`,
+  their variable lists in `tests/layer_roots.py`; pyproject sets `testpaths` to include `src` and
+  `tests` (which keeps the root `conftest.py` out of doctest collection) and adds `tests` to
+  `pythonpath` and pyright's `extraPaths`. A test checks that every doctest collected from `src/`
+  gets both redirects.
 
 ## [2.3.1] 2026-10-26 10:39:08
 

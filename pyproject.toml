@@ -183,6 +183,7 @@ runtime-evaluated-base-classes = ["pydantic.BaseModel"]
 typeCheckingMode = "strict"
 extraPaths = [
   "src",
+  "tests",
 ]
 
 # `src` stays fully strict. Tests do legitimate white-box access of internal
@@ -198,7 +199,7 @@ reportUnknownArgumentType = false
 [tool.pytest.ini_options]
 addopts = ["--doctest-modules"]
 doctest_optionflags = ["ELLIPSIS", "NORMALIZE_WHITESPACE"]
-pythonpath = ["src"]
+pythonpath = ["src", "tests"]
 markers = [
   "os_agnostic: test runs on every supported operating system",
   "os_windows: test exercises Windows-only behavior",
@@ -208,6 +209,7 @@ markers = [
   "local_only: tests that require the local dev environment (external resources, script composition); skipped in CI",
   "integration: tests requiring external resources (SMTP, databases, APIs); run via 'bmk ti' or 'mktesti.sh'",
 ]
+testpaths = ["src", "tests"]
 
 [tool.coverage.run]
 branch = true
