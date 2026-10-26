@@ -209,3 +209,18 @@ def test_filter_rejects_separatorless_giant_token(
     result = cli_runner.invoke(cli, ["filter", "-C", str(tmp_path)], input=giant, obj=production_factory)
     assert result.exit_code != 0
     assert "missing separator" in result.output
+
+
+@pytest.mark.os_agnostic
+def test_a_log_variable_lib_log_rich_refuses_ends_logdemo_with_exit_78_on_every_os(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Exit 78 and lib_log_rich's own line, as ``config`` refuses it, not the catch-all's OS errno."""
+    monkeypatch.setenv("LOG_CONSOLE_LEVEL", "bogus")
+
+    exit_code = main(["logdemo"], services_factory=build_production)
+
+    err = capsys.readouterr().err
+    assert exit_code == 78, err
+    assert "Error: lib_log_rich: Invalid runtime settings: LOG_CONSOLE_LEVEL: Unknown log level: 'bogus'" in err
+    assert "Traceback" not in err
