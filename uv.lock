@@ -1134,7 +1134,7 @@ requires-dist = [
     { name = "jaraco-context", marker = "extra == 'dev'", specifier = ">=6.1.2" },
     { name = "lib-cli-exit-tools", specifier = ">=2.4.1" },
     { name = "lib-layered-config", specifier = ">=7.3.0" },
-    { name = "lib-log-rich", specifier = ">=6.5.7" },
+    { name = "lib-log-rich", specifier = ">=7.2.0" },
     { name = "orjson", specifier = ">=3.13.0" },
     { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.10.1" },
     { name = "pydantic", specifier = ">=2.14.1" },
@@ -1287,19 +1287,19 @@ wheels = [
 
 [[package]]
 name = "lib-log-rich"
-version = "6.5.7"
+version = "7.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "lib-cli-exit-tools" },
-    { name = "orjson" },
+    { name = "orjson", marker = "python_full_version < '3.15'" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "rich" },
     { name = "rich-click" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4e/9d/a689aa5e239d950bd3520531124226b03fbe1ad64c2ba06cf5c35e54f05b/lib_log_rich-6.5.7.tar.gz", hash = "sha256:398a0b7add39043f025435d36eb52f7e8f679decef971c78d1e5ec7dad642b8f", size = 328531, upload-time = "2026-10-22T12:12:06.403Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/83/10/6460c3d2150807c6a69d2ec6e25f14f43df3b85eeebbe4e525ea4a1797b1/lib_log_rich-7.2.0.tar.gz", hash = "sha256:c5ac18525bbd60e63656962fd6baad1a1d7040bd6660e2c65d6f54912fe77d3c", size = 387937, upload-time = "2026-10-26T16:35:47.449Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8e/4e/3a28d487df645a2f18b70e053fa9c991ec521da908e1ccd3a861f50de24f/lib_log_rich-6.5.7-py3-none-any.whl", hash = "sha256:aa111316d26d33c38323fa3713c187b598e788f38e0639a0a109c19e068a739e", size = 208822, upload-time = "2026-10-22T12:12:05.005Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/cc/dd4ae2d5994afaae4b51b27c54b7ffd69a77da754ecbccea035564fb6752/lib_log_rich-7.2.0-py3-none-any.whl", hash = "sha256:fb66fdd6dd4e34317e3922c2726a43b76ed86f2e526f97353d531624ac34e365", size = 233382, upload-time = "2026-10-26T16:35:45.7Z" },
 ]
 
 [[package]]

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+from lib_log_rich.domain import ConsoleTheme
 
 from igittigitt import __init__conf__
 from igittigitt.adapters.cli import cli, main
@@ -64,6 +65,26 @@ def test_unknown_command_errors(cli_runner: CliRunner, production_factory: Facto
 @pytest.mark.os_agnostic
 def test_main_returns_zero_for_help() -> None:
     assert main(["--help"], services_factory=build_production) == 0
+
+
+@pytest.mark.os_agnostic
+@pytest.mark.parametrize("theme", [theme.value for theme in ConsoleTheme])
+def test_logdemo_accepts_every_theme_lib_log_rich_ships(
+    cli_runner: CliRunner, production_factory: Factory, theme: str
+) -> None:
+    result = cli_runner.invoke(cli, ["logdemo", "--theme", theme], obj=production_factory)
+
+    assert result.exit_code == 0, result.output
+    assert f"Log demo completed (theme: {theme})" in result.output
+
+
+@pytest.mark.os_agnostic
+def test_an_unknown_logdemo_theme_is_a_usage_error_on_every_os(capsys: pytest.CaptureFixture[str]) -> None:
+    """Exit 2 from click, not the catch-all's OS errno (22 on POSIX, 87 on Windows) for the library's ValueError."""
+    exit_code = main(["logdemo", "--theme", "nope"], services_factory=build_production)
+
+    assert exit_code == 2
+    assert "Invalid value for '--theme'" in capsys.readouterr().err
 
 
 @pytest.mark.os_agnostic
