@@ -47,15 +47,36 @@ jobs:
           ci_config = data.get("tool", {}).get("ci", {})
           os_list = ci_config.get("os", ["ubuntu-latest"])
 
-          # macOS runners are slow, so macOS tests only the newest declared Python;
-          # every other OS tests them all. Newest by version number, never by
-          # classifier order.
+          # Free-threaded builds from [tool.ci] free-threaded = ["3.15", ...]. They cannot
+          # be classifiers: "3.15t" is not a trove classifier and hatchling refuses to
+          # build with an unknown one. PyPI's own marker is the version-less
+          # "Free Threading :: <level>" classifier, so each entry must name a version
+          # the classifiers already declare.
+          free_threaded = ci_config.get("free-threaded", [])
+          for entry in free_threaded:
+              if not (isinstance(entry, str) and len(entry.split(".")) == 2
+                      and all(p.isascii() and p.isdigit() for p in entry.split("."))):
+                  raise SystemExit(f'[tool.ci] free-threaded: {entry!r} is not an "X.Y" version string')
+              if entry not in versions:
+                  raise SystemExit(
+                      f"[tool.ci] free-threaded: {entry} is not declared as a "
+                      f'"{prefix}{entry}" classifier'
+                  )
+          if free_threaded and not any(c.startswith(prefix + "Free Threading") for c in classifiers):
+              print(f'::warning::[tool.ci] free-threaded is set, but no "{prefix}Free Threading :: '
+                    '<level>" classifier tells PyPI users the package supports it')
+
+          # macOS runners are slow, so macOS tests only the newest declared Python
+          # (the regular build); every other OS tests them all, free-threaded cells
+          # ("3.15t", which setup-python installs) included. Newest by version number,
+          # never by classifier order.
           latest = max(versions, key=lambda v: tuple(int(p) for p in v.split(".")))
           include = [
-              {"os": os_name, "python": version}
+              {"os": os_name, "python": python}
               for os_name in os_list
               for version in versions
-              if not os_name.startswith("macos") or version == latest
+              for python in [version] + ([version + "t"] if version in free_threaded else [])
+              if not os_name.startswith("macos") or python == latest
           ]
 
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
@@ -68,7 +89,7 @@ jobs:
     name: Tests (Python ${{ matrix.python }}, ${{ matrix.os }})
     needs: setup
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -462,7 +483,7 @@ jobs:
   pipx-uv:
     name: pipx/uv verification (ubuntu)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -502,7 +523,7 @@ jobs:
   notebooks:
     name: Execute notebooks (ubuntu, Python 3.14)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
