@@ -11,8 +11,9 @@ dependencies = [
     # Imported directly (adapters/cli/main.py), not only through rich-click.
     "click>=8.5.0",
     "lib_cli_exit_tools>=2.4.1",
-    # 7.0.0 made logdemo() and RuntimeConfig.console_theme take a ConsoleTheme member, not a string.
-    "lib_log_rich>=7.3.0",
+    # 7.0.0 made logdemo() and RuntimeConfig.console_theme take a ConsoleTheme member, not a string;
+    # 8.0.0 made RuntimeConfig refuse an unknown key (a misspelled [lib_log_rich] setting exits 78).
+    "lib_log_rich>=8.0.3",
     # Imported directly (adapters/logging/setup.py) to read the LOG_* lines of a .env.
     "python-dotenv>=1.2.4",
     "lib_layered_config>=7.3.0",
@@ -80,7 +81,7 @@ dev = [
   "wheel>=0.48.0",               # CVE-2025-24049
   "pynacl>=1.6.2",               # CVE-2025-69277
   "urllib3>=2.8.0",              # CVE-2025-66471, CVE-2025-66418
-  "virtualenv>=21.14.11",        # CVE-2025-22702, CVE-2026-113722, CVE-2026-113713
+  "virtualenv>=21.14.12",        # CVE-2025-22702, CVE-2026-113722, CVE-2026-113713
   "certifi>=2026.10.19",         # PYSEC-2026-4320
 ]
 
@@ -326,4 +327,4 @@ ignores = ["E003"]
 
 [tool.uv]
 exclude-newer = "7 days"
-exclude-newer-package = {lib-cli-exit-tools = false, lib-layered-config = false, lib-log-rich = false, certifi = "2026-10-20T02:24:17Z"}
+exclude-newer-package = {lib-cli-exit-tools = false, lib-layered-config = false, lib-log-rich = false}

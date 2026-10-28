@@ -533,3 +533,21 @@ def test_a_real_invalid_profile_name_stops_info_with_a_usage_error(tmp_path: Pat
     )
 
     assert completed.returncode == 2, completed.stderr.decode("utf-8", "replace")
+
+
+@pytest.mark.os_agnostic
+@pytest.mark.parametrize("command", ["config", "check"])
+def test_a_real_unknown_logging_key_refuses_with_78_naming_it(command: str) -> None:
+    """End to end through the real loader: a misspelled [lib_log_rich] key is a configuration error."""
+    completed = subprocess.run(
+        [sys.executable, "-m", "igittigitt", command],
+        input=b"",
+        capture_output=True,
+        check=False,
+        env={**os.environ, "IGITTIGITT___LIB_LOG_RICH__CONSOLE_LEVLE": "DEBUG"},
+    )
+
+    stderr = completed.stderr.decode("utf-8", "replace")
+    assert completed.returncode == 78, stderr
+    assert "Error: lib_log_rich.console_levle:" in stderr
+    assert "Traceback" not in stderr

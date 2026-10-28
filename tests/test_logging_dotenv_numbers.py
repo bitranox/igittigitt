@@ -90,3 +90,15 @@ def test_an_empty_or_null_dotenv_service_names_the_package(tmp_path: Path, clear
     runtime = _build_runtime_config(_load_dotenv(tmp_path, line))
 
     assert runtime.service == __init__conf__.name
+
+
+@pytest.mark.os_agnostic
+def test_an_unknown_key_is_refused_by_name() -> None:
+    # lib_log_rich 8 refuses a key RuntimeConfig does not define, so a misspelled setting is
+    # reported instead of leaving the intended value at its default.
+    with pytest.raises(ValidationError) as caught:
+        LoggingConfigModel.model_validate({"console_levle": "DEBUG"})
+
+    assert [(error["loc"], error["type"]) for error in caught.value.errors()] == [
+        (("console_levle",), "extra_forbidden")
+    ]

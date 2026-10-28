@@ -47,7 +47,8 @@ class LoggingConfigModel(lib_log_rich.runtime.RuntimeConfig):
     """lib_log_rich's ``RuntimeConfig`` with this package's defaults: the ``[lib_log_rich]`` section's model.
 
     The section is validated once, by lib_log_rich's own field types; a key it does not know is
-    ignored, as ``RuntimeConfig`` ignores it. On top of that:
+    refused, as ``RuntimeConfig`` refuses it from lib_log_rich 8 on, so a misspelled setting is
+    reported rather than leaving the intended value at its default. On top of that:
 
     * ``service`` defaults to the package name, also when it is empty or None.
     * ``environment`` defaults to ``prod``.
@@ -65,8 +66,14 @@ class LoggingConfigModel(lib_log_rich.runtime.RuntimeConfig):
         >>> default.service, default.environment, str(default.console_theme)
         ('igittigitt', 'prod', 'dark')
 
-        >>> LoggingConfigModel.model_validate({"service": 4711, "console_theme": None, "unknown": 1}).service
+        >>> LoggingConfigModel.model_validate({"service": 4711, "console_theme": None}).service
         '4711'
+
+        >>> try:
+        ...     LoggingConfigModel.model_validate({"console_levle": "DEBUG"})
+        ... except ValidationError as exc:
+        ...     exc.errors()[0]["type"]
+        'extra_forbidden'
     """
 
     service: str = Field(default=__init__conf__.name, coerce_numbers_to_str=True)
