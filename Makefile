@@ -1,4 +1,4 @@
-# BMK MAKEFILE 3.28.0
+# BMK MAKEFILE 3.30.0
 # do not alter this file - it might be overwritten on new versions of BMK
 # if You want to alter it, remove the first line # BMK MAKEFILE 1.0 - then it is a custom makefile and will not be overwritten
 # bmk Makefile - thin wrapper using `uv tool upgrade` for persistent bmk
@@ -188,7 +188,7 @@ endif
 # cooldown (below). The upgrade itself does not consult it: uv re-resolves the requirement
 # recorded in the receipt, which is itself a `bmk>=...`, so it always lands on the newest
 # release the cooldown admits and clears the floor anyway.
-BMK_MIN := 3.28.0
+BMK_MIN := 3.30.0
 
 # Absent env, missing check, or damaged env - all three mean "do not upgrade, rebuild".
 # `test -x` keeps a fresh machine quiet: there is no interpreter to run yet.
@@ -509,7 +509,7 @@ install:  ## Editable install (no dev extras)
 
 .PHONY: help
 help:  ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-26s\033[0m %s\n", $$1, $$2}' | \
 		sort
 

@@ -8,6 +8,8 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+## [2.4.0] 2026-10-28 21:44:50
+
 ### Changed
 
 - `check -v` prints what `git check-ignore -v` prints. A path whose deciding rule is a negation
