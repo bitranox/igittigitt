@@ -132,9 +132,10 @@ inc.match("src_tree/pkg/deep.py")  # True -> kept
 # which of these paths are ignored? (mirrors `git check-ignore`)
 igittigitt check -C /path/to/repo a.log src/main.py      # exit 0 if any ignored, 1 if none
 
-# show the deciding source:line:pattern (like `git check-ignore -v`): a path a negation
-# re-includes is listed too and counts for the exit code; the rule file is named relative to -C;
-# with -z every field (source, line, pattern, path) is NUL-terminated, as in git
+# show the deciding source:line:pattern (like `git check-ignore -v`), as `src:line:pattern<TAB>path`.
+# As in git, -v also lists a path a negation re-includes, and that listing makes the exit 0
+# (without -v the same path is not ignored: exit 1). The rule file is named relative to -C;
+# with -z every field (source, line, pattern, path) is NUL-terminated
 igittigitt check -C /path/to/repo -v a.log
 
 # inline rules and explicit ignore files, reading paths from stdin

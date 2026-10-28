@@ -170,8 +170,9 @@ same `dir_cache_max` argument.
 igittigitt check -C /path/to/repo a.log src/main.py
 #   exit 0 if at least one path is ignored, 1 if none
 
-# show the deciding rule (source:line:pattern), like `git check-ignore -v`: a path a
-# negation re-includes is listed too, and the rule file is named relative to -C
+# show the deciding rule (source:line:pattern), like `git check-ignore -v`: as in git, a
+# path a negation re-includes is listed too and that makes the exit 0 (without -v it is
+# not ignored: exit 1); the rule file is named relative to -C
 igittigitt check -C /path/to/repo -v a.log
 
 # Unix filter: drop ignored paths from a stream

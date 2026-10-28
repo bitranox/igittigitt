@@ -8,6 +8,11 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+### Changed
+
+- README and skill: `check -v` now states the exit code a negation-re-included path gives (0 with
+  `-v`, 1 without, as in git) and shows the `src:line:pattern<TAB>path` line format.
+
 ## [2.4.0] 2026-10-28 21:44:50
 
 ### Changed
