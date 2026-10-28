@@ -13,7 +13,7 @@ dependencies = [
     "lib_cli_exit_tools>=2.4.1",
     # 7.0.0 made logdemo() and RuntimeConfig.console_theme take a ConsoleTheme member, not a string;
     # 8.0.0 made RuntimeConfig refuse an unknown key (a misspelled [lib_log_rich] setting exits 78).
-    "lib_log_rich>=8.0.3",
+    "lib_log_rich>=8.1.1",
     # Imported directly (adapters/logging/setup.py) to read the LOG_* lines of a .env.
     "python-dotenv>=1.2.4",
     "lib_layered_config>=7.3.0",
@@ -55,6 +55,7 @@ Issues = "https://github.com/bitranox/igittigitt/issues"
 dev = [
   "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
+  "pytest-xdist>=3.8.0",
   "hypothesis>=6.168.5",
   "ruff>=0.17.1",
   "pyright[nodejs]>=1.1.414",

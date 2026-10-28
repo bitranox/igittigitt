@@ -220,19 +220,13 @@ def test_parse_rule_files() -> None:
     ]
 
 
-def test_shutil_ignore_function() -> None:
-    """
-    >>> test_shutil_ignore_function()
+def test_shutil_ignore_function(tmp_path: pathlib.Path) -> None:
+    # The copy goes to tmp_path, never beside this file: a fixed directory under tests/ is
+    # shared by every concurrent run (xdist workers, two checkouts' gates), and one run's
+    # rmtree deletes the tree another run is copying into.
+    path_source_dir = pathlib.Path(__file__).parent.resolve() / "example"
+    path_target_dir = tmp_path / "target"
 
-    """
-    # Setup
-    path_test_dir = pathlib.Path(__file__).parent.resolve()
-
-    path_source_dir = path_test_dir / "example"
-    path_target_dir = path_test_dir / "target"
-    shutil.rmtree(path_target_dir, ignore_errors=True)
-
-    # Test
     ignore_parser = igittigitt.IgnoreParser()
     ignore_parser.parse_rule_files(base_dir=path_source_dir, filename=".test_gitignore")
     shutil.copytree(
@@ -242,9 +236,6 @@ def test_shutil_ignore_function() -> None:
     )
 
     assert len(list(path_target_dir.glob("**/*"))) == 9
-
-    # Teardown
-    shutil.rmtree(path_target_dir, ignore_errors=True)
 
 
 def doctest_examples() -> None:
@@ -272,19 +263,19 @@ def doctest_examples() -> None:
     # add_rule_Example}}}
 
     >>> path_test_dir = pathlib.Path(__file__).parent.resolve()
-    >>> path_target_dir = path_test_dir / "target"
-    >>> shutil.rmtree(path_target_dir, ignore_errors=True)
+    >>> import tempfile
+    >>> path_scratch_dir = pathlib.Path(tempfile.mkdtemp())
 
     # test_shutil_ignore_function_Example{{{
     >>> path_source_dir = path_test_dir / "example"
-    >>> path_target_dir = path_test_dir / "target"
+    >>> path_target_dir = path_scratch_dir / "target"
     >>> ignore_parser = igittigitt.IgnoreParser()
     >>> ignore_parser.parse_rule_files(base_dir=path_source_dir, filename=".test_gitignore")
     >>> discard = shutil.copytree(path_source_dir, path_target_dir, ignore=ignore_parser.shutil_ignore)
 
     # test_shutil_ignore_function_Example}}}
     # Teardown
-    >>> shutil.rmtree(path_target_dir, ignore_errors=True)
+    >>> shutil.rmtree(path_scratch_dir, ignore_errors=True)
 
 
     """
