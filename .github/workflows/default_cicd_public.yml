@@ -351,6 +351,24 @@ jobs:
                   facts["own_dist"] = getattr(config.option, "dist", "no") not in ("no", None)
                   return 0
           pytest.main(["-p", "no:cacheprovider"], plugins=[_Probe()])
+          # pytest-xdist 3.8.0 groups a test by renaming item._nodeid, which pytest 9.2.0's Node.nodeid never
+          # reads (pytest-xdist issue #1386): --dist loadgroup then spreads every xdist_group over all workers
+          # and the run stays green. Asked of the installed code rather than its versions, so a fixed release
+          # lifts it; a check that cannot answer leaves the field unset and the run parallel.
+          if facts.get("xdist"):
+              try:
+                  import inspect, xdist.remote
+                  from _pytest.nodes import Node
+                  renames = "item._nodeid =" in inspect.getsource(xdist.remote)
+                  node = object.__new__(Node)
+                  try:
+                      node._nodeid = "group-probe"
+                      honoured = node.nodeid == "group-probe"
+                  except Exception:
+                      honoured = False
+                  facts["groups_ignored"] = renames and not honoured
+              except Exception:
+                  pass
           with open(sys.argv[1], "w", encoding="utf-8") as out:
               json.dump(facts, out)
           """
@@ -389,10 +407,18 @@ jobs:
               with open(answer, encoding="utf-8") as f:
                   facts = json.load(f)
 
-          if workers == "1" or not (facts["xdist"] and facts["cov"]):
+          if workers == "1":
+              serial = "[tool.scripts.test] workers = 1"
+          elif not (facts["xdist"] and facts["cov"]):
+              serial = "pytest-xdist and pytest-cov are not both loaded"
+          elif facts.get("groups_ignored"):
+              serial = "this pytest drops pytest-xdist's xdist_group marks (pytest-xdist issue #1386)"
+          else:
+              serial = None
+
+          if serial:
               args = "-n 0" if facts["xdist"] and facts["own_n"] else ""
-              reason = "[tool.scripts.test] workers = 1" if workers == "1" else "pytest-xdist and pytest-cov are not both loaded"
-              print(f"pytest runs serial: {reason}")
+              print(f"pytest runs serial: {serial}")
           elif facts["own_n"]:
               args = ""
               print("pytest runs with the project's own -n")
