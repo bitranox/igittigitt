@@ -314,6 +314,95 @@ jobs:
         shell: bash
         run: pyright
 
+      - name: Choose pytest workers
+        id: workers
+        shell: python
+        run: |
+          # Run the suite across processes exactly when bmk's `make test` does (bmk
+          # adapters/stagerunner/helpers/_parallel.py): only when the project's configured
+          # pytest loads pytest-xdist AND pytest-cov (this job always measures coverage, and
+          # only pytest-cov carries it into the workers), with [tool.scripts.test] workers
+          # as the count ("1" is serial). A project's own -n or --dist is its choice and is
+          # kept. What pytest loads is asked of pytest itself, never inferred from what is
+          # importable: addopts can block a plugin and autoload can be off.
+          import json
+          import os
+          import platform
+          import subprocess
+          import sys
+          import tempfile
+
+          try:
+              import tomllib
+          except ModuleNotFoundError:  # Python 3.10
+              import pip._vendor.tomli as tomllib
+
+          PROBE = """
+          import json, sys
+          import pytest
+          facts = {}
+          class _Probe:
+              @pytest.hookimpl(tryfirst=True)
+              def pytest_cmdline_main(self, config):
+                  plugins = config.pluginmanager
+                  facts["xdist"] = plugins.hasplugin("xdist")
+                  facts["cov"] = plugins.hasplugin("pytest_cov")
+                  facts["own_n"] = getattr(config.option, "numprocesses", None) is not None
+                  facts["own_dist"] = getattr(config.option, "dist", "no") not in ("no", None)
+                  return 0
+          pytest.main(["-p", "no:cacheprovider"], plugins=[_Probe()])
+          with open(sys.argv[1], "w", encoding="utf-8") as out:
+              json.dump(facts, out)
+          """
+
+
+          def cpu_model():
+              try:
+                  with open("/proc/cpuinfo", encoding="utf-8") as f:
+                      for line in f:
+                          if line.startswith("model name"):
+                              return line.split(":", 1)[1].strip()
+              except OSError:
+                  pass
+              return platform.processor() or "unknown CPU"
+
+
+          def workers_setting():
+              with open("pyproject.toml", "rb") as f:
+                  raw = tomllib.load(f).get("tool", {}).get("scripts", {}).get("test", {}).get("workers", "auto")
+              if isinstance(raw, str) and raw.strip().lower() == "auto":
+                  return "auto"
+              # bool is an int subclass, and `workers = true` is no count.
+              if isinstance(raw, int) and not isinstance(raw, bool) and raw >= 1:
+                  return str(raw)
+              if isinstance(raw, str) and raw.strip().isascii() and raw.strip().isdigit() and int(raw) >= 1:
+                  return str(int(raw))
+              print(f'::error::[tool.scripts.test] workers must be "auto" or a whole number >= 1 (1 means serial), got: {raw!r}')
+              sys.exit(1)
+
+
+          workers = workers_setting()
+          print(f"Runner: {cpu_model()}, {os.cpu_count()} CPUs")
+          with tempfile.TemporaryDirectory() as tmp:
+              answer = os.path.join(tmp, "plugins.json")
+              subprocess.run([sys.executable, "-c", PROBE, answer], check=True, stdout=subprocess.DEVNULL)
+              with open(answer, encoding="utf-8") as f:
+                  facts = json.load(f)
+
+          if workers == "1" or not (facts["xdist"] and facts["cov"]):
+              args = "-n 0" if facts["xdist"] and facts["own_n"] else ""
+              reason = "[tool.scripts.test] workers = 1" if workers == "1" else "pytest-xdist and pytest-cov are not both loaded"
+              print(f"pytest runs serial: {reason}")
+          elif facts["own_n"]:
+              args = ""
+              print("pytest runs with the project's own -n")
+          else:
+              args = " ".join(["-n", workers] + ([] if facts["own_dist"] else ["--dist", "loadgroup"]))
+              print(f"pytest runs in parallel: {args}")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f"args={args}\n")
+
       - name: Run pytest (tests + coverage)
         id: pytest
         continue-on-error: true
@@ -325,6 +414,7 @@ jobs:
           COVERAGE_FILE: "${{ runner.temp }}/.coverage"
         run: >-
           pytest -m "${{ env.PYTEST_MARKER_EXPR }}"
+          ${{ steps.workers.outputs.args }}
           --cov=${{ env.SRC_PATH }}/${{ env.PACKAGE_MODULE }}
           --cov-report=term-missing
           --cov-report=xml:${{ env.COV_REPORT_FILE }}
