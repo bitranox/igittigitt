@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import os
+import pathlib
 import sys
+from typing import TYPE_CHECKING
 
 import rich_click as click
 
@@ -17,6 +20,34 @@ from ._common import (
     resolve_performance,
     silence_broken_pipe,
 )
+
+if TYPE_CHECKING:
+    from typing import TextIO
+
+    from ....igittigitt import IgnoreRule
+
+
+def _source_label(rule: IgnoreRule, base_root: pathlib.Path) -> str:
+    """Name the rule's file as git does: relative to the base directory (git: the repository
+    root) when the file lies below it, as given otherwise; empty for an inline ``-r`` rule."""
+    if rule.source_file is None:
+        return ""
+    source = pathlib.Path(rule.source_file)
+    try:
+        return source.relative_to(base_root).as_posix()
+    except ValueError:
+        return str(source)
+
+
+def _emit_verbose(rule: IgnoreRule, token: str, *, base_root: pathlib.Path, zero: bool, out: TextIO) -> None:
+    """Write one ``git check-ignore -v`` record: ``source:line:pattern<TAB>path``, or with ``-z``
+    every one of the four fields NUL-terminated, as git writes them."""
+    line = "" if rule.source_line_number is None else str(rule.source_line_number)
+    fields = (_source_label(rule, base_root), line, rule.pattern_original, token)
+    if zero:
+        out.write("".join(field + "\0" for field in fields))
+    else:
+        out.write(f"{fields[0]}:{fields[1]}:{fields[2]}\t{fields[3]}\n")
 
 
 @click.command("check", context_settings=CLICK_CONTEXT_SETTINGS)
@@ -45,7 +76,14 @@ from ._common import (
     help="Read paths from stdin (one per line, or NUL-separated with -z).",
 )
 @option("-z", "--zero", "zero", is_flag=True, default=False, help="Input and output are NUL-separated.")
-@option("-v", "--verbose", "verbose", is_flag=True, default=False, help="Also print the matching source:line:pattern.")
+@option(
+    "-v",
+    "--verbose",
+    "verbose",
+    is_flag=True,
+    default=False,
+    help="Also print the deciding source:line:pattern, negations included (like git check-ignore -v).",
+)
 @argument("paths", nargs=-1)
 @click.pass_context
 def cli_check(
@@ -61,7 +99,11 @@ def cli_check(
     verbose: bool,
     paths: tuple[str, ...],
 ) -> None:
-    """Print the paths that are ignored. Exit 0 if any matched, 1 if none."""
+    """Print the paths that are ignored. Exit 0 if any matched, 1 if none.
+
+    With -v, a path whose deciding rule is a negation is printed too and counts as matched, as
+    git check-ignore -v does; the rule file is named relative to --base-dir when it lies below it.
+    """
     perf = resolve_performance(ctx)
     do_scan = scan if scan is not None else not (ignore_files or rules)
     parser = build_ignore_parser(
@@ -74,6 +116,9 @@ def cli_check(
     )
 
     use_stdin = stdin_flag or not paths or tuple(paths) == ("-",)
+    # Expanded as the engine expands it (absolute and normalised, symlinks NOT resolved), so the
+    # rule files it found compare equal under relative_to; resolve() would follow a symlink.
+    base_root = pathlib.Path(os.path.normpath(pathlib.Path(base_dir).expanduser().absolute()))
     out = sys.stdout
     any_match = False
     try:
@@ -85,14 +130,13 @@ def cli_check(
             max_token_bytes=perf.max_token_bytes,
         ):
             ignored, rule = parser.match_with_rule(resolve_path(token, base_dir))
-            if not ignored:
-                continue
-            any_match = True
+            # git -v reports the deciding rule even when it is a negation, and counts that path
+            # for the exit status; without -v only an ignored path is reported.
             if verbose and rule is not None:
-                source = str(rule.source_file) if rule.source_file is not None else ""
-                line = rule.source_line_number if rule.source_line_number is not None else ""
-                emit(f"{source}:{line}:{rule.pattern_original}\t{token}", zero=zero, out=out)
-            else:
+                any_match = True
+                _emit_verbose(rule, token, base_root=base_root, zero=zero, out=out)
+            elif ignored:
+                any_match = True
                 emit(token, zero=zero, out=out)
         out.flush()
     except BrokenPipeError:

@@ -16,6 +16,7 @@ from __future__ import annotations
 import random
 import shutil
 import subprocess
+import sys
 from typing import TYPE_CHECKING
 
 import pytest
@@ -323,3 +324,64 @@ def test_rule_file_bytes_that_are_not_utf8_match_like_git(tmp_path: Path) -> Non
 
     assert git_ignored == {b"\xff\xfebad", b"caf\xe9"}
     assert ours == git_ignored
+
+
+# --- check -v reports what git check-ignore -v reports -------------------------
+
+_VERBOSE_TREE: dict[str, str] = {
+    ".gitignore": "*.log\n!keep.log\nbuild/\n!build/keep\n",
+    "sub/.gitignore": "*.tmp\n!ok.tmp\n",
+}
+_VERBOSE_FILES = ["a.log", "keep.log", "sub/x.tmp", "sub/ok.tmp", "build/keep", "build/x", "sub/deep/y.log", "src.py"]
+
+
+def _run_both(root: Path, git_args: list[str], our_args: list[str], payload: str | None) -> tuple[object, object]:
+    git = subprocess.run(
+        [_GIT, "-C", str(root), "check-ignore", "--no-index", *git_args],
+        input=payload,
+        capture_output=True,
+        text=True,
+        env=_git_env(),
+        check=False,
+    )
+    ours = subprocess.run(
+        [sys.executable, "-m", "igittigitt", "check", "-C", str(root), *our_args],
+        input=payload,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    return (git.returncode, git.stdout), (ours.returncode, ours.stdout)
+
+
+@pytest.mark.os_posix
+@pytest.mark.parametrize(
+    "paths",
+    [
+        pytest.param(_VERBOSE_FILES, id="every-path"),
+        pytest.param(["keep.log"], id="only-a-negated-path"),
+        pytest.param(["src.py"], id="no-rule-matches"),
+    ],
+)
+def test_check_verbose_prints_what_git_prints(paths: list[str], tmp_path: Path) -> None:
+    # git -v also reports a path whose deciding rule is a negation, counts it for the exit code,
+    # and names the rule file relative to the repository root.
+    _init_repo(tmp_path)
+    _materialise(tmp_path, _VERBOSE_FILES, _VERBOSE_TREE)
+
+    git, ours = _run_both(tmp_path, ["-v", *paths], ["-v", *paths], None)
+
+    assert ours == git
+
+
+@pytest.mark.os_posix
+def test_check_verbose_zero_separates_every_field_like_git(tmp_path: Path) -> None:
+    # git -v -z writes <source> NUL <line> NUL <pattern> NUL <path> NUL, not the colon/tab form.
+    _init_repo(tmp_path)
+    _materialise(tmp_path, _VERBOSE_FILES, _VERBOSE_TREE)
+    payload = "\0".join(_VERBOSE_FILES) + "\0"
+
+    git, ours = _run_both(tmp_path, ["-v", "-z", "--stdin"], ["-v", "-z", "--stdin"], payload)
+
+    assert ours == git

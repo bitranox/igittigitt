@@ -65,16 +65,10 @@ logger = logging.getLogger(__name__)
 def cli_config(ctx: click.Context, output_format: str, section: str | None, profile: str | None) -> None:
     """Display the current merged configuration from all sources.
 
-    Shows configuration loaded from defaults, application/user config files,
-    .env files, and environment variables.
+    Shows configuration loaded from defaults, application/host/user config files,
+    .env files, environment variables and --set, with the source of every value.
 
-    Precedence: defaults -> app -> host -> user -> dotenv -> env
-
-    Example:
-        >>> from click.testing import CliRunner
-        >>> from unittest.mock import MagicMock
-        >>> runner = CliRunner()
-        >>> # Real invocation tested in test_cli_config.py
+    Precedence: defaults -> app -> host -> user -> .env -> env -> --set
     """
     # Parsed here rather than in an option callback, so a bad --format is still reported first.
     profile_override = parse_profile_option(profile)
@@ -243,32 +237,23 @@ def cli_config_deploy(
     dir_mode: int | None,
     file_mode: int | None,
 ) -> None:
-    r"""Deploy default configuration to system or user directories.
+    """Deploy default configuration to system or user directories.
 
     Creates configuration files in platform-specific locations:
 
-    \b
-    - app:  System-wide application config (requires privileges)
-    - host: System-wide host config (requires privileges)
-    - user: User-specific config (~/.config on Linux)
+    app: system-wide application config (requires privileges).
+
+    host: system-wide host config (requires privileges).
+
+    user: user-specific config (~/.config on Linux).
 
     By default, existing files are not overwritten. Use --force to overwrite.
 
-    \b
-    Permission options (POSIX only, no-op on Windows):
-    - --permissions/--no-permissions: Enable/disable permission setting
-    - --dir-mode: Override directory mode (octal, e.g., 750)
-    - --file-mode: Override file mode (octal, e.g., 640)
-
-    Without them, lib_layered_config decides the modes from
-    [lib_layered_config.default_permissions] in the bundled defaults, the
-    configuration files this deploy does not overwrite and the environment,
-    with any --set of that section laid over them; never from .env.
-
-    Example:
-        >>> from click.testing import CliRunner
-        >>> runner = CliRunner()
-        >>> # Real invocation tested in test_cli_config.py
+    --permissions/--no-permissions, --dir-mode and --file-mode (octal, e.g. 750 / 640) set the
+    Unix modes of what is written (POSIX only, no-op on Windows). Without them, lib_layered_config
+    decides the modes from [lib_layered_config.default_permissions] in the bundled defaults, the
+    configuration files this deploy does not overwrite and the environment, with any --set of that
+    section laid over them; never from .env.
     """
     if set_permissions is False and (dir_mode is not None or file_mode is not None):
         raise click.UsageError(
@@ -458,11 +443,6 @@ def cli_config_generate_examples(ctx: click.Context, destination: str, force: bo
     documenting available settings.
 
     By default, existing files are not overwritten. Use --force to overwrite.
-
-    Example:
-        >>> from click.testing import CliRunner
-        >>> runner = CliRunner()
-        >>> # Real invocation tested in test_cli_config.py
     """
     extra = {"command": "config-generate-examples", "destination": destination, "force": force}
     with lib_log_rich.runtime.bind(job_id="cli-config-generate-examples", extra=extra):

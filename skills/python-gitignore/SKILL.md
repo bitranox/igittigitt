@@ -8,7 +8,7 @@ description: Use when parsing .gitignore files, deciding whether paths are ignor
 > The `igittigitt` repo is itself a Claude Code plugin/marketplace. Install this skill in
 > any project with `/plugin marketplace add bitranox/igittigitt` then
 > `/plugin install igittigitt`. It is also mirrored in the central bitranox marketplace
-> (<https://github.com/bitranox/bitranox-skills>) as `python-gitignore`.
+> (<https://github.com/bitranox/bitranox-skills>) as `coding-python-gitignore`.
 
 `igittigitt` is a spec-compliant `.gitignore` parser for Python - a **library and a CLI**.
 Use it whenever you need to know "would git ignore this path?" or to filter / whitelist a
@@ -86,8 +86,15 @@ Key methods on `IgnoreParser`:
 - `parse_rule_file(rule_file, base_dir=None)` - parse one file.
 - `add_rule(pattern, base_path)` - add a single rule string.
 - `match(path) -> bool` - True if the path is ignored.
-- `match_with_rule(path) -> (bool, rule|None)` - also returns the deciding rule.
+- `match_with_rule(path) -> (bool, rule|None)` - also returns the deciding rule, a negation
+  included; it carries `pattern_original`, `is_negation_rule`, `source_file` and
+  `source_line_number` (both `None` for an `add_rule` rule).
 - `shutil_ignore(base_dir, names) -> set[str]` - drop-in `ignore=` callback for `copytree`.
+- `load_default_patterns(base_dir)` - add git's user-level ignore file on its own.
+- `IgnoreParser(dir_cache_max=8192)` - per-parser directory-decision cache size (`0` disables).
+
+`igittigitt.conf_igittigitt.add_default_patterns = False` changes the default that
+`parse_rule_files` uses when its caller does not pass `add_default_patterns`.
 
 ### Copy a tree, skipping ignored files
 
@@ -117,13 +124,17 @@ shutil.copytree("src_tree", "dst_tree", ignore=inc.shutil_include)
 inc.match("src_tree/pkg/deep.py")  # True -> kept
 ```
 
+`IncludeParser` also has `parse_rule_file` / `parse_rule_files` and the `dir_cache_max` argument.
+
 ## CLI usage
 
 ```bash
 # which of these paths are ignored? (mirrors `git check-ignore`)
 igittigitt check -C /path/to/repo a.log src/main.py      # exit 0 if any ignored, 1 if none
 
-# show the matching source:line:pattern (like `git check-ignore -v`)
+# show the deciding source:line:pattern (like `git check-ignore -v`): a path a negation
+# re-includes is listed too and counts for the exit code; the rule file is named relative to -C;
+# with -z every field (source, line, pattern, path) is NUL-terminated, as in git
 igittigitt check -C /path/to/repo -v a.log
 
 # inline rules and explicit ignore files, reading paths from stdin
@@ -152,12 +163,21 @@ find . -type f | igittigitt filter --include -r '*.py'
 # NUL-separated I/O for paths with spaces or newlines
 find . -print0 | igittigitt filter -z | xargs -0 tar czf out.tgz
 
-# stops cleanly when the reader closes the pipe (no traceback)
+# stops cleanly when the reader closes the pipe (no traceback, exit 141)
 find . -type f | igittigitt filter | head -n 20
+
+# paths can also be arguments instead of stdin
+igittigitt filter -C /path/to/repo a.log src/main.py
 ```
 
 Shared `check`/`filter` options: `-C/--base-dir`, `-f/--gitignore FILE` (repeatable),
-`-r/--rule PATTERN` (repeatable), `--scan/--no-scan`, `--default-patterns`, `-z/--zero`.
+`-r/--rule PATTERN` (repeatable), `--scan/--no-scan`, `--default-patterns`, `-z/--zero`;
+`check` adds `-v/--verbose` and `--stdin`, `filter` adds `-i/--include`.
+
+- `--default-patterns` is OFF on the CLI (the library loads git's user ignore file by default, and
+  so does `git check-ignore`): pass it when `check` must agree with git on this machine.
+- `filter --include` uses only the `-r`/`-f` rules and never scans `.gitignore` files: with neither
+  it prints nothing. `--scan` and `--default-patterns` apply to ignore mode only.
 
 ## Configuration (lib_layered_config)
 
@@ -196,7 +216,7 @@ set ad hoc with `igittigitt --set performance.dir_cache_max=32768 ...`, in a `.e
 
 ### `[performance]` knobs (speed/memory only - never change matching)
 
-Defaults below are igittigitt 2.2.5 (checked 2026-10-11). Confirm them against your own install
+Defaults below are igittigitt 2.3.1 (checked 2026-10-28). Confirm them against your own install
 rather than this table: `igittigitt config --section performance` prints all four keys as they are
 in effect (defaults plus any `config.d`/`.env`/env override; add `--format json` for a script).
 Before 2.2.5 both formats print `max_token_bytes` as `"***REDACTED***"` (lib_layered_config masks a
@@ -215,6 +235,7 @@ e.g. `igittigitt --set lib_log_rich.console_level=DEBUG info`.
 
 ## Default patterns
 
-`parse_rule_files(add_default_patterns=True)` (the default) also loads git's user-level
-default ignore file (`$XDG_CONFIG_HOME/git/ignore` or `~/.config/git/ignore`). Pass
-`add_default_patterns=False` to match only the in-tree `.gitignore` files.
+`parse_rule_files()` also loads git's user-level default ignore file
+(`$XDG_CONFIG_HOME/git/ignore` or `~/.config/git/ignore`) unless you pass
+`add_default_patterns=False` or set `igittigitt.conf_igittigitt.add_default_patterns = False`.
+The CLI does the opposite: it loads that file only with `--default-patterns`.

@@ -72,7 +72,13 @@ def cli_filter(
     zero: bool,
     paths: tuple[str, ...],
 ) -> None:
-    """Print the surviving paths (not ignored, or - with --include - kept)."""
+    """Print the surviving paths (not ignored, or - with --include - kept).
+
+    Paths come from the arguments, or from stdin when none (or a single -) are given. Include
+    mode keeps only what the -r/-f rules match, so with neither it prints nothing; --scan and
+    --default-patterns apply to ignore mode only. Exit 0 on success, 141 when the reader closes the
+    pipe early.
+    """
     perf = resolve_performance(ctx)
     if include_mode:
         include_parser = build_include_parser(base_dir, rule_files, rules, dir_cache_max=perf.dir_cache_max)

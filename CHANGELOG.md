@@ -8,7 +8,35 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+### Changed
+
+- `check -v` prints what `git check-ignore -v` prints. A path whose deciding rule is a negation
+  (`!keep.log`) is listed too and counts for exit 0; before, it was left out and could make the
+  command exit 1. The rule file is named relative to `--base-dir` (`sub/.gitignore`) rather than as
+  an absolute path. With `-z`, each of the four fields (source, line, pattern, path) is
+  NUL-terminated, where it used to be one `source:line:pattern<TAB>path` record. Scripts that parse
+  the old `-v` output need adjusting. `tests/test_git_compat.py` compares both forms with real git.
+- The `lib_log_rich` floor is 8.0.3. From 8.0.0 a key in `[lib_log_rich]` that lib_log_rich does not
+  know (a misspelled `console_levle`) is refused: `config`, `check` and `filter` exit 78 with one
+  line naming it, instead of ignoring it and leaving the intended setting at its default. A fresh
+  install of 2.3.1 already resolves lib_log_rich 8 and behaves this way; the documentation said the
+  key was ignored.
+
 ### Fixed
+
+- `--help` of `config`, `config-deploy`, `config-generate-examples` and `info` no longer shows
+  doctest scaffolding (`>>> from click.testing import CliRunner`), and `config-deploy --help` no
+  longer prints a literal `\b`. `config --help` names `--set` in its precedence line; `check
+  --help` and `filter --help` say how `-v`, arguments, stdin, include mode and the exit codes behave.
+- Documentation: DEVELOPMENT.md and CONTRIBUTING.md described scripts, workflows and make targets
+  this repository no longer has; they now describe the bmk targets and the template-managed
+  workflows. CONFIG.md lists the host layer and the Windows paths, names `config.toml` and the
+  `config.d/` merge order, and says that `logdemo` also exits 78 on a refused `LOG_*` variable. The
+  README and the skill name the bitranox-skills copy of the skill correctly
+  (`coding-python-gitignore`), document `match_with_rule`'s rule, `load_default_patterns`,
+  `conf_igittigitt`, the `dir_cache_max` constructor argument, positional `filter` paths, the CLI's
+  `--default-patterns` default (off, unlike the library), and include mode without rules.
+  ai-disclosure.md describes what CI checks today.
 
 - `logdemo` refuses a `LOG_*` variable lib_log_rich refuses (`LOG_CONSOLE_LEVEL=bogus`) with exit 78
   and lib_log_rich's own line, as `config` does. The demo reads the variables itself, so its

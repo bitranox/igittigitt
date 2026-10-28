@@ -62,8 +62,8 @@ pip install igittigitt
 pipx install igittigitt
 ```
 
-The project targets **Python 3.10+** and is tested on Linux, macOS and Windows across
-CPython 3.10-3.15. See [INSTALL.md](INSTALL.md) for every install method.
+The project targets **Python 3.10+** and is tested on Linux and Windows across CPython
+3.10-3.15, and on macOS with the newest of them. See [INSTALL.md](INSTALL.md) for every install method.
 
 ### Why we recommend uv: supply-chain protection
 
@@ -107,15 +107,28 @@ import igittigitt
 parser = igittigitt.IgnoreParser()
 
 # discover and parse every .gitignore below base_dir (per-directory precedence)
-parser.parse_rule_files(base_dir="/home/user/project")
+parser.parse_rule_files(base_dir="/opt/project")
 
 # ... or add rules explicitly
-parser.add_rule("*.py[cod]", base_path="/home/user/project")
-parser.add_rule("!keep.pyc", base_path="/home/user/project")
+parser.add_rule("*.py[cod]", base_path="/opt/project")
+parser.add_rule("!keep.pyc", base_path="/opt/project")
 
-parser.match("/home/user/project/main.pyc")  # True  (ignored)
-parser.match("/home/user/project/keep.pyc")  # False (re-included by the negation)
+parser.match("/opt/project/main.pyc")  # True  (ignored)
+parser.match("/opt/project/keep.pyc")  # False (re-included by the negation)
+
+ignored, rule = parser.match_with_rule("/opt/project/main.pyc")
+rule.pattern_original  # '*.py[cod]' - the deciding rule, also returned for a negation
 ```
+
+`match_with_rule` returns `(ignored, rule)`; the rule (or `None` when nothing matched) carries
+`pattern_original`, `is_negation_rule`, `source_file` and `source_line_number` (both `None` for a
+rule added with `add_rule`).
+
+`parse_rule_files` also loads git's user-level ignore file (`$XDG_CONFIG_HOME/git/ignore`, or
+`~/.config/git/ignore`), as git does: pass `add_default_patterns=False` to skip it, set
+`igittigitt.conf_igittigitt.add_default_patterns = False` to change that default for later calls, or
+call `load_default_patterns(base_dir)` to add it to a parser on its own. `IgnoreParser(dir_cache_max=N)`
+sets the directory-decision cache for one parser (see `[performance]` below).
 
 Use it as a `shutil.copytree` filter to copy a tree without the ignored files:
 
@@ -145,6 +158,9 @@ shutil.copytree("src_tree", "dst_tree", ignore=inc.shutil_include)
 inc.match("src_tree/pkg/deep.py")  # True  (kept)
 ```
 
+`IncludeParser` reads rule files the same way (`parse_rule_file`, `parse_rule_files`) and takes the
+same `dir_cache_max` argument.
+
 ---
 
 ## CLI usage
@@ -154,7 +170,8 @@ inc.match("src_tree/pkg/deep.py")  # True  (kept)
 igittigitt check -C /path/to/repo a.log src/main.py
 #   exit 0 if at least one path is ignored, 1 if none
 
-# show the matching rule (source:line:pattern), like `git check-ignore -v`
+# show the deciding rule (source:line:pattern), like `git check-ignore -v`: a path a
+# negation re-includes is listed too, and the rule file is named relative to -C
 igittigitt check -C /path/to/repo -v a.log
 
 # Unix filter: drop ignored paths from a stream
@@ -162,6 +179,9 @@ find . -type f | igittigitt filter
 
 # keep only what matches the include patterns
 find . -type f | igittigitt filter --include -r '*.py'
+
+# paths can also be given as arguments
+igittigitt filter -C /path/to/repo a.log src/main.py
 
 # NUL-separated I/O for paths with spaces/newlines
 find . -print0 | igittigitt filter -z | xargs -0 ...
@@ -183,22 +203,34 @@ igittigitt check -r '*.tmp' -f .gitignore --stdin < paths.txt
 
 ### Commands
 
-| Command                    | What it does                                                                                                                         |
-|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| `info`                     | Print resolved package metadata.                                                                                                     |
-| `check [PATHS...]`         | Print the paths that are ignored (mirrors `git check-ignore`). Reads stdin with `--stdin`/`-`. Exit `0` if any matched, `1` if none. |
-| `filter`                   | Unix filter: read paths from stdin and print the survivors. `--include` switches to whitelist mode.                                  |
-| `config`                   | Print the merged, layered configuration (with provenance).                                                                           |
-| `config-deploy`            | Write the default config files into the app/host/user config directories.                                                            |
-| `config-generate-examples` | Write example config files you can copy and edit.                                                                                    |
-| `logdemo`                  | Emit sample log records (handy to preview logging themes).                                                                           |
+| Command                    | What it does                                                                                                                                                                   |
+|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `info`                     | Print resolved package metadata.                                                                                                                                               |
+| `check [PATHS...]`         | Print the paths that are ignored (mirrors `git check-ignore`, `-v` included). Reads stdin with `--stdin`, `-`, or when no path is given. Exit `0` if any matched, `1` if none. |
+| `filter [PATHS...]`        | Unix filter: read paths from stdin (or the arguments) and print the survivors. `--include` switches to whitelist mode. Exit `0`.                                               |
+| `config`                   | Print the merged, layered configuration (with provenance).                                                                                                                     |
+| `config-deploy`            | Write the default config files into the app/host/user config directories.                                                                                                      |
+| `config-generate-examples` | Write example config files you can copy and edit.                                                                                                                              |
+| `logdemo`                  | Emit sample log records; `--theme classic\|dark\|neon\|pastel` previews a console theme.                                                                                       |
 
 Shared `check` / `filter` options: `-C/--base-dir`, `-f/--gitignore FILE` (repeatable),
 `-r/--rule PATTERN` (repeatable), `--scan/--no-scan`, `--default-patterns`, `-z/--zero`
-(NUL I/O), and (`check` only) `-v/--verbose` and `--stdin`.
+(NUL I/O), `check` only: `-v/--verbose` and `--stdin`, `filter` only: `-i/--include`.
+
+Two defaults differ from what you might expect:
+
+- `--default-patterns` is off on the command line, while `parse_rule_files` loads git's user-level
+  ignore file by default. `git check-ignore` reads that file too, so pass `--default-patterns`
+  when `check` must answer exactly as git does on your machine.
+- `--include` keeps only what the `-r`/`-f` rules match; it never scans for `.gitignore` files, so
+  with neither option it prints nothing. `--scan` and `--default-patterns` apply to ignore mode.
+
+With `-v -z`, `check` writes each record as four NUL-terminated fields
+(`source`, `line`, `pattern`, `path`), as `git check-ignore -v -z` does.
 
 `check` and `filter` stream their input and write results immediately, with clean
-`SIGPIPE` handling - so `... | igittigitt filter | head` works without errors.
+`SIGPIPE` handling - so `... | igittigitt filter | head` works without a traceback; the
+command then exits `141`.
 
 ---
 
@@ -215,8 +247,8 @@ Inspect the effective configuration with `igittigitt config`, and deploy editabl
 with `igittigitt config-deploy`. Override a single value per run with `--set`, in a `.env`
 file as `SECTION__KEY=value`, or via an environment variable as `IGITTIGITT___SECTION__KEY=value`.
 When a configuration file cannot be loaded, `config`, `check` and `filter` exit `78` with one line
-naming it, while `info`, `config-deploy` (which replaces the file) and `--help` still run; a
-malformed `--set` or an invalid `--profile` name exits `2`. See [CONFIG.md](CONFIG.md).
+naming it, while `info`, `config-deploy` (which replaces the file), `config-generate-examples`,
+`logdemo` and `--help` still run; a malformed `--set` or an invalid `--profile` name exits `2`. See [CONFIG.md](CONFIG.md).
 
 ### `[performance]` - engine and CLI tuning
 
@@ -259,7 +291,7 @@ piping). Install it in any project:
 ```
 
 The same skill is also mirrored in the central bitranox marketplace
-(<https://github.com/bitranox/bitranox-skills>) as `python-gitignore`.
+(<https://github.com/bitranox/bitranox-skills>) as `coding-python-gitignore`.
 
 ---
 

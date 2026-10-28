@@ -60,18 +60,20 @@ approved every action and owns the result.
 
 ## What's been checked, and what hasn't
 
-Checked locally (Linux, CPython 3.14): `ruff` and `ruff format`, `pyright` in strict mode (zero
-errors), `import-linter` (three contracts: the core engine is independent of the adapters, the
-domain is pure, and the clean-architecture layers hold), the full test suite (134 tests, about 84%
-coverage), the differential suite agreeing with the installed `git` on every scenario and fuzz
-case, the memory-boundedness tests, the include-mode `copytree` tests, real-subprocess pipe and
-SIGPIPE tests, a wheel build, and the CLI end to end (`info`, `check`, `filter`, `config`,
-`config-deploy`, `logdemo`). The skill's documented commands were each run against the install.
+Every push runs the CI matrix: Linux and Windows on each CPython version the project declares
+(3.10 to 3.15), macOS on the newest one. Each cell runs `ruff` and `ruff format`, `pyright` in
+strict mode, `import-linter` (the core engine is independent of the adapters, the domain is pure,
+and the clean-architecture layers hold), `bandit`, `pip-audit`, the full test suite with coverage,
+and a wheel build and install; separate jobs check a pipx and a uv install and execute the
+Quickstart notebook. The suite includes the differential tests against the installed `git`
+(hand-written scenarios, fuzz cases, and the `check -v` output), the memory-boundedness tests, the
+include-mode `copytree` tests, real-subprocess pipe and SIGPIPE tests, and the CLI end to end. The
+skill's documented commands were run against the installed package.
 
-Not yet: the cross-platform CI matrix (Windows and macOS, and the full CPython 3.10 to 3.14 range)
-that the project targets but that was not exercised on this machine; and no new PyPI release has
-been cut. git compatibility is validated against the `git` version used in the tests; behaviour
-that depends on a specific git build is only as correct as that comparison.
+Not covered: the differential tests run on Linux and macOS only, because they compare against the
+POSIX `git` and its file-name rules. git compatibility is validated against the `git` version on
+the runner; behaviour that depends on a specific git build is only as correct as that comparison.
+Free-threaded CPython builds are not tested yet.
 
 ## Checking it yourself
 

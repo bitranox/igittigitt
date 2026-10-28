@@ -13,10 +13,16 @@ bundled defaults -> app -> host -> user -> .env file -> environment variables ->
 
 ## Where config files live
 
-| Layer | Linux                                            | macOS                                                        |
-|-------|--------------------------------------------------|--------------------------------------------------------------|
-| app   | `/etc/xdg/igittigitt/config.*` (+ `config.d/*`)  | `/Library/Application Support/bitranox/igittigitt/config.*`  |
-| user  | `~/.config/igittigitt/config.*` (+ `config.d/*`) | `~/Library/Application Support/bitranox/igittigitt/config.*` |
+| Layer | Linux                                                                                     | macOS                                                           | Windows                                                           |
+|-------|-------------------------------------------------------------------------------------------|-----------------------------------------------------------------|-------------------------------------------------------------------|
+| app   | `/etc/xdg/igittigitt/config.toml`, then `/etc/igittigitt/config.toml`                     | `/Library/Application Support/bitranox/igittigitt/config.toml`  | `%ProgramData%\bitranox\igittigitt\config.toml`                   |
+| host  | `/etc/xdg/igittigitt/hosts/<hostname>.toml`, then `/etc/igittigitt/hosts/<hostname>.toml` | `<app directory>/hosts/<hostname>.toml`                         | `<app directory>\hosts\<hostname>.toml`                           |
+| user  | `$XDG_CONFIG_HOME/igittigitt/config.toml` (default `~/.config/igittigitt/`)               | `~/Library/Application Support/bitranox/igittigitt/config.toml` | `%APPDATA%\bitranox\igittigitt\config.toml` (or `%LOCALAPPDATA%`) |
+
+Every app and user directory may also hold a `config.d/` of fragments, merged in filename order
+after the directory's own `config.toml` (the last file to set a key wins). With `--profile NAME`,
+every directory above gains a `profile/NAME/` segment (for example
+`~/.config/igittigitt/profile/NAME/config.toml`).
 
 `.env` files (`SECTION__KEY=value`, found by searching upward from the working directory)
 and environment variables (`IGITTIGITT___SECTION__KEY=value`) override the files. A single
@@ -120,11 +126,14 @@ lib_log_rich also reads its own `LOG_*` variables. Logging takes those, and only
 up to the project root, never replacing a variable that is already set. No other `.env` line
 reaches the process environment.
 
-A `[lib_log_rich]` value or `LOG_*` variable lib_log_rich refuses (a wrong type, its own range
-checks such as `queue_maxsize = 0`, or an unknown level such as `LOG_CONSOLE_LEVEL=bogus`) is a
-configuration failure like a broken file: logging starts with its defaults, `config`, `check` and
-`filter` exit 78, and the other commands run. A refused `[lib_log_rich]` value leaves every valid
-`LOG_*` variable in force; only a refused `LOG_*` variable makes logging start without all of them.
+A `[lib_log_rich]` value or `LOG_*` variable lib_log_rich refuses (a wrong type, a key it does not
+know such as a misspelled `console_levle`, its own range checks such as `queue_maxsize = 0`, or an
+unknown level such as `LOG_CONSOLE_LEVEL=bogus`) is a configuration failure like a broken file:
+logging starts with its defaults, `config`, `check` and `filter` exit 78, and the other commands
+run. `logdemo` reads the `LOG_*` variables itself, so a refused `LOG_*` variable stops it with exit
+78 too; a refused `[lib_log_rich]` value does not. A refused `[lib_log_rich]` value leaves every
+valid `LOG_*` variable in force; only a refused `LOG_*` variable makes logging start without all of
+them.
 A problem the type check of the section finds gets one `Error:` line naming the key, never its
 value; a value only lib_log_rich itself refuses is reported in lib_log_rich's own words
 (`Error: lib_log_rich: Unknown log level: 'bogus'`), which may name neither the setting nor where
