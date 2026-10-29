@@ -317,6 +317,9 @@ jobs:
       - name: Choose pytest workers
         id: workers
         shell: python
+        env:
+          # What CI leaves out of every run; the step combines it with the project's own -m.
+          PYTEST_CI_EXCLUDES: ${{ env.PYTEST_MARKER_EXPR }}
         run: |
           # Run the suite across processes exactly when bmk's `make test` does (bmk
           # adapters/stagerunner/helpers/_parallel.py): only when the project's configured
@@ -349,6 +352,7 @@ jobs:
                   facts["cov"] = plugins.hasplugin("pytest_cov")
                   facts["own_n"] = getattr(config.option, "numprocesses", None) is not None
                   facts["own_dist"] = getattr(config.option, "dist", "no") not in ("no", None)
+                  facts["markexpr"] = getattr(config.option, "markexpr", "") or ""
                   return 0
           pytest.main(["-p", "no:cacheprovider"], plugins=[_Probe()])
           # pytest-xdist 3.8.0 groups a test by renaming item._nodeid, which pytest 9.2.0's Node.nodeid never
@@ -426,8 +430,18 @@ jobs:
               args = " ".join(["-n", workers] + ([] if facts["own_dist"] else ["--dist", "loadgroup"]))
               print(f"pytest runs in parallel: {args}")
 
+          # pytest's -m is an argparse store option, so the -m this job passes replaces one the
+          # project keeps in addopts, and tests the project excludes from its own runs would run
+          # here. The probe read the -m pytest settled on after merging addopts and
+          # PYTEST_ADDOPTS; keep it, and leave out what CI excludes (bmk 3.32.0 does the same).
+          excludes = os.environ["PYTEST_CI_EXCLUDES"]
+          own = facts["markexpr"].strip()
+          markexpr = f"({own}) and ({excludes})" if own else excludes
+          print(f"pytest -m: {markexpr}")
+
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
               out.write(f"args={args}\n")
+              out.write(f"markexpr={markexpr}\n")
 
       - name: Run pytest (tests + coverage)
         id: pytest
@@ -438,8 +452,10 @@ jobs:
           # Write coverage SQLite database to local disk — network mounts
           # and stale journal files cause "database is locked" errors.
           COVERAGE_FILE: "${{ runner.temp }}/.coverage"
+          # From the environment, so a quote in a project's expression cannot end the word early.
+          PYTEST_MARKEXPR: ${{ steps.workers.outputs.markexpr }}
         run: >-
-          pytest -m "${{ env.PYTEST_MARKER_EXPR }}"
+          pytest -m "$PYTEST_MARKEXPR"
           ${{ steps.workers.outputs.args }}
           --cov=${{ env.SRC_PATH }}/${{ env.PACKAGE_MODULE }}
           --cov-report=term-missing
