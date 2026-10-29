@@ -13,7 +13,7 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 - README and skill: `check -v` now states the exit code a negation-re-included path gives (0 with
   `-v`, 1 without, as in git) and shows the `src:line:pattern<TAB>path` line format.
 
-## [2.4.0] 2026-10-28 21:44:50
+## [2.4.0] - 2026-10-28
 
 ### Changed
 
@@ -70,7 +70,7 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   `pythonpath` and pyright's `extraPaths`. A test checks that every doctest collected from `src/`
   gets both redirects.
 
-## [2.3.1] 2026-10-26 10:39:08
+## [2.3.1] - 2026-10-26
 
 ### Fixed
 
@@ -81,7 +81,7 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 - A rule file containing bytes that are not valid UTF-8 no longer raises `UnicodeDecodeError`; such
   a pattern matches a file name with the same bytes, as in git.
 
-## [2.3.0] 2026-10-25 23:51:07
+## [2.3.0] - 2026-10-25
 
 ### Removed
 
@@ -91,7 +91,7 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   directory decision left it untouched. Use `match_with_rule(path)`, which returns the deciding
   rule for that path.
 
-## [2.2.11] 2026-10-25 22:59:31
+## [2.2.11] - 2026-10-25
 
 ### Changed
 
@@ -99,7 +99,7 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   public `match()`, which makes a `copytree` with a small `.gitignore` noticeably faster. The
   decisions are unchanged.
 
-## [2.2.10] 2026-10-25 22:41:45
+## [2.2.10] - 2026-10-25
 
 ### Fixed
 
@@ -129,7 +129,7 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   empty `--profile` already was on the root command and on `config-deploy`. It used to fall back
   to the root's profile.
 
-## [2.2.9] 2026-10-22 12:53:21
+## [2.2.9] - 2026-10-22
 
 ### Fixed
 
@@ -147,7 +147,7 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   (CVE-2026-113722). Both fixes are younger than the cooldown, so `exclude-newer-package` admits
   exactly those releases until the window catches up.
 
-## [2.2.8] 2026-10-15 16:34:55
+## [2.2.8] - 2026-10-15
 
 ### Fixed
 
@@ -168,7 +168,7 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   (`pytest_runtest_setup` in `tests/conftest.py`); registered in `pyproject.toml` alone they skipped
   nothing, so a test trusting its marker ran everywhere. `tests/test_platform_markers.py` pins it.
 
-## [2.2.7] 2026-10-12 22:54:46
+## [2.2.7] - 2026-10-12
 
 ### Added
 - Python 3.15 is a supported version: declared in the classifiers, so CI and `make test-all` run it.
@@ -180,7 +180,7 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 - The install section explains why installing with uv protects against supply-chain attacks and why
   a plain `pip install` from PyPI does not.
 
-## [2.2.6] 2026-10-12 18:59:35
+## [2.2.6] - 2026-10-12
 
 ### Fixed
 - **A digit-only `.env` value no longer stops logging setup.** lib_layered_config 7.1 reads an
@@ -189,7 +189,7 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   `Input should be a valid string`. The model now turns such a number back into the text the
   operator wrote; a value that is not a scalar is still refused.
 
-## [2.2.5] 2026-10-12 10:04:00
+## [2.2.5] - 2026-10-12
 
 ### Fixed
 
@@ -203,7 +203,7 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 - Dependency floors raised: `lib_layered_config>=7.1.3`, `pydantic>=2.14.0`, `lib_log_rich>=6.5.1`;
   dev `virtualenv>=21.14.6`, `rtoml>=0.14.0`.
 
-## [2.2.4] 2026-10-08 10:19:56
+## [2.2.4] - 2026-10-08
 
 ### Fixed
 
@@ -317,7 +317,7 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   the owner's access are refused (exit 2 for an option, 78 for a configured value). A bare integer
   in the configuration is refused because it is read as decimal (`400` is `0o620`).
 
-## [2.2.3] 2026-07-30 18:08:55
+## [2.2.3] - 2026-07-30
 
 ### Changed
 
@@ -326,7 +326,7 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
   it. An install re-fetches a skill only when that version changes, so the two numbers drifting
   apart meant a skill edit could ship to nobody. No functional change to the library.
 
-## [2.2.2] 2026-07-24 18:15:33
+## [2.2.2] - 2026-07-24
 
 ### Fixed
 - Latest `ruff` (0.16+) widened default rule coverage; the project's curated
