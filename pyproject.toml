@@ -16,7 +16,7 @@ dependencies = [
     "lib_log_rich>=8.1.2",
     # Imported directly (adapters/logging/setup.py) to read the LOG_* lines of a .env.
     "python-dotenv>=1.2.4",
-    "lib_layered_config>=7.4.1",
+    "lib_layered_config>=7.7.0",
     "orjson>=3.13.0",
 ]
 license = { text = "MIT" }
@@ -82,8 +82,8 @@ dev = [
   "wheel>=0.48.0",               # CVE-2025-24049
   "pynacl>=1.6.2",               # CVE-2025-69277
   "urllib3>=2.8.0",              # CVE-2025-66471, CVE-2025-66418
-  "virtualenv>=21.14.12",        # CVE-2025-22702, CVE-2026-113722, CVE-2026-113713
-  "certifi>=2026.10.19",         # PYSEC-2026-4320
+  "virtualenv>=21.14.13",        # CVE-2025-22702, CVE-2026-113722, CVE-2026-113713
+  "certifi>=2026.10.23",         # PYSEC-2026-4320
 ]
 
 [project.scripts]
