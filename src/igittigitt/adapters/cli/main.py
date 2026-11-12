@@ -124,7 +124,21 @@ def main(
         # Only shutdown logging from main thread to avoid killing logging for other threads.
         is_main_thread = threading.current_thread() is threading.main_thread()
         if is_main_thread and lib_log_rich.runtime.is_initialised():
-            lib_log_rich.runtime.shutdown()
+            _shutdown_logging()
+
+
+def _shutdown_logging() -> None:
+    """Stop the logging runtime without letting a teardown failure replace the command's result.
+
+    An exception raised in ``main``'s ``finally`` discards the exit code the command
+    returned: a slow log sink (an unreachable Graylog) used to end a finished command
+    in a ``RuntimeError`` traceback instead. Logging is gone at this point, so the
+    warning goes straight to stderr.
+    """
+    try:
+        lib_log_rich.runtime.shutdown()
+    except Exception as exc:
+        click.echo(f"Warning: logging did not shut down cleanly, some log events may be lost: {exc}", err=True)
 
 
 __all__ = ["main"]
