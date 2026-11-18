@@ -8,6 +8,11 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+### Changed
+
+- `lib_layered_config>=8.1.0`: `DeployAction` (and `DeployResult`) are imported from the package
+  root instead of the `lib_layered_config.examples` shim, which lib_layered_config 9.0.0 removes.
+
 ## [2.4.1] - 2026-11-12
 
 ### Fixed

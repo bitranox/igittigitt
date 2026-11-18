@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from lib_layered_config import deploy_config
-from lib_layered_config.examples.deploy import DeployAction
+from lib_layered_config import DeployAction, deploy_config
 
 from igittigitt import __init__conf__
 from igittigitt.adapters.config.loader import get_default_config_path, validate_profile
