@@ -78,15 +78,8 @@ def cli(
     the parsed overrides, and stores both in the Click context for all subcommands to access.
     A load failure is stored rather than raised, so a command that does not read the
     configuration still runs. Mirrors the traceback flag into ``lib_cli_exit_tools.config``
-    so downstream helpers observe the preference.
-
-    Example:
-        >>> from click.testing import CliRunner
-        >>> from igittigitt.composition import build_production
-        >>> runner = CliRunner()
-        >>> result = runner.invoke(cli, ["--help"], obj=build_production)
-        >>> result.exit_code
-        0
+    so downstream helpers observe the preference. ``tests/test_cli.py`` covers ``--help``:
+    pytest never collects a doctest from a click command's docstring.
     """
     # ctx.obj is always the services factory (production or test). click types it as Any, which
     # callable() would narrow to a callable returning object; declared first, it keeps its type.
