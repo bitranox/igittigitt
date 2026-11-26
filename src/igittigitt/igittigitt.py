@@ -766,14 +766,21 @@ def get_rules_from_git_pattern(
     >>> # Put a backslash ("\") in front of the first
     >>> # hash for patterns that begin with a hash.
     >>> assert get_rules_from_git_pattern('# some comment', some_base_dir) == []
-    >>> assert get_rules_from_git_pattern('  # some comment', some_base_dir) == []
-    >>> get_rules_from_git_pattern(r'  \\#some_file', some_base_dir)
+    >>> get_rules_from_git_pattern(r'\\#some_file', some_base_dir)
     [IgnoreRule(pattern_glob='.../**/\\\\#some_file', ...)]
 
-    >>> # Trailing spaces are ignored unless
-    >>> # they are quoted with backslash ("\").
+    >>> # Only a '#' in the first column starts a comment, and leading spaces
+    >>> # belong to the pattern, as in git.
+    >>> get_rules_from_git_pattern('  # some_file', some_base_dir)
+    [IgnoreRule(pattern_glob='.../**/  # some_file', ...)]
+
+    >>> # Trailing spaces are ignored unless they are quoted with backslash
+    >>> # ("\"); the spaces before a quoted one stay.
     >>> get_rules_from_git_pattern(r'something \\ ', some_base_dir)
-    [IgnoreRule(pattern_glob='.../**/something\\\\ ', ...)]
+    [IgnoreRule(pattern_glob='.../**/something \\\\ ', ...)]
+
+    >>> # A line ending in a backslash that escapes nothing matches no path.
+    >>> assert get_rules_from_git_pattern('lone\\\\', some_base_dir) == []
 
     >>> # If there is a separator at the beginning or middle (or both)
     >>> # of the pattern, then the pattern is relative to the directory
@@ -808,17 +815,20 @@ def get_rules_from_git_pattern(
     emit_self_rule = True
     emit_contents_rule = False
 
-    pattern_original = git_pattern
-    git_pattern = git_pattern.lstrip()
-    if not git_pattern or git_pattern.startswith("#"):
+    # As git (dir.c): only a '#' in the first column starts a comment, and nothing is trimmed
+    # at the start of a line - leading spaces are part of the pattern.
+    if git_pattern.startswith("#"):
         return list()
+    git_pattern = trim_trailing_spaces(git_pattern)
+    if not git_pattern or ends_in_lone_backslash(git_pattern):
+        return list()
+    # the trimmed line, '!' included: what git check-ignore -v prints as the pattern
+    pattern_original = git_pattern
     if git_pattern.startswith("!"):
         is_negation_rule = True
         git_pattern = git_pattern[1:]
     else:
         is_negation_rule = False
-
-    git_pattern = git_pattern_handle_blanks(git_pattern)
 
     if get_match_files(git_pattern):
         match_file = True
@@ -872,19 +882,58 @@ def collapse_asterisk_runs(git_pattern: str) -> str:
     return "/".join("**" if seg.startswith("***") and not seg.strip("*") else seg for seg in segments)
 
 
-def git_pattern_handle_blanks(git_pattern: str) -> str:
+def trim_trailing_spaces(git_pattern: str) -> str:
     """
-    Trailing spaces are ignored unless they are quoted with backslash ("\").
-    in fact all spaces in gitignore CAN be escaped.
-    wcmatch.glob.globmatch supports both forms.
+    Cut the final run of unescaped spaces, as git's ``trim_trailing_spaces()`` (dir.c) does.
 
-    >>> assert git_pattern_handle_blanks(r'something \\ \\ ') == r'something\\ \\ '
-    >>> assert git_pattern_handle_blanks(r'something \\ \\  ') == r'something\\ \\ '
-    >>> assert git_pattern_handle_blanks(r'some\\ thing \\ ') == r'some\\ thing\\ '
-    >>> assert git_pattern_handle_blanks(r'some thing \\ ') == r'some thing\\ '
+    A backslash escapes the character after it, so an escaped space ends the run that may be
+    cut, and an escaped backslash does not escape the space that follows it. Only spaces are
+    cut, never tabs, and nothing at the start of the line. A line ending in a lone backslash
+    is returned unchanged.
+
+    >>> trim_trailing_spaces('something   ')
+    'something'
+    >>> trim_trailing_spaces('trailing 1 \\\\    ')  # the space before the escape stays
+    'trailing 1 \\\\ '
+    >>> trim_trailing_spaces('trailing 3 \\\\\\\\\\\\\\\\ ')  # two escaped backslashes, then a cut space
+    'trailing 3 \\\\\\\\\\\\\\\\'
+    >>> trim_trailing_spaces('a  \\\\ b')  # spaces inside the pattern are never touched
+    'a  \\\\ b'
+    >>> trim_trailing_spaces('tab\\t')  # git cuts spaces only
+    'tab\\t'
+    >>> trim_trailing_spaces('  lead')  # nor anything at the start
+    '  lead'
+    >>> trim_trailing_spaces('lone\\\\ ')  # escaped space at the very end stays
+    'lone\\\\ '
     """
-    parts = [part.strip() for part in git_pattern.split(r"\ ")]
-    return r"\ ".join(parts)
+    cut_at: int | None = None
+    index = 0
+    while index < len(git_pattern):
+        char = git_pattern[index]
+        if char == " ":
+            cut_at = index if cut_at is None else cut_at
+        elif char == "\\" and index + 1 == len(git_pattern):
+            return git_pattern
+        else:
+            cut_at = None
+            index += 1 if char == "\\" else 0
+        index += 1
+    return git_pattern if cut_at is None else git_pattern[:cut_at]
+
+
+def ends_in_lone_backslash(git_pattern: str) -> bool:
+    """
+    True when the pattern ends in a backslash that escapes nothing; git matches no path then.
+
+    >>> ends_in_lone_backslash('lone\\\\')
+    True
+    >>> ends_in_lone_backslash('pair\\\\\\\\')
+    False
+    >>> ends_in_lone_backslash('plain')
+    False
+    """
+    run = len(git_pattern) - len(git_pattern.rstrip("\\"))
+    return run % 2 == 1
 
 
 def get_match_anchored(git_pattern: str) -> bool:

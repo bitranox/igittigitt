@@ -11,7 +11,7 @@ The whole matching engine lives here (pure Python, no dependency on the `git` bi
   `shutil_include` as the `copytree` filter.
 - `IgnoreRule` - a slotted `@dataclass` holding one compiled rule.
 - Pattern-translation helpers: `get_rules_from_git_pattern`, `collapse_asterisk_runs`,
-  `git_pattern_handle_blanks`, `get_match_anchored`, `get_match_files`,
+  `trim_trailing_spaces`, `ends_in_lone_backslash`, `get_match_anchored`, `get_match_files`,
   `create_rule_variations`.
 
 ### Runs of asterisks

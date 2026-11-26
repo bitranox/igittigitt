@@ -196,6 +196,48 @@ SCENARIOS: dict[str, tuple[dict[str, str], list[str]]] = {
         {".gitignore": "# a comment\n\n*.bak\n  \n!special.bak\n"},
         ["x.bak", "special.bak", "dir/special.bak"],
     ),
+    # The six lines of git's t0008 "correct handling of backslashes" (issue #53): a backslash
+    # escapes the next character, and only a final run of UNESCAPED spaces is cut.
+    "backslash_and_trailing_spaces": (
+        {
+            ".gitignore": "\n".join(
+                [
+                    "trailing 1 \\    ",
+                    "trailing 2 " + "\\" * 4,
+                    "trailing 3 " + "\\" * 4 + " ",
+                    "trailing 4   " + "\\" * 3 + "    ",
+                    "trailing 5 " + "\\" * 2 + " " + "\\" * 3 + "   ",
+                    "trailing 6 \\\\a\\\\",
+                    "a  \\ b",
+                    "tab\t",
+                    "lone\\",
+                    "   ",
+                ]
+            )
+            + "\n"
+        },
+        [
+            "trailing 1  ",
+            "trailing 2 " + "\\" * 2,
+            "trailing 3 " + "\\" * 2,
+            "trailing 4   \\ ",
+            "trailing 5 \\ \\ ",
+            "trailing 6 \\a\\",
+            "a   b",
+            "a b",
+            "tab\t",
+            "tab",
+            "lone\\",
+            "lone",
+            "   ",
+            "untracked",
+        ],
+    ),
+    # git trims nothing at the start of a line, and only '#' in the first column starts a comment
+    "leading_whitespace": (
+        {".gitignore": "  *.log\n  # note\n !keep\n"},
+        ["x.log", "  x.log", "  # note", "# note", "keep", " !keep"],
+    ),
 }
 
 
@@ -371,6 +413,20 @@ def test_check_verbose_prints_what_git_prints(paths: list[str], tmp_path: Path) 
     _materialise(tmp_path, _VERBOSE_FILES, _VERBOSE_TREE)
 
     git, ours = _run_both(tmp_path, ["-v", *paths], ["-v", *paths], None)
+
+    assert ours == git
+
+
+@pytest.mark.os_posix
+@pytest.mark.parametrize("name", ["backslash_and_trailing_spaces", "leading_whitespace"])
+def test_check_verbose_prints_the_pattern_git_prints_for_spaces_and_escapes(name: str, tmp_path: Path) -> None:
+    # -v shows the pattern the way git stored it: trailing spaces cut, leading spaces kept.
+    gitignores, files = SCENARIOS[name]
+    _init_repo(tmp_path)
+    _materialise(tmp_path, files, gitignores)
+    payload = "\0".join(files) + "\0"
+
+    git, ours = _run_both(tmp_path, ["-v", "-z", "--stdin"], ["-v", "-z", "--stdin"], payload)
 
     assert ours == git
 
