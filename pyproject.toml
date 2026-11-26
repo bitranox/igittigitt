@@ -17,7 +17,9 @@ dependencies = [
     # Imported directly (adapters/logging/setup.py) to read the LOG_* lines of a .env.
     "python-dotenv>=1.2.4",
     "lib_layered_config>=9.0.3",
-    "orjson>=3.13.0",
+    # Reads --set values; no free-threaded build exists, so from 3.14 it is the "orjson" extra and
+    # adapters/config/json_value.py reads with stdlib json, answering as orjson does.
+    "orjson>=3.13.0; python_version < \"3.14\"",
 ]
 license = { text = "MIT" }
 authors = [{ name = "bitranox", email = "bitranox@gmail.com" }]
@@ -31,6 +33,7 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: 3.15",
+  "Programming Language :: Python :: Free Threading :: 2 - Beta",
   "License :: OSI Approved :: MIT License",
   "Environment :: Console",
   "Operating System :: OS Independent",
@@ -45,6 +48,7 @@ system-dependencies-macos = []
 system-dependencies-windows-pip = []
 system-dependencies-windows-choco = []
 os = ["ubuntu-latest", "windows-latest", "macos-latest"]
+free-threaded = ["3.14", "3.15"]
 
 [project.urls]
 Homepage = "https://github.com/bitranox/igittigitt"
@@ -78,13 +82,16 @@ dev = [
   "httpx2>=2.14.0",
   # Transitive CVE pins
   "jaraco-context>=6.1.2",       # CVE-2025-23949
-  "python-multipart>=0.0.32",    # CVE-2025-24486
-  "wheel>=0.48.0",               # CVE-2025-24049
-  "pynacl>=1.6.2",               # CVE-2025-69277
   "urllib3>=2.8.0",              # CVE-2025-66471, CVE-2025-66418
-  "virtualenv>=21.15.9",        # CVE-2025-22702, CVE-2026-113722, CVE-2026-113713
   "certifi>=2026.10.23",         # PYSEC-2026-4320
+  # Off: no package in uv.lock depends on these, so each pin only installed the package itself
+  # (pynacl even needs a source build on 3.15t). Re-enable a pin when a dependency brings it in.
+  # "python-multipart>=0.0.32",  # CVE-2025-24486
+  # "wheel>=0.48.0",             # CVE-2025-24049
+  # "pynacl>=1.6.2",             # CVE-2025-69277
+  # "virtualenv>=21.15.9",       # CVE-2025-22702, CVE-2026-113722, CVE-2026-113713
 ]
+orjson = ["orjson>=3.13.0"]
 
 [project.scripts]
 igittigitt = "igittigitt.entry:main"

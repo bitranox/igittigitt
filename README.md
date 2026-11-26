@@ -63,7 +63,12 @@ pipx install igittigitt
 ```
 
 The project targets **Python 3.10+** and is tested on Linux and Windows across CPython
-3.10-3.15, and on macOS with the newest of them. See [INSTALL.md](INSTALL.md) for every install method.
+3.10-3.15 and the free-threaded 3.14t and 3.15t builds, and on macOS with the newest of them. See
+[INSTALL.md](INSTALL.md) for every install method.
+
+From Python 3.14 orjson is optional, since it has no free-threaded build: `pip install
+"igittigitt[orjson]"` adds it. Without it, `--set` values are read with the standard library,
+which gives the same answers.
 
 ### Why we recommend uv: supply-chain protection
 

@@ -8,6 +8,21 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+### Added
+
+- Free-threaded CPython: CI now tests the 3.14t and 3.15t builds on Linux and Windows, and the GIL
+  stays off after igittigitt and its CLI are imported. The package carries the
+  `Free Threading :: 2 - Beta` classifier.
+
+### Changed
+
+- orjson is a dependency only below Python 3.14, because it has no free-threaded build. From 3.14
+  it is the `orjson` extra (`pip install "igittigitt[orjson]"`). Without it, `--set` values are
+  read with the standard library, which answers exactly as orjson does: `NaN`, `Infinity`, `1e400`
+  and a lone surrogate escape stay text, and an integer outside the 64-bit range reads as a float.
+- The dev extra no longer pins python-multipart, wheel, pynacl and virtualenv: no locked package
+  depends on them, so each pin only installed the package itself.
+
 ## [2.4.3] - 2026-11-26
 
 ### Fixed

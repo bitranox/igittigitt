@@ -12,7 +12,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final, cast
 
-import orjson
+from .json_value import JsonValueError, read_json_value
 
 if TYPE_CHECKING:
     from lib_layered_config import Config
@@ -99,8 +99,9 @@ def parse_override(raw: str) -> ConfigOverride:
 def coerce_value(raw: str) -> CoercedValue:
     """Coerce a raw string value using JSON parsing with string fallback.
 
-    Attempts ``orjson.loads`` first (handling booleans, numbers, null, arrays,
-    objects). Falls back to the raw string if JSON parsing fails.
+    Reads the value as JSON first (booleans, numbers, null, arrays, objects), answering as
+    orjson does on every interpreter (see :mod:`.json_value`). Falls back to the raw string when
+    it is not a JSON value orjson accepts, so ``NaN`` and ``Infinity`` stay text.
 
     Args:
         raw: Raw value string from CLI.
@@ -127,8 +128,8 @@ def coerce_value(raw: str) -> CoercedValue:
     if raw == "":
         return ""
     try:
-        return orjson.loads(raw)
-    except (orjson.JSONDecodeError, ValueError):
+        return cast("CoercedValue", read_json_value(raw))
+    except JsonValueError:
         return raw
 
 
