@@ -140,6 +140,60 @@ parser.parse_rule_files(base_dir="src_tree")
 shutil.copytree("src_tree", "dst_tree", ignore=parser.shutil_ignore)
 ```
 
+### Spaces, backslashes and comments in rule lines
+
+A rule line is read exactly as git reads it. Git cuts only the final run of *unescaped* spaces;
+a backslash escapes the character after it, so `\ ` keeps a space and `\\` is a literal
+backslash. Tabs are never cut, and nothing is cut at the start of a line: leading spaces are part
+of the pattern, and only a `#` in the first column starts a comment, so an indented `  !keep.log`
+is a pattern for a file of that name, not a negation. A blank or spaces-only line, and a line
+ending in a backslash that escapes nothing (`lone\`), match no path. `pattern_original` and
+`check -v` show the line with its trailing spaces cut, as `git check-ignore -v` does.
+
+```python
+import igittigitt
+
+parser = igittigitt.IgnoreParser()
+for line in [
+    "*.log   ",  # trailing spaces are cut: the rule is "*.log"
+    r"name\ ",  # an escaped space stays: matches "name "
+    r"two \    ",  # the plain space before it stays too: matches "two  "
+    r"pair \\\\ ",  # "pair", a space, 2 escaped backslashes; the last space is cut
+    "tab\t",  # a tab is never cut: matches "tab<TAB>", not "tab"
+    "  indented",  # leading spaces belong to the pattern
+    "  # not a comment",  # only a '#' in the first column starts a comment
+    "# a comment",
+    r"\#hash",  # escape a leading '#' to match a name that starts with one
+    "  !keep.log",  # not a negation: a pattern for the name "  !keep.log"
+    "lone\\",  # ends in one unpaired backslash: matches nothing
+]:
+    parser.add_rule(line, base_path="/opt/project")
+
+parser.match("/opt/project/app.log")  # True
+parser.match("/opt/project/name ")  # True
+parser.match("/opt/project/name")  # False
+parser.match("/opt/project/two  ")  # True  (two spaces)
+parser.match("/opt/project/two ")  # False
+parser.match(r"/opt/project/pair \\")  # True  (two backslashes)
+parser.match("/opt/project/tab\t")  # True
+parser.match("/opt/project/tab")  # False
+parser.match("/opt/project/  indented")  # True
+parser.match("/opt/project/indented")  # False
+parser.match("/opt/project/  # not a comment")  # True
+parser.match("/opt/project/#hash")  # True
+parser.match("/opt/project/keep.log")  # True  (still ignored by *.log)
+parser.match("/opt/project/lone")  # False
+```
+
+The same rules apply to every rule file the parser reads and to the CLI's `--rule` (`-r`)
+values. `add_rule` takes one line without its line ending and removes nothing beyond git's own
+cut of trailing spaces, so never `.strip()` a line before passing it, but do drop the whole line
+ending you read with it (`\r\n` or `\n`) and a byte order mark on the first line: a `\r` or BOM
+left on the line becomes part of the pattern. To load a rule file, call `parse_rule_file` instead
+of reading it yourself; like git, it ends a line only at `\n`, drops one `\r` before it, and skips
+a leading UTF-8 byte order mark. The names in this example are POSIX file names; Windows does not
+allow a trailing space, a tab or a backslash in a file name.
+
 ### Whitelist / include mode
 
 `IncludeParser` keeps only what matches; everything else is dropped. Including a
@@ -303,6 +357,9 @@ This project was built by a human with AI assistance, used as a tool under human
 - [ai-stance.md](ai-stance.md) - why we work this way and how we think about AI in software.
 - [ai-disclosure.md](ai-disclosure.md) - exactly where AI was and was not used in this project,
   and what has and has not been tested.
+- **Naming** - *igittigitt* is German: the doubled *igitt*, what German speakers, and children
+  above all, cry out when something disgusts them, much like "yuck!" in English. It suits the
+  files you would rather git never saw.
 
 ---
 

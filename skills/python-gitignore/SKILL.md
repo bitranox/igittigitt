@@ -26,8 +26,6 @@ One example: git reads a path segment made only of three or more asterisks as `*
 `***/build` matches `build`, `x/build` and `x/y/build` (but not `xbuild`), exactly like
 `**/build`, and `a/****/b` and `logs/***` behave like `a/**/b` and `logs/**`. A run inside
 a longer segment is not a globstar: `a***b` behaves like `a*b` and never crosses a `/`.
-igittigitt follows git here from 2.2.9. Earlier releases read such a segment as a single
-`*`, so `***/build` matched only `x/build` and `a/***/b` only `a/x/b`.
 
 | Need                                 | Use                                                    | Avoid                                                                                  |
 |--------------------------------------|--------------------------------------------------------|----------------------------------------------------------------------------------------|
@@ -95,6 +93,40 @@ Key methods on `IgnoreParser`:
 
 `igittigitt.conf_igittigitt.add_default_patterns = False` changes the default that
 `parse_rule_files` uses when its caller does not pass `add_default_patterns`.
+
+### Spaces, backslashes and comments in a rule line
+
+`add_rule`, `parse_rule_file` and `parse_rule_files` read a rule line exactly as git reads it.
+Git cuts only the final run of UNESCAPED spaces; a backslash escapes the character after it, so
+`\ ` keeps a space and `\\` is one literal backslash. Tabs are never cut, and nothing is cut at the
+start of a line: leading spaces belong to the pattern, and only a `#` in the first column starts a
+comment (`\#` matches a literal leading `#`), so an indented `  !keep.log` is a pattern for that
+name, not a negation. A blank line and a line ending in a backslash that escapes nothing match no
+path. `pattern_original` and `check -v` show the line with its trailing spaces cut, as git does.
+
+- To load rules from a file, call `parse_rule_file` (or `parse_rule_files`) rather than reading
+  its lines yourself: like git, both end a line only at `\n`, drop one `\r` before it, and skip
+  a leading UTF-8 byte order mark. `parse_rule_file`'s `base_dir` defaults to the directory of
+  the rule file.
+- `add_rule` takes ONE line without its line ending and removes nothing beyond git's own cut of
+  trailing spaces: never `.strip()` it first, but do remove the whole line ending you read along
+  with it (`\r\n` or `\n`) and a byte order mark on the first line, since a `\r` or BOM left on
+  the line becomes part of the pattern.
+- The names below are POSIX names; Windows allows no trailing space, tab or backslash in a file
+  name.
+
+```python
+# each comment says what that one rule matches on its own
+base = "/path/to/project"
+parser.add_rule("*.log   ", base_path=base)  # the rule is "*.log"
+parser.add_rule(r"two \    ", base_path=base)  # "two" + 2 spaces; the last 3 are cut
+parser.add_rule(r"pair \\\\ ", base_path=base)  # "pair", a space, 2 backslashes
+parser.add_rule("tab\t", base_path=base)  # "tab" + a tab, never plain "tab"
+parser.add_rule("  *.log", base_path=base)  # "  x.log", never plain "x.log"
+parser.add_rule("  # note", base_path=base)  # a pattern, not a comment: matches "  # note"
+parser.add_rule(r"\#hash", base_path=base)  # "#hash"
+parser.add_rule("lone\\", base_path=base)  # ends in one unpaired backslash: matches nothing
+```
 
 ### Copy a tree, skipping ignored files
 
@@ -217,11 +249,9 @@ set ad hoc with `igittigitt --set performance.dir_cache_max=32768 ...`, in a `.e
 
 ### `[performance]` knobs (speed/memory only - never change matching)
 
-Defaults below are igittigitt 2.3.1 (checked 2026-10-28). Confirm them against your own install
-rather than this table: `igittigitt config --section performance` prints all four keys as they are
-in effect (defaults plus any `config.d`/`.env`/env override; add `--format json` for a script).
-Before 2.2.5 both formats print `max_token_bytes` as `"***REDACTED***"` (lib_layered_config masks a
-key whose name contains `token`), so an override of it cannot be read back there: upgrade to see it.
+Confirm the defaults below against your own install rather than this table:
+`igittigitt config --section performance` prints all four keys as they are in effect (defaults
+plus any `config.d`/`.env`/env override; add `--format json` for a script).
 
 | Key                 | Default   | Meaning                                                                                                               |
 |---------------------|-----------|-----------------------------------------------------------------------------------------------------------------------|
