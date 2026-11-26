@@ -11,6 +11,10 @@ every input where the two differ by default (measured against orjson 3.13):
 - An integer outside ``-2**63 .. 2**64-1`` is read as a float.
 - A value nesting deeper than 1024 levels is refused.
 
+One difference remains: on Python 3.10 and 3.11 the stdlib parser stops at Python's recursion
+limit, about 1000 levels, so it refuses some values orjson reads. orjson is a required dependency
+there, so the stdlib reader runs on them only when orjson is missing.
+
 Contents:
     * :class:`JsonValueError` - a refused value.
     * :func:`read_json_value` - read one value with the reader this interpreter uses.

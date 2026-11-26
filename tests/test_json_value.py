@@ -78,6 +78,17 @@ def _outcome(read: Callable[[str], object], text: str) -> tuple[str, object]:
     return ("value", value)
 
 
+def _describe(outcome: tuple[str, object]) -> str:
+    """Name an outcome without its repr, which a value nested past the recursion limit cannot give."""
+    kind, value = outcome
+    return kind if kind == "refused" else f"{kind} of type {type(value).__name__}"
+
+
+def _nests_past_the_recursion_limit(text: str) -> bool:
+    """Tell whether stdlib json on Python 3.10/3.11 would stop at the recursion limit on *text*."""
+    return sys.version_info < (3, 12) and text.count("[") + text.count("{") > sys.getrecursionlimit() - 100
+
+
 def _same(left: tuple[str, object], right: tuple[str, object]) -> bool:
     """Compare two outcomes by kind, type and value."""
     if left[0] != right[0]:
@@ -93,12 +104,16 @@ def _same(left: tuple[str, object], right: tuple[str, object]) -> bool:
 def test_stdlib_reader_answers_as_orjson_does(text: str) -> None:
     if sysconfig.get_config_var("Py_GIL_DISABLED"):
         pytest.skip("importing orjson on a free-threaded build turns the GIL back on")
+    if _nests_past_the_recursion_limit(text):
+        # Python 3.10/3.11 parse JSON recursively and stop near 1000 levels, below orjson's 1024.
+        # orjson is a required dependency there, so the stdlib reader never runs on them.
+        pytest.skip("stdlib json on Python 3.10/3.11 stops at the recursion limit")
     orjson = pytest.importorskip("orjson")
     orjson_reader = select_reader(free_threaded=False, import_orjson=lambda: orjson)
     assert orjson_reader is not read_with_stdlib
     expected = _outcome(orjson_reader, text)
     actual = _outcome(read_with_stdlib, text)
-    assert _same(actual, expected), f"stdlib {actual!r} != orjson {expected!r}"
+    assert _same(actual, expected), f"stdlib {_describe(actual)} != orjson {_describe(expected)}"
 
 
 @pytest.mark.os_agnostic
@@ -140,6 +155,10 @@ def test_a_missing_orjson_selects_the_stdlib_reader() -> None:
 def test_the_gil_stays_off_after_igittigitt_and_its_cli_load() -> None:
     # A dependency without free-threading support turns the GIL back on when imported. Run this
     # WITHOUT PYTHON_GIL=0 or -X gil=0: forcing the GIL off makes the check assert nothing.
+    if sys.version_info < (3, 13):
+        # Free-threaded builds start at 3.13, as does sys._is_gil_enabled; the guard also lets
+        # the type checker accept the call when it checks against an older Python.
+        pytest.skip("no free-threaded build before Python 3.13")
     importlib.import_module("igittigitt.adapters.cli.main")
 
     assert sys._is_gil_enabled() is False
