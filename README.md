@@ -357,9 +357,12 @@ This project was built by a human with AI assistance, used as a tool under human
 - [ai-stance.md](ai-stance.md) - why we work this way and how we think about AI in software.
 - [ai-disclosure.md](ai-disclosure.md) - exactly where AI was and was not used in this project,
   and what has and has not been tested.
-- **Naming** - *igittigitt* is German: the doubled *igitt*, what German speakers, and children
-  above all, cry out when something disgusts them, much like "yuck!" in English. It suits the
-  files you would rather git never saw.
+
+## Naming
+
+*igittigitt* is German: the doubled *igitt*, what German speakers, and children above all, cry out
+when something disgusts them, much like "yuck!" in English. It suits the files you would rather git
+never saw.
 
 ---
 
