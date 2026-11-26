@@ -8,6 +8,8 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-11-26
+
 ### Added
 
 - Free-threaded CPython: CI now tests the 3.14t and 3.15t builds on Linux and Windows, and the GIL
