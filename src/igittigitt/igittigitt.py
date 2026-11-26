@@ -366,11 +366,14 @@ class _BaseParser:
 
         # Like git: skip a UTF-8 byte order mark at the start and read the patterns as UTF-8 whatever
         # the locale's encoding is (other bytes are kept as surrogates, as os.fsdecode() does).
-        with open(path_rule_file, encoding="utf-8-sig", errors="surrogateescape") as ignore_file:
+        # git ends a line only at "\n" and drops ONE "\r" before it (dir.c), so a lone "\r" stays in
+        # the pattern: newline="\n" turns off universal newlines, which would split the line there
+        # and shift every later line number.
+        with open(path_rule_file, encoding="utf-8-sig", errors="surrogateescape", newline="\n") as ignore_file:
             counter = 0
             for line in ignore_file:
                 counter += 1
-                line = line.rstrip("\n")
+                line = line.removesuffix("\n").removesuffix("\r")
                 rules = get_rules_from_git_pattern(
                     git_pattern=line,
                     path_base_dir=path_base_dir,
@@ -393,10 +396,15 @@ class _BaseParser:
         """
         add a rule as a string. The rule is appended in order (last-match-wins).
 
+        ``pattern`` is ONE rule line without its line ending, read exactly as git reads a line of
+        a ``.gitignore``: only the final run of unescaped spaces is cut, leading spaces and tabs
+        stay, and only a ``#`` in the first column makes it a comment. Do not ``.strip()`` it; a
+        ``\\r`` or byte order mark left on it becomes part of the pattern.
+
         Parameter
         ---------
         pattern
-            the pattern
+            the rule line
         base_path
             since gitignore patterns are relative to a base directory, that
             needs to be provided here

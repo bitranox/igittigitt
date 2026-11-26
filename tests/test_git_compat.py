@@ -13,18 +13,18 @@ The whole module is skipped when ``git`` is not on PATH.
 
 from __future__ import annotations
 
+import ast
 import random
+import re
 import shutil
 import subprocess
 import sys
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
+from pathlib import Path
 
 import pytest
 
 import igittigitt
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 pytestmark = pytest.mark.skipif(shutil.which("git") is None, reason="git not installed")
 
@@ -57,15 +57,24 @@ def _git_ignored(root: Path, rel_paths: list[str]) -> set[str]:
     payload = "\0".join(rel_paths)
     result = subprocess.run(
         [_GIT, "-C", str(root), "check-ignore", "--stdin", "-z", "--no-index"],
-        input=payload,
+        input=_to_bytes(payload),
         capture_output=True,
-        text=True,
         env=_git_env(),
         check=False,
     )
     # exit 0: some matched, 1: none matched, >1: error
     assert result.returncode in (0, 1), result.stderr
-    return {token for token in result.stdout.split("\0") if token}
+    return {token for token in _from_bytes(result.stdout).split("\0") if token}
+
+
+def _to_bytes(text: str) -> bytes:
+    return text.encode("utf-8", "surrogateescape")
+
+
+def _from_bytes(data: bytes) -> str:
+    # Bytes, never text=True: text mode reads with universal newlines and turns a "\r" in a
+    # path or pattern into "\n", so a name holding "\r" would never compare equal.
+    return data.decode("utf-8", "surrogateescape")
 
 
 def _materialise(root: Path, files: list[str], gitignores: dict[str, str]) -> None:
@@ -233,6 +242,11 @@ SCENARIOS: dict[str, tuple[dict[str, str], list[str]]] = {
             "untracked",
         ],
     ),
+    # git ends a line only at "\n" and drops one "\r" before it; a lone "\r" stays in the pattern
+    "carriage_returns": (
+        {".gitignore": "a\rb\nfoo\r\r\nlast\r"},
+        ["a\rb", "a", "b", "foo\r", "foo", "last", "last\r"],
+    ),
     # git trims nothing at the start of a line, and only '#' in the first column starts a comment
     "leading_whitespace": (
         {".gitignore": "  *.log\n  # note\n !keep\n"},
@@ -378,23 +392,21 @@ _VERBOSE_FILES = ["a.log", "keep.log", "sub/x.tmp", "sub/ok.tmp", "build/keep", 
 
 
 def _run_both(root: Path, git_args: list[str], our_args: list[str], payload: str | None) -> tuple[object, object]:
+    stdin = None if payload is None else _to_bytes(payload)
     git = subprocess.run(
         [_GIT, "-C", str(root), "check-ignore", "--no-index", *git_args],
-        input=payload,
+        input=stdin,
         capture_output=True,
-        text=True,
         env=_git_env(),
         check=False,
     )
     ours = subprocess.run(
         [sys.executable, "-m", "igittigitt", "check", "-C", str(root), *our_args],
-        input=payload,
+        input=stdin,
         capture_output=True,
-        text=True,
-        encoding="utf-8",
         check=False,
     )
-    return (git.returncode, git.stdout), (ours.returncode, ours.stdout)
+    return (git.returncode, _from_bytes(git.stdout)), (ours.returncode, _from_bytes(ours.stdout))
 
 
 @pytest.mark.os_posix
@@ -418,7 +430,7 @@ def test_check_verbose_prints_what_git_prints(paths: list[str], tmp_path: Path) 
 
 
 @pytest.mark.os_posix
-@pytest.mark.parametrize("name", ["backslash_and_trailing_spaces", "leading_whitespace"])
+@pytest.mark.parametrize("name", ["backslash_and_trailing_spaces", "leading_whitespace", "carriage_returns"])
 def test_check_verbose_prints_the_pattern_git_prints_for_spaces_and_escapes(name: str, tmp_path: Path) -> None:
     # -v shows the pattern the way git stored it: trailing spaces cut, leading spaces kept.
     gitignores, files = SCENARIOS[name]
@@ -441,3 +453,66 @@ def test_check_verbose_zero_separates_every_field_like_git(tmp_path: Path) -> No
     git, ours = _run_both(tmp_path, ["-v", "-z", "--stdin"], ["-v", "-z", "--stdin"], payload)
 
     assert ours == git
+
+
+# --- the README's rule-line example is true for igittigitt and for git ---------
+
+_README = Path(__file__).resolve().parents[1] / "README.md"
+_README_HEADING = "### Spaces, backslashes and comments in rule lines"
+
+
+@dataclass(frozen=True)
+class _ReadmeExample:
+    """The rule lines, base path and ``match`` claims of the README's rule-line example."""
+
+    rule_lines: list[str]
+    base_path: str
+    claims: list[tuple[str, bool]]  # (name relative to base_path, claimed match result)
+
+
+def _literal_str(node: ast.expr) -> str:
+    value = ast.literal_eval(node)
+    assert isinstance(value, str), f"expected a string literal, got {value!r}"
+    return value
+
+
+def _readme_example() -> _ReadmeExample:
+    section = _README.read_text(encoding="utf-8").split(_README_HEADING, 1)[1]
+    found = re.search(r"```python\n(.*?)```", section, flags=re.DOTALL)
+    assert found is not None, "the README section has no python block"
+    block = found.group(1)
+    tree = ast.parse(block)
+    loop = next(node for node in tree.body if isinstance(node, ast.For))
+    assert isinstance(loop.iter, ast.List)
+    add_rule = loop.body[0]
+    assert isinstance(add_rule, ast.Expr) and isinstance(add_rule.value, ast.Call)
+    base_path = _literal_str(add_rule.value.keywords[0].value)
+    source_lines = block.splitlines()
+    claims: list[tuple[str, bool]] = []
+    for node in tree.body:
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+            path = _literal_str(node.value.args[0])
+            verdict = source_lines[node.lineno - 1].rsplit("# ", 1)[1].split()[0]
+            claims.append((path.removeprefix(base_path + "/"), verdict == "True"))
+    return _ReadmeExample([_literal_str(element) for element in loop.iter.elts], base_path, claims)
+
+
+@pytest.mark.os_posix
+def test_readme_rule_line_example_claims_what_igittigitt_returns() -> None:
+    example = _readme_example()
+    parser = igittigitt.IgnoreParser()
+    for line in example.rule_lines:
+        parser.add_rule(line, base_path=example.base_path)
+
+    wrong = [name for name, claim in example.claims if parser.match(f"{example.base_path}/{name}") is not claim]
+
+    assert len(example.claims) >= 10, "the README example lost its match lines"
+    assert not wrong, f"the README claims the wrong result for {wrong}"
+
+
+@pytest.mark.os_posix
+def test_readme_rule_line_example_matches_git(tmp_path: Path) -> None:
+    example = _readme_example()
+    names = [name for name, _claim in example.claims]
+
+    _assert_matches_git(tmp_path, {".gitignore": "\n".join(example.rule_lines) + "\n"}, names)

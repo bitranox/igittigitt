@@ -8,6 +8,34 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+### Fixed
+
+- Spaces in a rule line are now cut exactly as git cuts them ([#53](https://github.com/bitranox/igittigitt/issues/53),
+  reported by @DicksonWu654 with two cases from git's own tests): only the final run of unescaped
+  spaces goes, and a backslash escapes the character after it. `trailing 1 \    ` used to lose the
+  space in front of the escape, so it did not match `trailing 1  `; `trailing 3 \\\\ ` (two escaped
+  backslashes, then a space git cuts) kept its trailing space and did not match `trailing 3 \\`.
+  Spaces in front of an escaped space are no longer removed (`a  \ b` matches `a   b`), and a
+  trailing tab is no longer cut.
+- A rule line ending in a backslash that escapes nothing (`lone\`) matches no path, as in git; it
+  used to match `lone`.
+- A rule file line ends only at `\n`, with one `\r` before it dropped, as in git. A lone `\r`
+  inside a line used to split it in two, so the patterns differed from git's and every later line
+  number reported by `check -v` was off.
+- `check -v`, and the `pattern_original` of the rule `match_with_rule` returns, show the rule with
+  its trailing spaces cut, which is what `git check-ignore -v` prints.
+
+### Changed
+
+- Leading whitespace now belongs to the pattern and a comment starts only with a `#` in the first
+  column, as in git. A line such as `  *.log` used to act as `*.log` and now matches only names
+  that start with two spaces; `  # note` used to be a comment and is now a pattern, and an indented
+  `  !keep.log` is a pattern for a file named `  !keep.log`, not a negation, so `keep.log` stays
+  ignored after `*.log`. Rule files with indented lines lose those rules, as they already do in git.
+- README, skill and Quickstart notebook: a new section on spaces, backslashes and comments in rule
+  lines. The test suite checks the README example against `git check-ignore`, and CI runs the
+  notebook's asserts.
+
 ## [2.4.2] - 2026-11-18
 
 ### Changed
