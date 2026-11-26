@@ -8,6 +8,8 @@ MINOR for backwards-compatible functionality, PATCH for backwards-compatible fix
 
 ## [Unreleased]
 
+## [2.4.3] - 2026-11-26
+
 ### Fixed
 
 - Spaces in a rule line are now cut exactly as git cuts them ([#53](https://github.com/bitranox/igittigitt/issues/53),
