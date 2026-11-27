@@ -16,6 +16,7 @@ jobs:
     outputs:
       python-versions: ${{ steps.metadata.outputs.python-versions }}
       python-latest: ${{ steps.metadata.outputs.python-latest }}
+      python-single-jobs: ${{ steps.metadata.outputs.python-single-jobs }}
       os-matrix: ${{ steps.metadata.outputs.os-matrix }}
       matrix-include: ${{ steps.metadata.outputs.matrix-include }}
     steps:
@@ -79,9 +80,15 @@ jobs:
               if not os_name.startswith("macos") or python == latest
           ]
 
+          # The jobs that run on one Python (pipx/uv verification, notebooks) keep 3.14
+          # while the project declares it; a project that dropped 3.14 gets its newest
+          # version, since a fixed 3.14 cannot install a package that excludes it.
+          single_jobs = "3.14" if "3.14" in versions else latest
+
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"python-versions={json.dumps(versions)}\n")
               fh.write(f"python-latest={latest}\n")
+              fh.write(f"python-single-jobs={single_jobs}\n")
               fh.write(f"os-matrix={json.dumps(os_list)}\n")
               fh.write(f"matrix-include={json.dumps(include)}\n")
 
@@ -614,13 +621,14 @@ jobs:
 
   pipx-uv:
     name: pipx/uv verification (ubuntu)
+    needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.14"
+          python-version: ${{ needs.setup.outputs.python-single-jobs }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
@@ -653,14 +661,15 @@ jobs:
         run: uv cache prune --ci
 
   notebooks:
-    name: Execute notebooks (ubuntu, Python 3.14)
+    name: Execute notebooks (ubuntu, Python ${{ needs.setup.outputs.python-single-jobs }})
+    needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.14"
+          python-version: ${{ needs.setup.outputs.python-single-jobs }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
